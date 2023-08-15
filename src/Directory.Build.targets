@@ -1,0 +1,9 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <PropertyGroup>
+    <Authors>Vladislav Borovikov</Authors>
+    <Company>$(Authors)</Company>
+    <Copyright>Copyright © 2023 Vladislav Borovikov</Copyright>
+    <Product>$(Title)</Product>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+ </PropertyGroup>
+</Project>
