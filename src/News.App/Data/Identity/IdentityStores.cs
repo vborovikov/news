@@ -6,9 +6,11 @@ using System.Threading;
 using Dapper;
 using Microsoft.AspNetCore.Identity;
 
-public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, IdentityRole<TKey>, TKey,
+public abstract class UserStore<TUser, TRole, TKey> : UserStoreBase<TUser, TRole, TKey,
         IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>,
         IdentityUserToken<TKey>, IdentityRoleClaim<TKey>>
+    where TUser : IdentityUser<TKey>
+    where TRole : IdentityRole<TKey>
     where TKey : IEquatable<TKey>, IParsable<TKey>
 {
     private readonly DbDataSource _db;
@@ -18,7 +20,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         _db = db;
     }
 
-    public override async Task AddClaimsAsync(IdentityUser<TKey> user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
+    public override async Task AddClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(claims);
@@ -39,7 +41,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    public override async Task AddLoginAsync(IdentityUser<TKey> user, UserLoginInfo login, CancellationToken cancellationToken = default)
+    public override async Task AddLoginAsync(TUser user, UserLoginInfo login, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(login);
@@ -60,13 +62,13 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    public override async Task AddToRoleAsync(IdentityUser<TKey> user, string normalizedRoleName, CancellationToken cancellationToken = default)
+    public override async Task AddToRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(normalizedRoleName);
 
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var role = await cnn.QueryFirstOrDefaultAsync<IdentityRole<TKey>>(@"
+        var role = await cnn.QueryFirstOrDefaultAsync<TRole>(@"
                 select * from asp.Roles where NormalizedName = @normalizedRoleName",
                 new { normalizedRoleName });
         if (role is null)
@@ -87,7 +89,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    public override async Task<IdentityResult> CreateAsync(IdentityUser<TKey> user, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -115,7 +117,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return result > 0 ? IdentityResult.Success : IdentityResult.Failed(this.ErrorDescriber.DefaultError());
     }
 
-    public override async Task<IdentityResult> DeleteAsync(IdentityUser<TKey> user, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> DeleteAsync(TUser user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -134,34 +136,34 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return result > 0 ? IdentityResult.Success : IdentityResult.Failed(this.ErrorDescriber.DefaultError());
     }
 
-    public override async Task<IdentityUser<TKey>?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
+    public override async Task<TUser?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(normalizedEmail);
 
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var user = await cnn.QuerySingleOrDefaultAsync<IdentityUser<TKey>>(
+        var user = await cnn.QuerySingleOrDefaultAsync<TUser>(
             @"select u.* from asp.Users u where u.NormalizedEmail = @normalizedEmail", new { normalizedEmail });
         return user;
     }
 
-    public override Task<IdentityUser<TKey>?> FindByIdAsync(string userId, CancellationToken cancellationToken = default)
+    public override Task<TUser?> FindByIdAsync(string userId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(userId);
 
         return FindUserAsync(TKey.Parse(userId, null), cancellationToken);
     }
 
-    public override async Task<IdentityUser<TKey>?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
+    public override async Task<TUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(normalizedUserName);
 
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var user = await cnn.QuerySingleOrDefaultAsync<IdentityUser<TKey>>(@"
+        var user = await cnn.QuerySingleOrDefaultAsync<TUser>(@"
             select u.* from asp.Users u where u.NormalizedUserName = @normalizedUserName", new { normalizedUserName });
         return user;
     }
 
-    public override async Task<IList<Claim>> GetClaimsAsync(IdentityUser<TKey> user, CancellationToken cancellationToken = default)
+    public override async Task<IList<Claim>> GetClaimsAsync(TUser user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -170,7 +172,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return userClaims.Select(uc => uc.ToClaim()).ToArray();
     }
 
-    public override async Task<IList<UserLoginInfo>> GetLoginsAsync(IdentityUser<TKey> user, CancellationToken cancellationToken = default)
+    public override async Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -179,7 +181,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return userLogins.Select(ul => new UserLoginInfo(ul.LoginProvider, ul.ProviderKey, ul.ProviderDisplayName)).ToArray();
     }
 
-    public override async Task<IList<string>> GetRolesAsync(IdentityUser<TKey> user, CancellationToken cancellationToken = default)
+    public override async Task<IList<string>> GetRolesAsync(TUser user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -192,24 +194,24 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return userRoles.ToArray();
     }
 
-    public override async Task<IList<IdentityUser<TKey>>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default)
+    public override async Task<IList<TUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(claim);
 
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var users = await cnn.QueryAsync<IdentityUser<TKey>>(
+        var users = await cnn.QueryAsync<TUser>(
             @"select u.* from asp.Users u
             inner join asp.UserClaims uc on u.Id = uc.UserId
             where uc.ClaimVlaue = @Value and uc.ClaimType = @Type", claim);
         return users.ToArray();
     }
 
-    public override async Task<IList<IdentityUser<TKey>>> GetUsersInRoleAsync(string normalizedRoleName, CancellationToken cancellationToken = default)
+    public override async Task<IList<TUser>> GetUsersInRoleAsync(string normalizedRoleName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(normalizedRoleName);
 
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var users = await cnn.QueryAsync<IdentityUser<TKey>>(
+        var users = await cnn.QueryAsync<TUser>(
             @"select u.* from asp.Users u
             inner join asp.UserRoles ur on u.Id = ur.UserId
             inner join asp.Roles r on r.NormalizedName = @normalizedRoleName
@@ -218,7 +220,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return users.ToArray();
     }
 
-    public override async Task<bool> IsInRoleAsync(IdentityUser<TKey> user, string normalizedRoleName, CancellationToken cancellationToken = default)
+    public override async Task<bool> IsInRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(normalizedRoleName);
@@ -232,7 +234,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return userRole is not null;
     }
 
-    public override async Task RemoveClaimsAsync(IdentityUser<TKey> user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
+    public override async Task RemoveClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(claims);
@@ -253,7 +255,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    public override async Task RemoveFromRoleAsync(IdentityUser<TKey> user, string normalizedRoleName, CancellationToken cancellationToken = default)
+    public override async Task RemoveFromRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(normalizedRoleName);
@@ -274,7 +276,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    public override async Task RemoveLoginAsync(IdentityUser<TKey> user, string loginProvider, string providerKey, CancellationToken cancellationToken = default)
+    public override async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(loginProvider);
@@ -296,7 +298,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    public override async Task ReplaceClaimAsync(IdentityUser<TKey> user, Claim claim, Claim newClaim, CancellationToken cancellationToken = default)
+    public override async Task ReplaceClaimAsync(TUser user, Claim claim, Claim newClaim, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(claim);
@@ -326,7 +328,7 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    public override async Task<IdentityResult> UpdateAsync(IdentityUser<TKey> user, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> UpdateAsync(TUser user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -379,16 +381,16 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         }
     }
 
-    protected override async Task<IdentityRole<TKey>?> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
+    protected override async Task<TRole?> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
     {
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var role = await cnn.QuerySingleOrDefaultAsync<IdentityRole<TKey>>(
+        var role = await cnn.QuerySingleOrDefaultAsync<TRole>(
             @"select r.* from asp.Roles r 
             where r.NormalizedName = @normalizedRoleName", new { normalizedRoleName });
         return role;
     }
 
-    protected override async Task<IdentityUserToken<TKey>?> FindTokenAsync(IdentityUser<TKey> user, string loginProvider, string name, CancellationToken cancellationToken)
+    protected override async Task<IdentityUserToken<TKey>?> FindTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(loginProvider);
@@ -402,10 +404,10 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
         return token;
     }
 
-    protected override async Task<IdentityUser<TKey>?> FindUserAsync(TKey userId, CancellationToken cancellationToken)
+    protected override async Task<TUser?> FindUserAsync(TKey userId, CancellationToken cancellationToken)
     {
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var user = await cnn.QuerySingleOrDefaultAsync<IdentityUser<TKey>>(
+        var user = await cnn.QuerySingleOrDefaultAsync<TUser>(
             @"select u.* from asp.Users u where u.Id = @userId", new { userId });
         return user;
     }
@@ -466,7 +468,8 @@ public abstract class UserStore<TKey> : UserStoreBase<IdentityUser<TKey>, Identi
     }
 }
 
-public abstract class RoleStore<TKey> : RoleStoreBase<IdentityRole<TKey>, TKey, IdentityUserRole<TKey>, IdentityRoleClaim<TKey>>
+public abstract class RoleStore<TRole, TKey> : RoleStoreBase<TRole, TKey, IdentityUserRole<TKey>, IdentityRoleClaim<TKey>>
+    where TRole : IdentityRole<TKey>
     where TKey : IEquatable<TKey>
 {
     private readonly DbDataSource _db;
@@ -476,7 +479,7 @@ public abstract class RoleStore<TKey> : RoleStoreBase<IdentityRole<TKey>, TKey, 
         _db = db;
     }
 
-    public override async Task AddClaimAsync(IdentityRole<TKey> role, Claim claim, CancellationToken cancellationToken = default)
+    public override async Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(role);
         ArgumentNullException.ThrowIfNull(claim);
@@ -497,7 +500,7 @@ public abstract class RoleStore<TKey> : RoleStoreBase<IdentityRole<TKey>, TKey, 
         }
     }
 
-    public override async Task<IdentityResult> CreateAsync(IdentityRole<TKey> role, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> CreateAsync(TRole role, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(role);
 
@@ -519,7 +522,7 @@ public abstract class RoleStore<TKey> : RoleStoreBase<IdentityRole<TKey>, TKey, 
         return result > 0 ? IdentityResult.Success : IdentityResult.Failed(this.ErrorDescriber.DefaultError());
     }
 
-    public override async Task<IdentityResult> DeleteAsync(IdentityRole<TKey> role, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> DeleteAsync(TRole role, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(role);
 
@@ -540,27 +543,27 @@ public abstract class RoleStore<TKey> : RoleStoreBase<IdentityRole<TKey>, TKey, 
         return result > 0 ? IdentityResult.Success : IdentityResult.Failed(this.ErrorDescriber.DefaultError());
     }
 
-    public override async Task<IdentityRole<TKey>?> FindByIdAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<TRole?> FindByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
 
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var role = await cnn.QuerySingleOrDefaultAsync<IdentityRole<TKey>>(@"
+        var role = await cnn.QuerySingleOrDefaultAsync<TRole>(@"
             select r.* from asp.Roles r where r.Id = @id", new { id });
         return role;
     }
 
-    public override async Task<IdentityRole<TKey>?> FindByNameAsync(string normalizedName, CancellationToken cancellationToken = default)
+    public override async Task<TRole?> FindByNameAsync(string normalizedName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(normalizedName);
 
         await using var cnn = await _db.OpenConnectionAsync(cancellationToken);
-        var role = await cnn.QuerySingleOrDefaultAsync<IdentityRole<TKey>>(@"
+        var role = await cnn.QuerySingleOrDefaultAsync<TRole>(@"
             select r.* from asp.Roles r where r.NormalizedName = @normalizedName", new { normalizedName });
         return role;
     }
 
-    public override async Task<IList<Claim>> GetClaimsAsync(IdentityRole<TKey> role, CancellationToken cancellationToken = default)
+    public override async Task<IList<Claim>> GetClaimsAsync(TRole role, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(role);
 
@@ -570,7 +573,7 @@ public abstract class RoleStore<TKey> : RoleStoreBase<IdentityRole<TKey>, TKey, 
         return claims.Select(rc => rc.ToClaim()).ToArray();
     }
 
-    public override async Task RemoveClaimAsync(IdentityRole<TKey> role, Claim claim, CancellationToken cancellationToken = default)
+    public override async Task RemoveClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(role);
         ArgumentNullException.ThrowIfNull(claim);
@@ -590,7 +593,7 @@ public abstract class RoleStore<TKey> : RoleStoreBase<IdentityRole<TKey>, TKey, 
         }
     }
 
-    public override async Task<IdentityResult> UpdateAsync(IdentityRole<TKey> role, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> UpdateAsync(TRole role, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(role);
 

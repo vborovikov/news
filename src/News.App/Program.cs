@@ -14,7 +14,7 @@ public static class Program
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         builder.Services.AddScoped(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
 
-        builder.Services.AddIdentity<IdentityUser<Guid>, IdentityRole<Guid>>(options => options.SignIn.RequireConfirmedAccount = true)
+        builder.Services.AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
             .AddUserStore<AppUserStore>()
             .AddRoleStore<AppRoleStore>()
             .AddDefaultUI()
