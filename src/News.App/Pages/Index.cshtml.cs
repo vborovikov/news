@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+﻿namespace News.App.Pages;
 
-namespace News.App.Pages;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
 public class IndexModel : PageModel
 {
@@ -12,7 +12,7 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public void OnGet()
+    public void OnGet(string? slug = null)
     {
 
     }
