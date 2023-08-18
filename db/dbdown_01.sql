@@ -10,6 +10,12 @@ go
 drop table rss.UserFeeds;
 go
 
+drop table rss.UserChannels;
+go
+
+drop table rss.Channels;
+go
+
 drop table rss.Posts;
 go
 
