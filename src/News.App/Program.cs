@@ -21,6 +21,10 @@ public static class Program
             .AddDefaultTokenProviders();
 
         builder.Services.AddRazorPages();
+        builder.Services.Configure<RouteOptions>(options =>
+        {
+            options.LowercaseUrls = true;
+        });
 
         var app = builder.Build();
 
