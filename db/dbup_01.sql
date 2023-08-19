@@ -43,9 +43,11 @@ create table rss.UserChannels (
     UserId uniqueidentifier not null foreign key references asp.Users(Id) on delete cascade,
     ChannelId uniqueidentifier not null foreign key references rss.Channels(Id) on delete cascade,
     Name nvarchar(100) not null check (Name != N''),
+    Slug varchar(100) not null check (Slug != ''),
     constraint PK_UserChannels primary key (UserId, ChannelId),
     index IXC_UserChannels clustered (UserId, ChannelId),
-    index IX_UserChannels_Name unique nonclustered (Name, UserId)
+    index IX_UserChannels_Name unique nonclustered (Name, UserId),
+    index IX_UserChannels_Slug unique nonclustered (Slug, UserId)
 );
 go
 
