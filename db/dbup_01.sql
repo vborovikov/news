@@ -34,8 +34,8 @@ go
 
 create table rss.Channels (
     Id uniqueidentifier not null primary key,
-    Name nvarchar(100) not null check (Name != N'') index IX_Channels_Name unique nonclustered,
-    Slug varchar(100) not null check (Slug != '') index IX_Channels_Slug unique clustered
+    Name nvarchar(100) not null check (Name != N'') index IX_Channels_Name nonclustered,
+    Slug varchar(100) not null check (Slug != '') index IXC_Channels_Slug clustered
 );
 go
 
