@@ -2,27 +2,20 @@
 
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
 
-<h4 class="border-bottom border-info border-2">
-    <span class="badge bg-info rounded-0 rounded-top">Info</span>
-</h4>
-
-<div class="row">
-    <div class="col-6">
-        <h6>
-            <a data-bs-toggle="collapse" href="#kk" class="btn btn-sm btn-warning">#</a>
-            Feed Title
-        </h6>
-        <div class="collapse" id="kk">
-            <p class="text-muted">
-                Description goes here
-            </p>
-        </div>
+@foreach (var channel in Model.Channels)
+{
+    <h4 class="border-bottom border-info border-2">
+        <span class="badge bg-info rounded-0 rounded-top">@channel.Name</span>
+    </h4>
+    <div class="row">
+        @foreach (var feed in channel.Feeds)
+        {
+            <div class="col-6 col-sm-12">
+                <a asp-page="/Feed" asp-route-slug="@feed.Slug">@feed.Title</a>
+            </div>
+        }
     </div>
-    <div class="col-6">
-    </div>
-    <div class="col-6">
-    </div>
-</div>
+}
