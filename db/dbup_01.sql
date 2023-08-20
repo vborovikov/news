@@ -27,6 +27,7 @@ create table rss.Posts (
     Link nvarchar(850) not null check (Link != N'') index IX_Posts_Link unique nonclustered,
     Published datetimeoffset not null default sysdatetimeoffset(),
     Title nvarchar(100) not null check (Title != N''),
+    Description nvarchar(250) null,
     Content nvarchar(max) not null check (Content != N''),
     index IXC_Posts clustered (FeedId, Id)
 );
