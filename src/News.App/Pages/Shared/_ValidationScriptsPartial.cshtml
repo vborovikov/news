@@ -1,2 +1,6 @@
-﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+﻿<script async type="module" src="~/lib/aspnet-client-validation/dist/aspnet-validation.min.js"></script>
+<script type="module">
+    import { ValidationService } from '/lib/aspnet-client-validation/dist/aspnet-client-validation';
+    let vs = new ValidationService();
+    vs.bootstrap();
+</script>

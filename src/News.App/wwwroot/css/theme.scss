@@ -1,0 +1,21 @@
+$enable-gradients: true;
+    
+@import "../lib/bootstrap/scss/bootstrap";
+
+// Validation
+
+.input-validation-error {
+    @extend .is-invalid;
+}
+
+.input-validation-valid {
+    @extend .is-valid;
+}
+
+.field-validation-error {
+    @extend .invalid-feedback;
+}
+
+.field-validation-valid {
+    @extend .valid-feedback;
+}
