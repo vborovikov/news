@@ -22,14 +22,14 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync(string? slug = null, CancellationToken cancellationToken = default)
     {
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdStr = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdStr, out var userId))
         {
             // user not logged in
             return;
         }
 
-        await using var cnn = await db.OpenConnectionAsync(cancellationToken);
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         if (string.IsNullOrWhiteSpace(slug))
         {
             // get user channels

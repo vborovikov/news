@@ -4,7 +4,7 @@ using System.Data.Common;
 using Microsoft.AspNetCore.Identity;
 using Identity;
 
-sealed class AppUser : IdentityUser<Guid>
+public sealed class AppUser : IdentityUser<Guid>
 {
     public AppUser()
     {
@@ -14,7 +14,7 @@ sealed class AppUser : IdentityUser<Guid>
     }
 }
 
-sealed class AppRole : IdentityRole<Guid>
+public sealed class AppRole : IdentityRole<Guid>
 {
     public AppRole()
     {
