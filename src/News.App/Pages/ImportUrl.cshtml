@@ -10,47 +10,47 @@
         <fieldset class="form-group">
             <legend>Feed</legend>
             <div class="row">
-                <div class="col-8">
+                <div class="col-12 col-sm-8">
                     <label asp-for="Feed.FeedUrl">URL</label>
-                    <div class="input-group">
+                    <div class="input-group has-validation">
                         <span class="input-group-text">&#x1F310;</span>
                         <input asp-for="Feed.FeedUrl" type="url" class="form-control" placeholder="Feed URL or website address">
+                        <span asp-validation-for="Feed.FeedUrl"></span>
                     </div>
-                    <span asp-validation-for="Feed.FeedUrl"></span>
                 </div>
-                <div class="col-4">
+                <div class="col-12 col-sm-4">
                     <label asp-for="Feed.FeedSlug">Slug</label>
-                    <div class="input-group">
+                    <div class="input-group has-validation">
                         <span class="input-group-text">&#x1F50E;</span>
                         <input asp-for="Feed.FeedSlug" type="text" class="form-control" placeholder="Slug">
+                        <span asp-validation-for="Feed.FeedSlug"></span>
                     </div>
-                    <span asp-validation-for="Feed.FeedSlug"></span>
                 </div>
             </div>
         </fieldset>
         <fieldset class="form-group mt-3">
             <legend>Channel</legend>
             <div class="row">
-                <div class="col">
+                <div class="col-12">
                     <label asp-for="Feed.ChannelId">Channel</label>
                     <div class="input-group">
                         <div class="input-group-text">&#x1F516;</div>
                         <select asp-for="Feed.ChannelId" asp-items="Model.ChannelList" class="form-control">
-                            <option value="">Select channel</option>
+                            <option value="">Select existing channel</option>
                         </select>
                     </div>
                     <span asp-validation-for="Feed.ChannelId"></span>
                 </div>
             </div>
             <div class="row">
-                <div class="col-6">
+                <div class="col-12 col-sm-6">
                     <label asp-for="Feed.ChannelName">Name</label>
-                    <input asp-for="Feed.ChannelName" type="text" class="form-control" placeholder="Channel name">
+                    <input asp-for="Feed.ChannelName" type="text" class="form-control" placeholder="New channel name">
                     <span asp-validation-for="Feed.ChannelName"></span>
                 </div>
-                <div class="col-6">
+                <div class="col-12 col-sm-6">
                     <label asp-for="Feed.ChannelSlug">Slug</label>
-                    <input asp-for="Feed.ChannelSlug" type="text" class="form-control" placeholder="Channel slug">
+                    <input asp-for="Feed.ChannelSlug" type="text" class="form-control" placeholder="New channel slug">
                     <span asp-validation-for="Feed.ChannelSlug"></span>
                 </div>
             </div>
