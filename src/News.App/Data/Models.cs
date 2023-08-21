@@ -9,7 +9,7 @@ public record RssChannelInfo
 
 public record RssChannel : RssChannelInfo
 {
-    public IEnumerable<RssFeedInfo> Feeds { get; init; } = Enumerable.Empty<RssFeedInfo>();
+    public IEnumerable<RssFeed> Feeds { get; init; } = Enumerable.Empty<RssFeed>();
 }
 
 public record RssFeedInfo
@@ -24,9 +24,16 @@ public record RssFeed : RssFeedInfo
     public IEnumerable<RssPost> Posts { get; init; } = Enumerable.Empty<RssPost>();
 }
 
-public record RssPost
+public record RssPostInfo
 {
     public Guid PostId { get; init; }
+    public DateTimeOffset Published { get; init; }
+    public Uri Link { get; init; }
     public string Title { get; init; }
+    public bool IsRead { get; init; }
+}
+
+public record RssPost : RssPostInfo
+{
     public string Content { get; init; }
 }

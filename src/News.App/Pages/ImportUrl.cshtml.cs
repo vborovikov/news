@@ -72,6 +72,9 @@ public class ImportUrlModel : PageModel
 
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+
+        RssChannelInfo channel = null!;
+        RssFeedInfo feed = null!;
         try
         {
             // insert channel if it's new, generate slug for it, copy to user channels
@@ -93,7 +96,7 @@ public class ImportUrlModel : PageModel
             else 
             {
                 // existing feed channel, check if user has it
-                var channel = await cnn.QueryFirstOrDefaultAsync<RssChannelInfo>(
+                channel = await cnn.QueryFirstOrDefaultAsync<RssChannelInfo>(
                     """
                     select ch.Id as ChannelId, isnull(uc.Name, ch.Name) as Name, isnull(uc.Slug, ch.Slug) as Slug
                     from rss.UserChannels uc
@@ -102,7 +105,7 @@ public class ImportUrlModel : PageModel
                     """, new { UserId = userId, ChannelId = channelId }, tx);
                 if (channel is null)
                 {
-                    await cnn.ExecuteAsync(
+                    channel = await cnn.QuerySingleAsync<RssChannelInfo>(
                         """
                         declare @ChannelName nvarchar(100);
                         declare @ChannelSlug varchar(100);
@@ -112,7 +115,7 @@ public class ImportUrlModel : PageModel
                         where Id = @ChannelId;
 
                         insert into rss.UserChannels (UserId, ChannelId, Name, Slug)
-                        output inserted
+                        output inserted.ChannelId, inserted.Name, inserted.Slug
                         values (@UserId, @ChannelId, @ChannelName, @ChannelSlug);
                         """, new { UserId = userId, ChannelId = channelId }, tx);
                 }
@@ -128,7 +131,7 @@ public class ImportUrlModel : PageModel
             if (userFeed is null)
             {
                 // user feed not found
-                var feed = await cnn.QueryFirstOrDefaultAsync<RssFeedInfo>(
+                feed = await cnn.QueryFirstOrDefaultAsync<RssFeedInfo>(
                     """
                     select f.Id as FeedId, f.Title
                     from rss.Feeds f
@@ -145,7 +148,7 @@ public class ImportUrlModel : PageModel
                         """, new { FeedId = Guid.NewGuid(), this.Feed.FeedUrl }, tx);
                 }
 
-                await cnn.ExecuteAsync(
+                feed = await cnn.QuerySingleAsync<RssFeedInfo>(
                     """
                     declare @FeedTitle nvarchar(100);
 
@@ -154,6 +157,7 @@ public class ImportUrlModel : PageModel
                     where Id = @FeedId;
 
                     insert into rss.UserFeeds (UserId, FeedId, ChannelId, Title, Slug)
+                    output inserted.FeedId as FeedId, inserted.Title, inserted.Slug
                     values (@UserId, @FeedId, @ChannelId, @FeedTitle, @FeedSlug);
                     """, new { UserId = userId, feed.FeedId, ChannelId = channelId, this.Feed.FeedSlug }, tx);
             }
@@ -170,7 +174,7 @@ public class ImportUrlModel : PageModel
         }
 
         // redirect to the feed
-        return RedirectToPage("Feed", new { slug = this.Feed.FeedSlug });
+        return RedirectToPage("Index", new { channel = channel?.Slug, feed = feed?.Slug });
     }
 
     public record FeedImport
