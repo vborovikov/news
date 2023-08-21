@@ -11,7 +11,7 @@ static class Program
 {
     public static void Main(string[] args)
     {
-        IHost host = Host.CreateDefaultBuilder(args)
+        var host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((hostContext, services) =>
             {
                 var connectionString =
@@ -34,7 +34,8 @@ static class Program
             .UseWindowsService(options =>
             {
                 options.ServiceName = ServiceOptions.ServiceName;
-            }).Build();
+            })
+            .Build();
 
         host.Run();
     }
