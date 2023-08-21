@@ -9,7 +9,7 @@ record ServiceOptions
 
 static class Program
 {
-    public static void Main(string[] args)
+    public static Task Main(string[] args)
     {
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((hostContext, services) =>
@@ -37,6 +37,6 @@ static class Program
             })
             .Build();
 
-        host.Run();
+        return host.RunAsync();
     }
 }
