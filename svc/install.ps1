@@ -8,3 +8,5 @@ $params = @{
   Description = 'News aggregator service'
 }
 New-Service @params
+
+New-EventLog -Source "Newsmaker" -LogName "Application"
