@@ -1,6 +1,5 @@
-﻿<script async type="module" src="~/lib/aspnet-client-validation/dist/aspnet-validation.min.js"></script>
-<script type="module">
-    import { ValidationService } from '/lib/aspnet-client-validation/dist/aspnet-client-validation';
-    let vs = new ValidationService();
+﻿<script src="~/lib/aspnet-client-validation/dist/aspnet-validation.min.js"></script>
+<script>
+    const vs = new aspnetValidation.ValidationService();
     vs.bootstrap();
 </script>
