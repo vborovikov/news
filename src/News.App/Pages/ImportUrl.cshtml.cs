@@ -130,7 +130,7 @@ public class ImportUrlModel : PageModel
                 // user feed not found
                 var feed = await cnn.QueryFirstOrDefaultAsync<RssFeedInfo>(
                     """
-                    select f.Id as FeedId, f.Title, f.Slug
+                    select f.Id as FeedId, f.Title
                     from rss.Feeds f
                     where f.Source = @FeedUrl;
                     """, new { this.Feed.FeedUrl }, tx);
@@ -139,10 +139,10 @@ public class ImportUrlModel : PageModel
                     // completely new feed
                     feed = await cnn.QuerySingleAsync<RssFeedInfo>(
                         """
-                        insert into rss.Feeds (Source, Link, Title)
+                        insert into rss.Feeds (Id, Source, Link, Title)
                         output inserted.Id as FeedId, inserted.Title
-                        values (@FeedUrl, @FeedUrl, @FeedUrl);
-                        """, new { this.Feed.FeedUrl }, tx);
+                        values (@FeedId, @FeedUrl, @FeedUrl, @FeedUrl);
+                        """, new { FeedId = Guid.NewGuid(), this.Feed.FeedUrl }, tx);
                 }
 
                 await cnn.ExecuteAsync(
@@ -153,9 +153,9 @@ public class ImportUrlModel : PageModel
                     from rss.Feeds
                     where Id = @FeedId;
 
-                    insert into rss.UserFeeds (UserId, FeedId, Title, Slug)
-                    values (@UserId, @FeedId, @FeedTitle, @FeedSlug);
-                    """, new { UserId = userId, feed.FeedId, this.Feed.FeedSlug }, tx);
+                    insert into rss.UserFeeds (UserId, FeedId, ChannelId, Title, Slug)
+                    values (@UserId, @FeedId, @ChannelId, @FeedTitle, @FeedSlug);
+                    """, new { UserId = userId, feed.FeedId, ChannelId = channelId, this.Feed.FeedSlug }, tx);
             }
 
             await tx.CommitAsync(cancellationToken);
@@ -170,7 +170,7 @@ public class ImportUrlModel : PageModel
         }
 
         // redirect to the feed
-        return RedirectToPage("Feed");
+        return RedirectToPage("Feed", new { slug = this.Feed.FeedSlug });
     }
 
     public record FeedImport
