@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>NewsApp</UserSecretsId>
+    <Title>News Reader</Title>
+    <Description>News website</Description>
   </PropertyGroup>
 
   <ItemGroup>
