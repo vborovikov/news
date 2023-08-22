@@ -1,5 +1,15 @@
 ﻿<script src="~/lib/aspnet-client-validation/dist/aspnet-validation.min.js"></script>
 <script>
     const vs = new aspnetValidation.ValidationService();
+
+    vs.addProvider("requiredif", function (value, element, params) {
+        const otherPropertyValue = document.getElementsByName(params.property)[0].value;
+        if (otherPropertyValue === params.value) {
+            return !!value;
+        }
+
+        return true;
+    });
+
     vs.bootstrap();
 </script>
