@@ -33,13 +33,13 @@
             <div class="row">
                 <div class="col-12">
                     <label asp-for="Input.ChannelId">Channel</label>
-                    <div class="input-group">
+                    <div class="input-group has-validation">
                         <div class="input-group-text">&#x1F516;</div>
                         <select asp-for="Input.ChannelId" asp-items="Model.Channels" class="form-control">
                             <option value="">Select existing channel</option>
                         </select>
+                        <span asp-validation-for="Input.ChannelId"></span>
                     </div>
-                    <span asp-validation-for="Input.ChannelId"></span>
                 </div>
             </div>
             <div class="row">
