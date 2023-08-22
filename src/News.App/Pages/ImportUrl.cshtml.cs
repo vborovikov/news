@@ -30,7 +30,7 @@ public class ImportUrlModel : PageModel
     }
 
     [BindProperty]
-    public InputModel Input { get; set; }
+    public InputModel Input { get; init; }
 
     public SelectList Channels => new(this.channels, nameof(RssChannelInfo.ChannelId), nameof(RssChannelInfo.Name), this.Input.ChannelId);
 
@@ -66,7 +66,7 @@ public class ImportUrlModel : PageModel
         var userIdStr = this.userManager.GetUserId(this.User);
         if (!this.ModelState.IsValid || this.Input?.IsValid != true || !Guid.TryParse(userIdStr, out var userId))
         {
-            this.ModelState.AddModelError(nameof(this.Input.FeedUrl), "Invalid URL");
+            this.ModelState.AddModelError("", "Invalid URL");
             return Page();
         }
 
@@ -167,7 +167,7 @@ public class ImportUrlModel : PageModel
         catch (Exception x)
         {
             await tx.RollbackAsync(cancellationToken);
-            this.ModelState.AddModelError(nameof(this.Input.FeedUrl), x.Message);
+            this.ModelState.AddModelError("", x.Message);
             this.log.LogError(x, "Import URL failed");
 
             return Page();

@@ -3,3 +3,21 @@
 @{
     ViewData["Title"] = "Import";
 }
+
+<div class="bg-white p-4 shadow">
+    <form method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Input.OpmlFile" class="form-label">OPML file</label>
+            <input asp-for="Input.OpmlFile" type="file" accept=".opml,text/x-opml" class="form-control">
+            <span asp-validation-for="Input.OpmlFile"></span>
+        </div>
+
+        <button type="submit" class="btn btn-outline-primary mt-3">@ViewBag.Title</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

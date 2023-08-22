@@ -1,32 +1,42 @@
 namespace News.App.Pages;
 
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-[BindProperties]
+[Authorize]
 public class ImportOpmlModel : PageModel
 {
-    [Required]
-    public IFormFile OpmlFile { get; set; }
+    public ImportOpmlModel()
+    {
+        this.Input = new();
+    }
 
-    public async Task OnGetAsync()
+
+    [BindProperty]
+    public InputModel Input { get; init; }
+
+    public void OnGet()
     {
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken = default)
     {
-        if (!ModelState.IsValid)
+        if (!this.ModelState.IsValid || !this.Input.IsValid)
         {
-            return Page();
-        }
-
-        if (this.OpmlFile is null || this.OpmlFile.Length == 0)
-        {
-            this.ModelState.AddModelError(nameof(this.OpmlFile), "File is empty");
+            this.ModelState.AddModelError("", "OPML file is empty or invalid");
             return Page();
         }
 
         return RedirectToPage("Index");
+    }
+
+    public record InputModel
+    {
+        [Required, Display(Name = "OPML file")]
+        public IFormFile? OpmlFile { get; init; }
+
+        public bool IsValid => this.OpmlFile is not null && this.OpmlFile.Length > 0;
     }
 }
