@@ -19,20 +19,20 @@ public class ImportUrlModel : PageModel
     private readonly UserManager<AppUser> userManager;
     private readonly DbDataSource db;
     private readonly ILogger<ImportUrlModel> log;
+    private IEnumerable<RssChannelInfo> channels = Array.Empty<RssChannelInfo>();
 
     public ImportUrlModel(UserManager<AppUser> userManager, DbDataSource db, ILogger<ImportUrlModel> log)
     {
         this.userManager = userManager;
         this.db = db;
         this.log = log;
-        this.Feed = new();
+        this.Input = new();
     }
 
     [BindProperty]
-    public FeedImport Feed { get; set; }
+    public InputModel Input { get; set; }
 
-    public IEnumerable<RssChannelInfo> Channels { get; private set; } = Array.Empty<RssChannelInfo>();
-    public SelectList ChannelList => new(this.Channels, nameof(RssChannelInfo.ChannelId), nameof(RssChannelInfo.Name), this.Feed.ChannelId);
+    public SelectList Channels => new(this.channels, nameof(RssChannelInfo.ChannelId), nameof(RssChannelInfo.Name), this.Input.ChannelId);
 
     public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
     {
@@ -45,7 +45,7 @@ public class ImportUrlModel : PageModel
         }
 
         await using var cnn = await this.db.OpenConnectionAsync(this.HttpContext.RequestAborted);
-        this.Channels = await cnn.QueryAsync<RssChannelInfo>(
+        this.channels = await cnn.QueryAsync<RssChannelInfo>(
             """
             select ch.Id as ChannelId, isnull(uc.Name, ch.Name) as Name, isnull(uc.Slug, ch.Slug) as Slug
             from rss.UserChannels uc
@@ -64,9 +64,9 @@ public class ImportUrlModel : PageModel
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken = default)
     {
         var userIdStr = this.userManager.GetUserId(this.User);
-        if (!this.ModelState.IsValid || this.Feed?.IsValid != true || !Guid.TryParse(userIdStr, out var userId))
+        if (!this.ModelState.IsValid || this.Input?.IsValid != true || !Guid.TryParse(userIdStr, out var userId))
         {
-            this.ModelState.AddModelError(nameof(this.Feed.FeedUrl), "Invalid URL");
+            this.ModelState.AddModelError(nameof(this.Input.FeedUrl), "Invalid URL");
             return Page();
         }
 
@@ -78,7 +78,7 @@ public class ImportUrlModel : PageModel
         try
         {
             // insert channel if it's new, generate slug for it, copy to user channels
-            if (!Guid.TryParse(this.Feed.ChannelId, out var channelId))
+            if (!Guid.TryParse(this.Input.ChannelId, out var channelId))
             {
                 channelId = Guid.NewGuid();
 
@@ -90,7 +90,7 @@ public class ImportUrlModel : PageModel
 
                     insert into rss.UserChannels (UserId, ChannelId, Name, Slug)
                     values (@UserId, @ChannelId, @ChannelName, @ChannelSlug);
-                    """, new { UserId = userId, ChannelId = channelId, this.Feed.ChannelName, this.Feed.ChannelSlug }, tx);
+                    """, new { UserId = userId, ChannelId = channelId, this.Input.ChannelName, this.Input.ChannelSlug }, tx);
 
             }
             else 
@@ -127,7 +127,7 @@ public class ImportUrlModel : PageModel
                 from rss.UserFeeds uf
                 right outer join rss.Feeds f on uf.FeedId = f.Id
                 where uf.UserId = @UserId and f.Source = @FeedUrl
-                """, new { UserId = userId, this.Feed.FeedUrl }, tx);
+                """, new { UserId = userId, this.Input.FeedUrl }, tx);
             if (userFeed is null)
             {
                 // user feed not found
@@ -136,7 +136,7 @@ public class ImportUrlModel : PageModel
                     select f.Id as FeedId, f.Title
                     from rss.Feeds f
                     where f.Source = @FeedUrl;
-                    """, new { this.Feed.FeedUrl }, tx);
+                    """, new { this.Input.FeedUrl }, tx);
                 if (feed is null)
                 {
                     // completely new feed
@@ -145,7 +145,7 @@ public class ImportUrlModel : PageModel
                         insert into rss.Feeds (Id, Source, Link, Title)
                         output inserted.Id as FeedId, inserted.Title
                         values (@FeedId, @FeedUrl, @FeedUrl, @FeedUrl);
-                        """, new { FeedId = Guid.NewGuid(), this.Feed.FeedUrl }, tx);
+                        """, new { FeedId = Guid.NewGuid(), this.Input.FeedUrl }, tx);
                 }
 
                 feed = await cnn.QuerySingleAsync<RssFeedInfo>(
@@ -159,7 +159,7 @@ public class ImportUrlModel : PageModel
                     insert into rss.UserFeeds (UserId, FeedId, ChannelId, Title, Slug)
                     output inserted.FeedId as FeedId, inserted.Title, inserted.Slug
                     values (@UserId, @FeedId, @ChannelId, @FeedTitle, @FeedSlug);
-                    """, new { UserId = userId, feed.FeedId, ChannelId = channelId, this.Feed.FeedSlug }, tx);
+                    """, new { UserId = userId, feed.FeedId, ChannelId = channelId, this.Input.FeedSlug }, tx);
             }
 
             await tx.CommitAsync(cancellationToken);
@@ -167,7 +167,7 @@ public class ImportUrlModel : PageModel
         catch (Exception x)
         {
             await tx.RollbackAsync(cancellationToken);
-            this.ModelState.AddModelError(nameof(this.Feed.FeedUrl), x.Message);
+            this.ModelState.AddModelError(nameof(this.Input.FeedUrl), x.Message);
             this.log.LogError(x, "Import URL failed");
 
             return Page();
@@ -177,20 +177,20 @@ public class ImportUrlModel : PageModel
         return RedirectToPage("Index", new { channel = channel?.Slug, feed = feed?.Slug });
     }
 
-    public record FeedImport
+    public record InputModel
     {
-        [Required, Url]
+        [Required, Url, Display(Name = "Feed URL")]
         public string? FeedUrl { get; init; }
 
-        [Required]
+        [Required, Display(Name = "Feed slug")]
         public string? FeedSlug { get; init; }
 
-        [RequiredIf(nameof(ChannelName), null), RequiredIf(nameof(ChannelSlug), null)]
+        [RequiredIf(nameof(ChannelName), null), RequiredIf(nameof(ChannelSlug), null), Display(Name = "Existing channel")]
         public string? ChannelId { get; init; }
 
-        [RequiredIf(nameof(ChannelId), null)]
+        [RequiredIf(nameof(ChannelId), null), Display(Name = "New channel name")]
         public string? ChannelName { get; init; }
-        [RequiredIf(nameof(ChannelId), null)]
+        [RequiredIf(nameof(ChannelId), null), Display(Name = "New channel slug")]
         public string? ChannelSlug { get; init; }
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute);
