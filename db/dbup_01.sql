@@ -51,7 +51,7 @@ create table rss.UserFeeds (
     constraint PK_UserFeeds primary key (UserId, FeedId),
     index IXC_UserFeeds clustered (UserId, ChannelId, FeedId),
     index IX_UserFeeds_Slug unique nonclustered (Slug, UserId),
-    index IX_UserFeeds_Title unique nonclustered (Title, UserId)
+    index IX_UserFeeds_Title nonclustered (Title, UserId)
 );
 go
 
