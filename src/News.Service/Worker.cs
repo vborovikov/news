@@ -109,7 +109,7 @@ sealed class Worker : BackgroundService
                 """
                 merge rss.Posts as tgt
                 using #Posts as src on tgt.ExternalId = src.Id
-                when matched and src.FeedId = @FeedId then
+                when matched and tgt.FeedId = @FeedId then
                     update set
                         Link = src.Link,
                         Published = src.Published,
