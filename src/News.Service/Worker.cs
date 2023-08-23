@@ -100,7 +100,7 @@ sealed class Worker : BackgroundService
                     Link nvarchar(850) not null,
                     Published datetimeoffset not null,
                     Title nvarchar(100) not null,
-                    Description nvarchar(500) null,
+                    Description nvarchar(2000) null,
                     Author nvarchar(100) null,
                     Content nvarchar(max) not null
                 );
