@@ -85,15 +85,15 @@ sealed class Worker : BackgroundService
             await cnn.ExecuteAsync(
                 """
                 create table #Posts (
-                    Id varchar(250) not null primary key,
+                    Id varchar(850) not null primary key,
                     Link nvarchar(850) not null,
                     Published datetimeoffset not null,
                     Title nvarchar(100) not null,
-                    Description nvarchar(250) null,
+                    Description nvarchar(500) null,
                     Author nvarchar(100) null,
                     Content nvarchar(max) not null
                 );
-                """, tx);
+                """, transaction: tx);
 
             using (var bulkCopy = new SqlBulkCopy((SqlConnection)cnn, SqlBulkCopyOptions.Default, (SqlTransaction)tx)
             {
@@ -125,7 +125,7 @@ sealed class Worker : BackgroundService
             await cnn.ExecuteAsync(
                 """
                 drop table #Posts;
-                """, tx);
+                """, transaction: tx);
 
             await cnn.ExecuteAsync(
                 """
