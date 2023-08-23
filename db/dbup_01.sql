@@ -9,7 +9,7 @@ go
 create table rss.Feeds (
     Id uniqueidentifier not null primary key clustered default newid(),
     Title nvarchar(100) not null check (Title != N''),
-    Description nvarchar(250) null,
+    Description nvarchar(500) null,
     Source nvarchar(850) not null unique check (Source != N''),
     Link nvarchar(850) not null unique check (Link != N''),
     Updated datetimeoffset not null default sysdatetimeoffset(),
@@ -19,11 +19,11 @@ go
 create table rss.Posts (
     Id uniqueidentifier not null primary key default newid(),
     FeedId uniqueidentifier not null foreign key references rss.Feeds(Id) on delete cascade,
-    ExternalId varchar(250) not null check (ExternalId != N''),
+    ExternalId varchar(850) not null check (ExternalId != N''),
     Link nvarchar(850) not null check (Link != N'') index IX_Posts_Link unique nonclustered,
     Published datetimeoffset not null default sysdatetimeoffset(),
     Title nvarchar(100) not null check (Title != N''),
-    Description nvarchar(250) null,
+    Description nvarchar(500) null,
     Content nvarchar(max) not null check (Content != N''),
     Author nvarchar(100) null,
     index IXC_Posts clustered (FeedId, Id),
