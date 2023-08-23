@@ -53,10 +53,10 @@ else
                                 @* post title and link *@
                                 <h5>
                                     <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug"
-                                       asp-route-year="@post.Published.Year" asp-route-month="@post.Published.Month" asp-route-day="@post.Published.Day" asp-route-hour="@post.Published.Hour">
+                                       asp-route-year="@post.PublishedLocal.Year" asp-route-month="@post.PublishedLocal.Month" asp-route-day="@post.PublishedLocal.Day" asp-route-hour="@post.PublishedLocal.Hour">
                                         @post.Title
                                     </a>
-                                    <small class="text-muted">@post.Published.ToString()</small>
+                                    <small class="text-muted">@post.PublishedLocal.ToString("f")</small>
                                 </h5>
                             }
                             else
@@ -68,7 +68,7 @@ else
                                             @post.Title
                                         </span>
                                     </h5>
-                                    <p class="text-muted">@post.Published.ToString()</p>
+                                    <p class="text-muted">@post.PublishedLocal.ToString("f")</p>
                                     @Html.Raw(post.Content)
                                 </article>
                             }

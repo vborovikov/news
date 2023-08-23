@@ -26,8 +26,11 @@ public record RssFeed : RssFeedInfo
 
 public record RssPostInfo
 {
+    private DateTimeOffset? publishedLocal;
+
     public Guid PostId { get; init; }
     public DateTimeOffset Published { get; init; }
+    public DateTimeOffset PublishedLocal => this.publishedLocal ??= this.Published.ToLocalTime();
     public Uri Link { get; init; }
     public string Title { get; init; }
     public bool IsRead { get; init; }
