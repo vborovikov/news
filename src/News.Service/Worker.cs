@@ -30,7 +30,7 @@ sealed class Worker : BackgroundService
             try
             {
                 this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
-                
+
                 await UpdateFeedsAsync(stoppingToken);
             }
             catch (Exception x)
@@ -100,9 +100,9 @@ sealed class Worker : BackgroundService
                     Link nvarchar(850) not null,
                     Published datetimeoffset not null,
                     Title nvarchar(100) not null,
-                    Description nvarchar(2000) null,
+                    Description nvarchar(max) null,
                     Author nvarchar(100) null,
-                    Content nvarchar(max) not null
+                    Content nvarchar(max) null
                 );
                 """, transaction: tx);
 
@@ -125,12 +125,23 @@ sealed class Worker : BackgroundService
                         Link = src.Link,
                         Published = src.Published,
                         Title = src.Title,
-                        Description = src.Description,
+                        Description = 
+                            case
+                                when src.Content is null then null
+                                else src.Description
+                            end,
                         Author = src.Author,
-                        Content = src.Content
+                        Content = isnull(src.Content, src.Description)
                 when not matched then
                     insert (FeedId, ExternalId, Link, Published, Title, Description, Author, Content)
-                    values (@FeedId, src.Id, src.Link, src.Published, src.Title, src.Description, src.Author, src.Content);
+                    values (
+                        @FeedId, src.Id, src.Link, src.Published, src.Title, 
+                        case
+                            when src.Content is null then null
+                            else src.Description
+                        end, 
+                        src.Author, 
+                        isnull(src.Content, src.Description));
                 """, new { FeedId = feed.Id }, tx);
 
             await cnn.ExecuteAsync(
