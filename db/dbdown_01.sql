@@ -24,6 +24,3 @@ go
 
 commit;
 go
-
-drop schema rss;
-go

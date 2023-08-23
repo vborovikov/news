@@ -20,6 +20,9 @@ go
 
 create schema asp authorization dbo;
 go
+create schema rss authorization dbo;
+go
+
 
 -- Create tables
 

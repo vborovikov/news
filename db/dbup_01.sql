@@ -1,18 +1,13 @@
 use News;
 go
 
--- create RSS schema
-
-create schema rss authorization dbo;
-go
-
 -- create RSS tables
 
 begin transaction;
 go
 
 create table rss.Feeds (
-    Id uniqueidentifier not null primary key clustered,
+    Id uniqueidentifier not null primary key clustered default newid(),
     Title nvarchar(100) not null check (Title != N''),
     Description nvarchar(250) null,
     Source nvarchar(850) not null unique check (Source != N''),
@@ -22,19 +17,22 @@ create table rss.Feeds (
 go
 
 create table rss.Posts (
-    Id uniqueidentifier not null primary key,
+    Id uniqueidentifier not null primary key default newid(),
     FeedId uniqueidentifier not null foreign key references rss.Feeds(Id) on delete cascade,
+    ExternalId varchar(250) not null check (ExternalId != N''),
     Link nvarchar(850) not null check (Link != N'') index IX_Posts_Link unique nonclustered,
     Published datetimeoffset not null default sysdatetimeoffset(),
     Title nvarchar(100) not null check (Title != N''),
     Description nvarchar(250) null,
     Content nvarchar(max) not null check (Content != N''),
-    index IXC_Posts clustered (FeedId, Id)
+    Author nvarchar(100) null,
+    index IXC_Posts clustered (FeedId, Id),
+    index IX_Posts_ExternalId unique nonclustered (ExternalId, FeedId)
 );
 go
 
 create table rss.Channels (
-    Id uniqueidentifier not null primary key,
+    Id uniqueidentifier not null primary key default newid(),
     Name nvarchar(100) not null check (Name != N'') index IX_Channels_Name nonclustered,
     Slug varchar(100) not null check (Slug != '') index IXC_Channels_Slug clustered
 );

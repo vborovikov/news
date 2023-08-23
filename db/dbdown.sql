@@ -28,6 +28,8 @@ go
 commit;
 go
 
+drop schema rss;
+go
 drop schema asp;
 go
 
