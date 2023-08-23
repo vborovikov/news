@@ -8,7 +8,7 @@ go
 
 create table rss.Feeds (
     Id uniqueidentifier not null primary key clustered default newid(),
-    Title nvarchar(100) not null check (Title != N''),
+    Title nvarchar(1000) not null check (Title != N''),
     Description nvarchar(2000) null,
     Source nvarchar(850) not null unique check (Source != N''),
     Link nvarchar(850) not null unique check (Link != N''),
@@ -22,7 +22,7 @@ create table rss.Posts (
     ExternalId varchar(850) not null check (ExternalId != N''),
     Link nvarchar(850) not null check (Link != N'') index IX_Posts_Link unique nonclustered,
     Published datetimeoffset not null default sysdatetimeoffset(),
-    Title nvarchar(100) not null check (Title != N''),
+    Title nvarchar(1000) not null check (Title != N''),
     Description nvarchar(2000) null,
     Content nvarchar(max) not null check (Content != N''),
     Author nvarchar(100) null,
@@ -47,7 +47,7 @@ create table rss.UserFeeds (
     ChannelId uniqueidentifier not null foreign key references rss.UserChannels(Id) on delete cascade,
     FeedId uniqueidentifier not null foreign key references rss.Feeds(Id) on delete cascade,
     Slug varchar(100) not null check (Slug != ''),
-    Title nvarchar(100) null,
+    Title nvarchar(200) null,
     constraint PK_UserFeeds primary key (UserId, FeedId),
     index IXC_UserFeeds clustered (UserId, ChannelId, FeedId),
     index IX_UserFeeds_Slug unique nonclustered (Slug, UserId),
