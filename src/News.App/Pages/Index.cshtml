@@ -40,7 +40,7 @@ else
                     <div class="col-12">
                         <h4 class="border-light border-bottom border-2">
                             <span class="badge bg-light rounded-0 rounded-top">
-                                <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug">
+                                <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug" asp-route-year="">
                                     @feed.Title
                                 </a>
                             </span>
@@ -51,25 +51,29 @@ else
                             if (Model.Granularity > IndexModel.GranularityLevel.Posts)
                             {
                                 @* post title and link *@
-                                <h5>
+                                <h6>
                                     <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug"
                                        asp-route-year="@post.PublishedLocal.Year" asp-route-month="@post.PublishedLocal.Month" asp-route-day="@post.PublishedLocal.Day" asp-route-hour="@post.PublishedLocal.Hour">
                                         @post.Title
                                     </a>
+                                    <br />
                                     <small class="text-muted">@post.PublishedLocal.ToString("f")</small>
-                                </h5>
+                                </h6>
                             }
                             else
                             {
                                 @* post title and content *@
                                 <article>
-                                    <h5 class="border-light border-bottom border-1">
-                                        <span class="badge bg-light rounded-0 rounded-top">
-                                            @post.Title
-                                        </span>
+                                    <h5>
+                                        <a href="@post.Link" target="_blank" class="link-dark">@post.Title</a>
                                     </h5>
-                                    <p class="text-muted">@post.PublishedLocal.ToString("f")</p>
-                                    @Html.Raw(post.Content)
+                                    <section>
+                                        <p class="text-muted">@post.PublishedLocal.ToString("f")</p>
+                                        <p class="text-muted">@Html.Raw(post.Description)</p>
+                                    </section>
+                                    <section>
+                                        @Html.Raw(post.Content)
+                                    </section>
                                 </article>
                             }
                         }

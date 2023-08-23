@@ -74,7 +74,7 @@ public class IndexModel : PageModel
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug,
                             json_query((
-                                select p.PostId, p.Title, p.Published, p.Link, p.IsRead, p.Content
+                                select p.PostId, p.Title, p.Published, p.Description, p.Link, p.IsRead, p.Content
                                 from rss.AppPosts p
                                 where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
                                 order by p.Published desc

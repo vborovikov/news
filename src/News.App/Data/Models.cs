@@ -33,6 +33,7 @@ public record RssPostInfo
     public DateTimeOffset PublishedLocal => this.publishedLocal ??= this.Published.ToLocalTime();
     public Uri Link { get; init; }
     public string Title { get; init; }
+    public string Description { get; init; }
     public bool IsRead { get; init; }
 }
 
