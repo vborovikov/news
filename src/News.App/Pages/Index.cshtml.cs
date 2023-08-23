@@ -74,14 +74,13 @@ public class IndexModel : PageModel
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug,
                             json_query((
-                                select p.Id as PostId, p.Title, p.Published, p.Link, up.IsRead, p.Content
-                                from rss.Posts p
-                                left outer join rss.UserPosts up on up.PostId = p.Id
+                                select p.PostId, p.Title, p.Published, p.Link, p.IsRead, p.Content
+                                from rss.AppPosts p
                                 where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
                                 order by p.Published desc
                                 for json path
                             )) as Posts
-                        from rss.UserFeeds uf
+                        from rss.AppFeeds uf
                         where uf.UserId = @UserId and uf.ChannelId = uc.Id and uf.Slug = @FeedSlug
                         for json path
                     )) as Feeds
@@ -100,14 +99,13 @@ public class IndexModel : PageModel
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug,
                             json_query((
-                                select p.Id as PostId, p.Title, p.Published, p.Link, up.IsRead
-                                from rss.Posts p
-                                left outer join rss.UserPosts up on up.PostId = p.Id
+                                select p.PostId, p.Title, p.Published, p.Link, p.IsRead
+                                from rss.AppPosts p
                                 where p.FeedId = uf.FeedId
                                 order by p.Published desc
                                 for json path
                             )) as Posts
-                        from rss.UserFeeds uf
+                        from rss.AppFeeds uf
                         where uf.UserId = @UserId and uf.ChannelId = uc.Id and uf.Slug = @FeedSlug
                         for json path
                     )) as Feeds
@@ -125,7 +123,7 @@ public class IndexModel : PageModel
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug
-                        from rss.UserFeeds uf
+                        from rss.AppFeeds uf
                         where uf.UserId = @UserId and uf.ChannelId = uc.Id
                         order by uf.Title
                         for json path
@@ -144,7 +142,7 @@ public class IndexModel : PageModel
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug
-                        from rss.UserFeeds uf
+                        from rss.AppFeeds uf
                         where uf.UserId = @UserId and uf.ChannelId = uc.Id
                         order by uf.Title
                         for json path

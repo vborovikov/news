@@ -66,5 +66,19 @@ create table rss.UserPosts (
 );
 go
 
-commit;
+create view rss.AppFeeds with schemabinding as
+    select uf.UserId, uf.ChannelId, uf.FeedId, isnull(uf.Title, f.Title) as Title, uf.Slug
+    from rss.UserFeeds uf
+    inner join rss.Feeds f on f.Id = uf.FeedId;
+go
+
+create view rss.AppPosts with schemabinding as
+    select 
+        up.UserId, p.FeedId, p.Id as PostId, up.IsRead, up.IsFavorite,
+        p.Link, p.Published, p.Title, p.Description, p.Content, p.Author
+    from rss.Posts p
+    left outer join rss.UserPosts up on up.PostId = p.Id;
+go
+
+commit transaction;
 go
