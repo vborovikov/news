@@ -1,10 +1,13 @@
 namespace News.Service;
 
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 
 record ServiceOptions
 {
     public const string ServiceName = "Newsmaker";
+
+    public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(3);
 }
 
 static class Program
@@ -29,6 +32,7 @@ static class Program
                     settings.LogName = "Application";
                 });
 
+                services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();
             })
             .UseWindowsService(options =>

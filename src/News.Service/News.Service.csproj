@@ -15,7 +15,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CodeHollow.FeedReader" Version="1.2.6" />
     <PackageReference Include="Dapper" Version="2.0.151" />
+    <PackageReference Include="FastMember" Version="1.5.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="7.0.1" />
