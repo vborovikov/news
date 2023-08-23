@@ -27,7 +27,7 @@ sealed class Worker : BackgroundService
         using var timer = new PeriodicTimer(this.options.UpdateInterval);
         do
         {
-            this.log.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+            this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
             await UpdateFeedsAsync(stoppingToken);
         }
