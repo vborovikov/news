@@ -150,15 +150,9 @@ public class ImportUrlModel : PageModel
 
                 feed = await cnn.QuerySingleAsync<RssFeedInfo>(
                     """
-                    declare @FeedTitle nvarchar(100);
-
-                    select @FeedTitle = Title
-                    from rss.Feeds
-                    where Id = @FeedId;
-
-                    insert into rss.UserFeeds (UserId, FeedId, ChannelId, Title, Slug)
-                    output inserted.FeedId as FeedId, inserted.Title, inserted.Slug
-                    values (@UserId, @FeedId, @ChannelId, @FeedTitle, @FeedSlug);
+                    insert into rss.UserFeeds (UserId, FeedId, ChannelId, Slug)
+                    output inserted.FeedId as FeedId, inserted.Slug
+                    values (@UserId, @FeedId, @ChannelId, @FeedSlug);
                     """, new { UserId = userId, feed.FeedId, ChannelId = channelId, this.Input.FeedSlug }, tx);
             }
 
