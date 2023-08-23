@@ -23,7 +23,7 @@ public class IndexModel : PageModel
     public IEnumerable<RssChannel> Channels { get; private set; } = Enumerable.Empty<RssChannel>();
 
     public async Task OnGetAsync(string? channel = null, string? feed = null,
-        int year = 0, int month = 0, int day = 0, int? hour = null,
+        int year = 0, int month = 0, int day = 0, int? hour = null, int? minute = null,
         CancellationToken cancellationToken = default)
     {
         var userIdStr = this.userManager.GetUserId(this.User);
@@ -43,7 +43,13 @@ public class IndexModel : PageModel
             this.Granularity = GranularityLevel.Posts;
 
             // tweaking dates when showing posts
-            if (hour is not null)
+            if (minute is not null)
+            {
+                // one minute (super-noisy feeds)
+                minDate = new DateTimeOffset(year, month, day, hour ?? 0, minute.Value, 0, minDate.Offset);
+                maxDate = minDate.AddMinutes(1);
+            }
+            else if (hour is not null)
             {
                 // one hour (noisy feeds)
                 minDate = new DateTimeOffset(year, month, day, hour.Value, minute: 0, second: 0, minDate.Offset);

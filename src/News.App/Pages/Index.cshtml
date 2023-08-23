@@ -1,4 +1,4 @@
-﻿@page "/{channel?}/{feed?}/{year:int:min(1969):max(2100)?}/{month:int:min(1):max(12)?}/{day:int:min(1):max(31)?}/{hour:int:min(0):max(23)?}"
+﻿@page "/{channel?}/{feed?}/{year:int:min(1969):max(2100)?}/{month:int:min(1):max(12)?}/{day:int:min(1):max(31)?}/{hour:int:min(0):max(23)?}/{minute:int:min(0):max(59)?}"
 
 @model IndexModel
 @{
@@ -52,8 +52,14 @@ else
                             {
                                 @* post title and link *@
                                 <h6>
-                                    <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug"
-                                       asp-route-year="@post.PublishedLocal.Year" asp-route-month="@post.PublishedLocal.Month" asp-route-day="@post.PublishedLocal.Day" asp-route-hour="@post.PublishedLocal.Hour">
+                                    <a asp-page="/Index" 
+                                       asp-route-channel="@channel.Slug"
+                                       asp-route-feed="@feed.Slug"
+                                       asp-route-year="@post.PublishedLocal.Year"
+                                       asp-route-month="@post.PublishedLocal.Month"
+                                       asp-route-day="@post.PublishedLocal.Day"
+                                       asp-route-hour="@post.PublishedLocal.Hour"
+                                       asp-route-minute="@post.PublishedLocal.Minute">
                                         @post.Title
                                     </a>
                                     <br />
