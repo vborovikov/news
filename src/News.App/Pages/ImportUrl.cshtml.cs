@@ -47,11 +47,10 @@ public class ImportUrlModel : PageModel
         await using var cnn = await this.db.OpenConnectionAsync(this.HttpContext.RequestAborted);
         this.channels = await cnn.QueryAsync<RssChannelInfo>(
             """
-            select ch.Id as ChannelId, isnull(uc.Name, ch.Name) as Name, isnull(uc.Slug, ch.Slug) as Slug
+            select uc.Id as ChannelId, uc.Name, uc.Slug
             from rss.UserChannels uc
-            right outer join rss.Channels ch on uc.ChannelId = ch.Id
             where uc.UserId = @userId
-            order by Name;
+            order by uc.Name;
             """, new { userId });
 
         await base.OnPageHandlerExecutionAsync(context, next);
@@ -77,49 +76,30 @@ public class ImportUrlModel : PageModel
         RssFeedInfo feed = null!;
         try
         {
-            // insert channel if it's new, generate slug for it, copy to user channels
+            // insert user channel if it's new
             if (!Guid.TryParse(this.Input.ChannelId, out var channelId))
             {
+                // new user channel
                 channelId = Guid.NewGuid();
-
-                // new feed channel
-                await cnn.ExecuteAsync(
+                channel = await cnn.QuerySingleAsync<RssChannelInfo>(
                     """
-                    insert into rss.Channels (Id, Name, Slug)
-                    values (@ChannelId, @ChannelName, @ChannelSlug);
-
-                    insert into rss.UserChannels (UserId, ChannelId, Name, Slug)
+                    insert into rss.UserChannels (UserId, Id, Name, Slug)
+                    output inserted.Id as ChannelId, inserted.Name, inserted.Slug
                     values (@UserId, @ChannelId, @ChannelName, @ChannelSlug);
                     """, new { UserId = userId, ChannelId = channelId, this.Input.ChannelName, this.Input.ChannelSlug }, tx);
 
             }
-            else 
+            else
             {
-                // existing feed channel, check if user has it
+                // existing user channel
                 channel = await cnn.QueryFirstOrDefaultAsync<RssChannelInfo>(
                     """
-                    select ch.Id as ChannelId, isnull(uc.Name, ch.Name) as Name, isnull(uc.Slug, ch.Slug) as Slug
+                    select uc.Id as ChannelId, uc.Name, uc.Slug
                     from rss.UserChannels uc
-                    right outer join rss.Channels ch on uc.ChannelId = ch.Id
-                    where uc.UserId = @UserId and uc.ChannelId = @ChannelId
+                    where uc.UserId = @UserId and uc.Id = @ChannelId
                     """, new { UserId = userId, ChannelId = channelId }, tx);
-                if (channel is null)
-                {
-                    channel = await cnn.QuerySingleAsync<RssChannelInfo>(
-                        """
-                        declare @ChannelName nvarchar(100);
-                        declare @ChannelSlug varchar(100);
-
-                        select @ChannelName = Name, @ChannelSlug = Slug
-                        from rss.Channels
-                        where Id = @ChannelId;
-
-                        insert into rss.UserChannels (UserId, ChannelId, Name, Slug)
-                        output inserted.ChannelId, inserted.Name, inserted.Slug
-                        values (@UserId, @ChannelId, @ChannelName, @ChannelSlug);
-                        """, new { UserId = userId, ChannelId = channelId }, tx);
-                }
             }
+
             // insert feed if it's new, copy to user feeds, get feed slug
             var userFeed = await cnn.QueryFirstOrDefaultAsync<RssFeedInfo>(
                 """
