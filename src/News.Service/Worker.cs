@@ -27,9 +27,20 @@ sealed class Worker : BackgroundService
         using var timer = new PeriodicTimer(this.options.UpdateInterval);
         do
         {
-            this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
-
-            await UpdateFeedsAsync(stoppingToken);
+            try
+            {
+                this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
+                
+                await UpdateFeedsAsync(stoppingToken);
+            }
+            catch (Exception x)
+            {
+                this.log.LogError(x, "Error updating feeds");
+            }
+            finally
+            {
+                this.log.LogInformation("Finished updating feeds at: {time}", DateTimeOffset.Now);
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
@@ -134,7 +145,7 @@ sealed class Worker : BackgroundService
                     Updated = @Updated,
                     Title = @Title,
                     Description = @Description,
-                    Source = @Link
+                    Link = @Link
                 where Id = @FeedId;
                 """, new
                 {
