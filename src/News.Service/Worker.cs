@@ -99,7 +99,7 @@ sealed class Worker : BackgroundService
                     Id varchar(850) not null primary key,
                     Link nvarchar(850) not null,
                     Published datetimeoffset not null,
-                    Title nvarchar(100) not null,
+                    Title nvarchar(1000) not null,
                     Description nvarchar(max) null,
                     Author nvarchar(100) null,
                     Content nvarchar(max) null
