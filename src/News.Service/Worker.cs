@@ -111,8 +111,16 @@ sealed class Worker : BackgroundService
                 DestinationTableName = "#Posts",
             })
             {
-                using var postReader = ObjectReader.Create(update.Items,
-                    "Id", "Link", "PublishingDateString", "Title", "Description", "Author", "Content");
+                using var postReader = ObjectReader.Create(
+                    update.Items.Select(item => new FeedItemWrapper(item)),
+                    nameof(FeedItemWrapper.Id),
+                    nameof(FeedItemWrapper.Link),
+                    nameof(FeedItemWrapper.Published),
+                    nameof(FeedItemWrapper.Title),
+                    nameof(FeedItemWrapper.Description),
+                    nameof(FeedItemWrapper.Author),
+                    nameof(FeedItemWrapper.Content));
+
                 await bulkCopy.WriteToServerAsync(postReader, cancellationToken);
             }
 
@@ -125,23 +133,12 @@ sealed class Worker : BackgroundService
                         Link = src.Link,
                         Published = src.Published,
                         Title = src.Title,
-                        Description = 
-                            case
-                                when src.Content is null then null
-                                else src.Description
-                            end,
+                        Description = src.Description,
                         Author = src.Author,
-                        Content = isnull(src.Content, src.Description)
+                        Content = src.Content
                 when not matched then
                     insert (FeedId, ExternalId, Link, Published, Title, Description, Author, Content)
-                    values (
-                        @FeedId, src.Id, src.Link, src.Published, src.Title, 
-                        case
-                            when src.Content is null then null
-                            else src.Description
-                        end, 
-                        src.Author, 
-                        isnull(src.Content, src.Description));
+                    values (@FeedId, src.Id, src.Link, src.Published, src.Title, src.Description, src.Author, src.Content);
                 """, new { FeedId = feed.Id }, tx);
 
             await cnn.ExecuteAsync(
