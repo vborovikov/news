@@ -156,7 +156,7 @@ public class ImportUrlModel : PageModel
         [Required, Url, Display(Name = "Feed URL")]
         public string? FeedUrl { get; init; }
 
-        [Required, Display(Name = "Feed slug")]
+        [Required, RegularExpression("^[a-z][a-z0-9-]*$"), MaxLength(50), Display(Name = "Feed slug")]
         public string? FeedSlug { get; init; }
 
         [RequiredIf(nameof(ChannelName), null), RequiredIf(nameof(ChannelSlug), null), Display(Name = "Existing channel")]
@@ -164,7 +164,7 @@ public class ImportUrlModel : PageModel
 
         [RequiredIf(nameof(ChannelId), null), Display(Name = "New channel name")]
         public string? ChannelName { get; init; }
-        [RequiredIf(nameof(ChannelId), null), Display(Name = "New channel slug")]
+        [RequiredIf(nameof(ChannelId), null), RegularExpression("^[a-z][a-z0-9-]*$"), MaxLength(50), Display(Name = "New channel slug")]
         public string? ChannelSlug { get; init; }
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute);
