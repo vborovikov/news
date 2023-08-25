@@ -67,7 +67,9 @@ create table rss.UserPosts (
 go
 
 create view rss.AppFeeds with schemabinding as
-    select uf.UserId, uf.ChannelId, uf.FeedId, isnull(uf.Title, f.Title) as Title, uf.Slug
+    select uf.UserId, uf.ChannelId, uf.FeedId, f.Source,
+        isnull(uf.Title, f.Title) as Title, uf.Slug, 
+        f.Description, f.Link, f.Updated
     from rss.UserFeeds uf
     inner join rss.Feeds f on f.Id = uf.FeedId;
 go
