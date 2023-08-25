@@ -20,7 +20,7 @@ create table rss.Posts (
     Id uniqueidentifier not null primary key default newid(),
     FeedId uniqueidentifier not null foreign key references rss.Feeds(Id) on delete cascade,
     ExternalId varchar(850) not null check (ExternalId != N''),
-    Link nvarchar(850) not null check (Link != N'') index IX_Posts_Link unique nonclustered,
+    Link nvarchar(850) not null check (Link != N'') index IX_Posts_Link nonclustered,
     Published datetimeoffset not null default sysdatetimeoffset(),
     Title nvarchar(1000) not null check (Title != N''),
     Description nvarchar(2000) null,
