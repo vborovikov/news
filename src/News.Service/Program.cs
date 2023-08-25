@@ -7,7 +7,12 @@ record ServiceOptions
 {
     public const string ServiceName = "Newsmaker";
 
+    private DirectoryInfo? opmlDirectory;
+
     public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(3);
+
+    public string OpmlPath { get; init; } = @"C:\Tools\News\opml";
+    public DirectoryInfo OpmlDirectory => this.opmlDirectory ??= new(this.OpmlPath);
 }
 
 static class Program

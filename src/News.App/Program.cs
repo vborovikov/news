@@ -4,6 +4,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using News.App.Data;
 
+public record ServiceOptions
+{
+    public const string ServiceName = "Newsreader";
+
+    private DirectoryInfo? opmlDirectory;
+
+    public string OpmlPath { get; init; } = @"C:\Tools\News\opml";
+    public DirectoryInfo OpmlDirectory => this.opmlDirectory ??= new(this.OpmlPath);
+}
+
 public static class Program
 {
     public static void Main(string[] args)
@@ -12,6 +22,7 @@ public static class Program
 
         // Add services to the container.
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        builder.Services.Configure<ServiceOptions>(builder.Configuration.GetSection(ServiceOptions.ServiceName));
         builder.Services.AddScoped(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
 
         builder.Services.AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
