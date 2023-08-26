@@ -14,9 +14,15 @@ public record RssChannel : RssChannelInfo
 
 public record RssFeedInfo
 {
+    private DateTimeOffset? updateLocal;
+
     public Guid FeedId { get; init; }
     public string Title { get; init; }
     public string Slug { get; init; }
+    public DateTimeOffset Updated { get; init; }
+    public DateTimeOffset UpdatedLocal => this.updateLocal ??= this.Updated.ToLocalTime();
+    public string? Error { get; init; }
+    public bool HasError => !string.IsNullOrWhiteSpace(Error);
 }
 
 public record RssFeed : RssFeedInfo

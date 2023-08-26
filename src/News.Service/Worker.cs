@@ -296,6 +296,7 @@ sealed class Worker : BackgroundService
         catch (Exception x)
         {
             this.log.LogError(x, "Error updating feed {FeedUrl}", feed.Source);
+            await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
         }
     }
 
@@ -371,7 +372,8 @@ sealed class Worker : BackgroundService
                         Updated = @Updated,
                         Title = @Title,
                         Description = @Description,
-                        Link = @Link
+                        Link = @Link,
+                        Error = null
                     where Id = @FeedId;
                     """, new
                     {
@@ -388,8 +390,7 @@ sealed class Worker : BackgroundService
                 await cnn.ExecuteAsync(
                     """
                     update rss.Feeds
-                    set
-                        Updated = @Updated
+                    set Updated = @Updated, Error = null
                     where Id = @FeedId;
                     """, new
                     {
@@ -404,12 +405,36 @@ sealed class Worker : BackgroundService
         {
             await tx.RollbackAsync(cancellationToken);
             this.log.LogError(x, "Error merging feed {FeedUrl}", feed.Source);
+
+            await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
+        }
+    }
+
+    private async Task StoreFeedUpdateErrorAsync(DbFeed feed, Exception error, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await cnn.ExecuteAsync(
+                """
+                update rss.Feeds
+                set Updated = @Updated, Error = @Error
+                where Id = @FeedId;
+                """, new { FeedId = feed.Id, Updated = DateTimeOffset.Now, Error = error.Message }, tx);
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception x)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            this.log.LogError(x, "Error storing feed update error");
         }
     }
 
     private static bool FeedUpdateHasInfo(Feed update)
     {
-        return 
+        return
             !string.IsNullOrWhiteSpace(update.Title) &&
             !string.IsNullOrWhiteSpace(update.Description) &&
             !string.IsNullOrWhiteSpace(update.Link);

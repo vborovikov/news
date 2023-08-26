@@ -13,6 +13,7 @@ create table rss.Feeds (
     Source nvarchar(850) not null unique check (Source != N''),
     Link nvarchar(850) not null unique check (Link != N''),
     Updated datetimeoffset not null default sysdatetimeoffset(),
+    Error nvarchar(2000) null
 );
 go
 
@@ -69,7 +70,7 @@ go
 create view rss.AppFeeds with schemabinding as
     select uf.UserId, uf.ChannelId, uf.FeedId, f.Source,
         isnull(uf.Title, f.Title) as Title, uf.Slug, 
-        f.Description, f.Link, f.Updated
+        f.Description, f.Link, f.Updated, f.Error
     from rss.UserFeeds uf
     inner join rss.Feeds f on f.Id = uf.FeedId;
 go
