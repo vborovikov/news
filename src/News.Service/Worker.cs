@@ -141,8 +141,8 @@ sealed class Worker : BackgroundService
 
             create table #ImportedFeeds (
                 FeedId uniqueidentifier not null primary key,
-                Slug nvarchar(100) not null
-            )
+                Source nvarchar(850) not null
+            );
             """, transaction: tx);
 
         // bulk insert feeds
@@ -168,14 +168,21 @@ sealed class Worker : BackgroundService
                 values (src.Title, src.Source, src.Link)
             when matched then
                 update set tgt.Link = src.Link
-            output inserted.Id as FeedId, inserted.Slug
+            output inserted.Id as FeedId, inserted.Source
             into #ImportedFeeds;
             """, transaction: tx);
 
         // merge user feeds
         await tx.Connection.ExecuteAsync(
             """
-            merge rss.AppFeeds as tgt using #ImportedFeeds as src
+            select imf.FeedId, isnull(uf.Slug, f.Slug) as Slug
+            into #UserFeeds
+            from #ImportedFeeds imf
+            left outer join rss.UserFeeds uf on imf.FeedId = uf.FeedId
+            left outer join #Feeds f on imf.Source = f.Source
+            where uf.UserId = @UserId or uf.UserId is null;
+
+            merge rss.UserFeeds as tgt using #UserFeeds as src
                 on tgt.FeedId = src.FeedId and tgt.ChannelId = @ChannelId and tgt.UserId = @UserId
             when not matched then
                 insert (UserId, ChannelId, FeedId, Slug)
