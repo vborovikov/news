@@ -45,43 +45,63 @@ record FeedOutline(string Text, string? Title, string XmlUrl, string? HtmlUrl) :
     {
         var parts = url.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-        for (var i = parts.Length - 1; i > 0; --i)
+        for (var i = parts.Length - 1; i >= 0; --i)
         {
             var part = parts[i];
 
-            if (part.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
-                part.EndsWith(".rss", StringComparison.OrdinalIgnoreCase) ||
-                part.EndsWith(".axd", StringComparison.OrdinalIgnoreCase) ||
-                part.StartsWith("index.", StringComparison.OrdinalIgnoreCase) ||
-                part.StartsWith("rss.", StringComparison.OrdinalIgnoreCase) ||
-                part.StartsWith("atom.", StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (part.StartsWith("blog", StringComparison.OrdinalIgnoreCase) ||
-                part.StartsWith("feed", StringComparison.OrdinalIgnoreCase) ||
-                part.StartsWith("post", StringComparison.OrdinalIgnoreCase) ||
-                part.StartsWith("page", StringComparison.OrdinalIgnoreCase) ||
-                part.StartsWith("default", StringComparison.OrdinalIgnoreCase))
-                continue;
+            if (i > 1 || (i == 1 && parts.Length == 2))
+            {
+                if (part.Length < 3 ||
+                    part.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
+                    part.EndsWith(".rss", StringComparison.OrdinalIgnoreCase) ||
+                    part.EndsWith(".axd", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("index.", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("rss", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("atom", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("author", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("blog", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("feed", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("post", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("page", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("default", StringComparison.OrdinalIgnoreCase) ||
+                    part.StartsWith("syndication", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+            }
 
-            if (part.Contains('.', StringComparison.OrdinalIgnoreCase))
+            if (i <= 1 && part.Contains('.', StringComparison.OrdinalIgnoreCase))
             {
                 var hostParts = part.Split('.', StringSplitOptions.RemoveEmptyEntries);
-                if (hostParts.Length > 1)
+                var j = hostParts.Length - 1;
+                while (j >= 0)
                 {
-                    if (hostParts[^2] != "github" && hostParts[^2] != "hashnode")
+                    if (hostParts[j].Length <= 3 || j == (hostParts.Length - 1))
                     {
-                        part = hostParts[^2];
+                        if (j == 0)
+                        {
+                            if (hostParts[0] == "www")
+                            {
+                                ++j;
+                            }
+                            break;
+                        }
+
+                        --j;
+                        continue;
                     }
-                    else
-                    {
-                        part = hostParts[0];
-                    }
+
+                    break;
+                }
+
+                part = hostParts[j];
+                if (part == "github" || part == "hashnode")
+                {
+                    part = hostParts[j - 1];
                 }
             }
 
             return part
-                .Replace(".github.io", "")
-                .Replace(".hashnode.dev", "")
                 .Trim('@')
                 .ToLowerInvariant();
         }

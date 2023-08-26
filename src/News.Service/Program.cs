@@ -27,15 +27,13 @@ static class Program
                     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
                 services.Configure<ServiceOptions>(hostContext.Configuration.GetSection(ServiceOptions.ServiceName));
+#pragma warning disable CA1416 // Validate platform compatibility
                 services.Configure<EventLogSettings>(settings =>
                 {
-                    // AddEventLog() is called in UseWindowsService()
-
-                    // The event log source must exist in the log or the app must have permissions to create it.
-                    // PowerShell command to create the source: New-EventLog -Source "Newsmaker" -LogName "Application"
                     settings.SourceName = ServiceOptions.ServiceName;
                     settings.LogName = "Application";
                 });
+#pragma warning restore CA1416 // Validate platform compatibility
 
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();

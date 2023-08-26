@@ -338,6 +338,8 @@ sealed class Worker : BackgroundService
 
             await cnn.ExecuteAsync(
                 """
+                set ansi_warnings off;
+
                 merge rss.Posts as tgt using #Posts as src
                     on tgt.ExternalId = src.Id
                 when matched and tgt.FeedId = @FeedId then
@@ -351,6 +353,8 @@ sealed class Worker : BackgroundService
                 when not matched then
                     insert (FeedId, ExternalId, Link, Published, Title, Description, Author, Content)
                     values (@FeedId, src.Id, src.Link, src.Published, src.Title, src.Description, src.Author, src.Content);
+
+                set ansi_warnings on;
                 """, new { FeedId = feed.Id }, tx);
 
             await cnn.ExecuteAsync(
@@ -358,23 +362,41 @@ sealed class Worker : BackgroundService
                 drop table #Posts;
                 """, transaction: tx);
 
-            await cnn.ExecuteAsync(
-                """
-                update rss.Feeds
-                set
-                    Updated = @Updated,
-                    Title = @Title,
-                    Description = @Description,
-                    Link = @Link
-                where Id = @FeedId;
-                """, new
-                {
-                    FeedId = feed.Id,
-                    Updated = DateTimeOffset.Now,
-                    update.Title,
-                    update.Description,
-                    update.Link
-                }, tx);
+            if (FeedUpdateHasInfo(update))
+            {
+                await cnn.ExecuteAsync(
+                    """
+                    update rss.Feeds
+                    set
+                        Updated = @Updated,
+                        Title = @Title,
+                        Description = @Description,
+                        Link = @Link
+                    where Id = @FeedId;
+                    """, new
+                    {
+                        FeedId = feed.Id,
+                        Updated = DateTimeOffset.Now,
+                        update.Title,
+                        update.Description,
+                        update.Link
+                    }, tx);
+            }
+            else
+            {
+                // some feeds are just broken
+                await cnn.ExecuteAsync(
+                    """
+                    update rss.Feeds
+                    set
+                        Updated = @Updated
+                    where Id = @FeedId;
+                    """, new
+                    {
+                        FeedId = feed.Id,
+                        Updated = DateTimeOffset.Now
+                    }, tx);
+            }
 
             await tx.CommitAsync(cancellationToken);
         }
@@ -383,5 +405,13 @@ sealed class Worker : BackgroundService
             await tx.RollbackAsync(cancellationToken);
             this.log.LogError(x, "Error merging feed {FeedUrl}", feed.Source);
         }
+    }
+
+    private static bool FeedUpdateHasInfo(Feed update)
+    {
+        return 
+            !string.IsNullOrWhiteSpace(update.Title) &&
+            !string.IsNullOrWhiteSpace(update.Description) &&
+            !string.IsNullOrWhiteSpace(update.Link);
     }
 }
