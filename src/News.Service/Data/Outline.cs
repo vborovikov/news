@@ -38,7 +38,15 @@ record FeedOutline(string Text, string? Title, string XmlUrl, string? HtmlUrl) :
             slug = SlugifyUrl(url);
         }
 
-        return slug;
+        return SanitizeSlug(slug);
+    }
+
+    private static string SanitizeSlug(string slug)
+    {
+        return slug
+            .Trim('_', '-', '@')
+            .Replace(' ', '-')
+            .ToLowerInvariant();
     }
 
     private static string SlugifyUrl(string url)
@@ -101,12 +109,10 @@ record FeedOutline(string Text, string? Title, string XmlUrl, string? HtmlUrl) :
                 }
             }
 
-            return part
-                .Trim('@')
-                .ToLowerInvariant();
+            return part;
         }
 
-        return parts[^1].ToLowerInvariant();
+        return parts[^1];
     }
 }
 

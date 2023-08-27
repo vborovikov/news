@@ -101,17 +101,15 @@ sealed class Worker : BackgroundService
             // upsert channel
             var channelId = await cnn.ExecuteScalarAsync<Guid>(
                 """
-                update rss.UserChannels
-                set Name = @Name, Slug = @Slug
-                output inserted.Id
-                where Name = @Name or Slug = @Slug;
-
-                if @@rowcount = 0
-                begin
-                    insert into rss.UserChannels (UserId, Name, Slug)
-                    output inserted.Id
-                    values (@UserId, @Name, @Slug);
-                end;
+                merge into rss.UserChannels as target
+                using (values (@UserId, @Name, @Slug)) as source (UserId, Name, Slug)
+                on (target.UserId = source.UserId and (target.Name = source.Name or target.Slug = source.Slug))
+                when matched then
+                    update set target.Name = source.Name, target.Slug = source.Slug
+                when not matched then
+                    insert (UserId, Name, Slug)
+                    values (source.UserId, source.Name, source.Slug)
+                output inserted.Id;
                 """, new { UserId = userId, channel.Name, Slug = channel.Text.ToLowerInvariant() }, tx);
 
             // merge feeds
@@ -124,6 +122,7 @@ sealed class Worker : BackgroundService
         {
             await tx.RollbackAsync(cancellationToken);
             this.log.LogError(x, "Error importing channel '{channel}'", channel.Name);
+            throw;
         }
     }
 
@@ -183,7 +182,7 @@ sealed class Worker : BackgroundService
             where uf.UserId = @UserId or uf.UserId is null;
 
             merge rss.UserFeeds as tgt using #UserFeeds as src
-                on tgt.FeedId = src.FeedId and tgt.ChannelId = @ChannelId and tgt.UserId = @UserId
+                on tgt.FeedId = src.FeedId and tgt.UserId = @UserId
             when not matched then
                 insert (UserId, ChannelId, FeedId, Slug)
                 values (@UserId, @ChannelId, src.FeedId, src.Slug);
