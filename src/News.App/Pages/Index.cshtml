@@ -31,7 +31,7 @@ else
                 {
                     <div class="col-12 col-md-6">
                         <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug"
-                           class="@(feed.HasError ? "link-danger" : "link-primary")">
+                           class="@FeedLinkClass(feed)">
                             @feed.Title
                         </a>
                     </div>
@@ -43,7 +43,7 @@ else
                             <span class="badge bg-light rounded-0 rounded-top">
                                 <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug"
                                    asp-route-year="@feed.UpdatedLocal.Year" asp-route-month="@feed.UpdatedLocal.Month"
-                                   class="@(feed.HasError ? "link-danger" : "link-primary")">
+                                   class="@FeedLinkClass(feed)">
                                     @feed.Title
                                 </a>
                             </span>
@@ -90,5 +90,16 @@ else
                 }
             }
         </div>
+    }
+}
+
+@functions {
+    private string FeedLinkClass(RssFeedInfo feed)
+    {
+        return 
+            feed.HasError ? "link-danger" :
+            feed.IsOutdated ? "link-secondary" :
+            feed.HasPosts ? "link-primary" :
+            "link-warning";
     }
 }

@@ -79,6 +79,9 @@ public class IndexModel : PageModel
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug, uf.Updated, uf.Error,
+                            (select max(p.Published) 
+                             from rss.Posts p 
+                             where p.FeedId = uf.FeedId) as LastPublished,
                             json_query((
                                 select p.PostId, p.Title, p.Published, p.Description, p.Link, p.IsRead, p.Content
                                 from rss.AppPosts p
@@ -104,6 +107,9 @@ public class IndexModel : PageModel
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug, uf.Updated, uf.Error,
+                            (select max(p.Published) 
+                             from rss.Posts p 
+                             where p.FeedId = uf.FeedId) as LastPublished,
                             json_query((
                                 select p.PostId, p.Title, p.Published, p.Link, p.IsRead
                                 from rss.AppPosts p
@@ -128,7 +134,10 @@ public class IndexModel : PageModel
                 """
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
-                        select uf.FeedId, uf.Title, uf.Slug, uf.Updated, uf.Error
+                        select uf.FeedId, uf.Title, uf.Slug, uf.Updated, uf.Error,
+                            (select max(p.Published) 
+                             from rss.Posts p 
+                             where p.FeedId = uf.FeedId) as LastPublished
                         from rss.AppFeeds uf
                         where uf.UserId = @UserId and uf.ChannelId = uc.Id
                         order by uf.Title
@@ -147,7 +156,10 @@ public class IndexModel : PageModel
                 """
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
-                        select uf.FeedId, uf.Title, uf.Slug, uf.Updated, uf.Error
+                        select uf.FeedId, uf.Title, uf.Slug, uf.Updated, uf.Error,
+                            (select max(p.Published) 
+                             from rss.Posts p 
+                             where p.FeedId = uf.FeedId) as LastPublished
                         from rss.AppFeeds uf
                         where uf.UserId = @UserId and uf.ChannelId = uc.Id
                         order by uf.Title
