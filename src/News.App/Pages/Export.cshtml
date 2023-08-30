@@ -1,5 +1,9 @@
-﻿@page "/import/export"
+﻿@page "/import/export/{format?}"
 @model News.App.Pages.ExportModel
 @{
     ViewData["Title"] = "Export";
 }
+
+<div class="row">
+    <a asp-page="Export" asp-route-format="opml" class="btn btn-primary btn-block">Export as OPML</a>
+</div>
