@@ -28,11 +28,11 @@
                 <div class="col d-flex align-items-start">
                     <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#post-icon" /></svg>
                     <div>
-                        <h4 class="fw-bold mb-0">
+                        <h4 class="mb-0">
                             <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
                                asp-route-year="@post.PublishedLocal.Year" asp-route-month="@post.PublishedLocal.Month"
                                asp-route-day="@post.PublishedLocal.Day" asp-route-hour="@post.PublishedLocal.Hour"
-                               asp-route-minute="@post.PublishedLocal.Minute" class="text-decoration-none">
+                               asp-route-minute="@post.PublishedLocal.Minute" class="link-dark text-decoration-none">
                                 @post.Title
                             </a>
                         </h4>
