@@ -1,7 +1,5 @@
 ﻿@model IEnumerable<RssChannel>
-@{
-    var singleChannel = true;
-}
+
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="feed-icon" viewBox="0 0 16 16">
         <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm1.5 2.5c5.523 0 10 4.477 10 10a1 1 0 1 1-2 0 8 8 0 0 0-8-8 1 1 0 0 1 0-2zm0 4a6 6 0 0 1 6 6 1 1 0 1 1-2 0 4 4 0 0 0-4-4 1 1 0 0 1 0-2zm.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
@@ -10,31 +8,22 @@
 
 @foreach (var channel in Model)
 {
-    @if (singleChannel)
-    {
-        singleChannel = false;
-    }
-    else
-    {
-        <hr class="mt-1 mb-1" />
-    }
-
-    <div class="container px-4 py-5" id="icon-grid">
+    <div class="container">
         <h2 class="pb-2 border-bottom">
-            <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="" class="text-decoration-none">
+            <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="" class="link-dark text-decoration-none">
                 @channel.Name
             </a>
         </h2>
 
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-2 g-4 py-5">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-2 g-4 py-4">
             @foreach (var feed in channel.Feeds)
             {
                 <div class="col d-flex align-items-start">
-                    <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#feed-icon" /></svg>
+                    <svg title="@feed.Error" class="bi flex-shrink-0 mt-1 me-3 @FeedTextClass(feed)" width="1.5em" height="1.5em"><use xlink:href="#feed-icon" /></svg>
                     <div>
-                        <h4 class="fw-bold mb-0">
+                        <h4 class="fw-normal mb-0">
                             <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug" asp-route-year=""
-                               class="@FeedLinkClass(feed) text-decoration-none">
+                               class="link-dark text-decoration-none">
                                 @feed.Title
                             </a>
                         </h4>
@@ -49,10 +38,20 @@
 @functions {
     private string FeedLinkClass(RssFeedInfo feed)
     {
+        return "link-" + FeedStatusName(feed);
+    }
+
+    private string FeedTextClass(RssFeedInfo feed)
+    {
+        return "text-" + FeedStatusName(feed);
+    }
+
+    private string FeedStatusName(RssFeedInfo feed)
+    {
         return
-            feed.HasError ? "link-danger" :
-            feed.IsOutdated ? "link-secondary" :
-            feed.HasPosts ? "link-primary" :
-            "link-warning";
+            feed.HasError ? "danger" :
+            feed.IsOutdated ? "secondary" :
+            feed.HasPosts ? "primary" :
+            "warning";
     }
 }

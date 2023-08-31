@@ -1,6 +1,9 @@
 ﻿@model RssChannel
 
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="feed-icon" viewBox="0 0 16 16">
+        <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm1.5 2.5c5.523 0 10 4.477 10 10a1 1 0 1 1-2 0 8 8 0 0 0-8-8 1 1 0 0 1 0-2zm0 4a6 6 0 0 1 6 6 1 1 0 1 1-2 0 4 4 0 0 0-4-4 1 1 0 0 1 0-2zm.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
+    </symbol>
     <symbol id="post-icon" viewBox="0 0 16 16">
         <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
         <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
@@ -9,11 +12,12 @@
 
 @foreach (var feed in Model.Feeds)
 {
-    <div class="container px-4 py-5" id="icon-grid">
+    <div class="container">
         <h2 class="pb-2 border-bottom">
+            <svg class="bi flex-shrink-0 me-1 @FeedTextClass(feed)" width="1em" height="1em"><use xlink:href="#feed-icon" /></svg>
             <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
                asp-route-year="@feed.LastPublishedLocal?.Year" asp-route-month="@feed.LastPublishedLocal?.Month"
-               asp-route-day="" class="@FeedLinkClass(feed) text-decoration-none">
+               asp-route-day="" class="link-dark text-decoration-none">
                 @feed.Title
             </a>
         </h2>
@@ -44,10 +48,20 @@
 @functions {
     private string FeedLinkClass(RssFeedInfo feed)
     {
+        return "link-" + FeedStatusName(feed);
+    }
+
+    private string FeedTextClass(RssFeedInfo feed)
+    {
+        return "text-" + FeedStatusName(feed);
+    }
+
+    private string FeedStatusName(RssFeedInfo feed)
+    {
         return
-            feed.HasError ? "link-danger" :
-            feed.IsOutdated ? "link-secondary" :
-            feed.HasPosts ? "link-primary" :
-            "link-warning";
+            feed.HasError ? "danger" :
+            feed.IsOutdated ? "secondary" :
+            feed.HasPosts ? "primary" :
+            "warning";
     }
 }
