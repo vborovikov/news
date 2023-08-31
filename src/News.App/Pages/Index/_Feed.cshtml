@@ -1,0 +1,53 @@
+﻿@model RssChannel
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="post-icon" viewBox="0 0 16 16">
+        <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+    </symbol>
+</svg>
+
+@foreach (var feed in Model.Feeds)
+{
+    <div class="container px-4 py-5" id="icon-grid">
+        <h2 class="pb-2 border-bottom">
+            <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+               asp-route-year="@feed.LastPublishedLocal?.Year" asp-route-month="@feed.LastPublishedLocal?.Month"
+               asp-route-day="" class="@FeedLinkClass(feed) text-decoration-none">
+                @feed.Title
+            </a>
+        </h2>
+
+        <div class="row row-cols-1 row-cols-sm-1 row-cols-md-1 row-cols-lg-1 row-cols-xl-2 g-4 py-5">
+            @foreach (var post in feed.Posts)
+            {
+                <div class="col d-flex align-items-start">
+                    <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#post-icon" /></svg>
+                    <div>
+                        <h4 class="fw-bold mb-0">
+                            <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+                               asp-route-year="@post.PublishedLocal.Year" asp-route-month="@post.PublishedLocal.Month"
+                               asp-route-day="@post.PublishedLocal.Day" asp-route-hour="@post.PublishedLocal.Hour"
+                               asp-route-minute="@post.PublishedLocal.Minute" class="text-decoration-none">
+                                @post.Title
+                            </a>
+                        </h4>
+                        <p>@post.PublishedLocal.ToString("f")</p>
+                        <p>@Html.Raw(post.Description)</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@functions {
+    private string FeedLinkClass(RssFeedInfo feed)
+    {
+        return
+            feed.HasError ? "link-danger" :
+            feed.IsOutdated ? "link-secondary" :
+            feed.HasPosts ? "link-primary" :
+            "link-warning";
+    }
+}

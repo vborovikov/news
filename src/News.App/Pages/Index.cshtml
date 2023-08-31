@@ -10,96 +10,15 @@
     @* nothing to show since no user logged in *@
     <h1 class="text-center display-1">Nothing to show, please log in to see the news.</h1>
 }
-else
+else if (Model.Granularity == IndexModel.GranularityLevel.Posts)
 {
-    @foreach (var channel in Model.Channels)
-    {
-        @if (Model.Granularity > IndexModel.GranularityLevel.Feed)
-        {
-            <h4 class="border-light border-bottom border-2">
-                <span class="badge bg-light rounded-0 rounded-top">
-                    <a asp-page="/Index" asp-route-channel="@channel.Slug">
-                        @channel.Name
-                    </a>
-                </span>
-            </h4>
-        }
-        <div class="row">
-            @foreach (var feed in channel.Feeds)
-            {
-                @if (Model.Granularity > IndexModel.GranularityLevel.Feed)
-                {
-                    <div class="col-12 col-md-6">
-                        <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug"
-                           class="@FeedLinkClass(feed)">
-                            @feed.Title
-                        </a>
-                    </div>
-                }
-                else
-                {
-                    <div class="col-12">
-                        <h4 class="border-light border-bottom border-2">
-                            <span class="badge bg-light rounded-0 rounded-top">
-                                <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug"
-                                   asp-route-year="@feed.UpdatedLocal.Year" asp-route-month="@feed.UpdatedLocal.Month"
-                                   class="@FeedLinkClass(feed)">
-                                    @feed.Title
-                                </a>
-                            </span>
-                        </h4>
-
-                        @foreach (var post in feed.Posts)
-                        {
-                            if (Model.Granularity > IndexModel.GranularityLevel.Posts)
-                            {
-                                @* post title and link *@
-                                <h6>
-                                    <a asp-page="/Index" 
-                                       asp-route-channel="@channel.Slug"
-                                       asp-route-feed="@feed.Slug"
-                                       asp-route-year="@post.PublishedLocal.Year"
-                                       asp-route-month="@post.PublishedLocal.Month"
-                                       asp-route-day="@post.PublishedLocal.Day"
-                                       asp-route-hour="@post.PublishedLocal.Hour"
-                                       asp-route-minute="@post.PublishedLocal.Minute">
-                                        @post.Title
-                                    </a>
-                                    <br />
-                                    <small class="text-muted">@post.PublishedLocal.ToString("f")</small>
-                                </h6>
-                            }
-                            else
-                            {
-                                @* post title and content *@
-                                <article>
-                                    <h5>
-                                        <a href="@post.Link" target="_blank" class="link-dark">@post.Title</a>
-                                    </h5>
-                                    <section>
-                                        <p class="text-muted">@post.PublishedLocal.ToString("f")</p>
-                                        <p class="text-muted">@Html.Raw(post.Description)</p>
-                                    </section>
-                                    <section class="overflow-auto text-start">
-                                        @Html.Raw(post.Content)
-                                    </section>
-                                </article>
-                            }
-                        }
-                    </div>
-                }
-            }
-        </div>
-    }
+    <partial name="Index/_Post" model="Model.Channels.First()" />
 }
-
-@functions {
-    private string FeedLinkClass(RssFeedInfo feed)
-    {
-        return 
-            feed.HasError ? "link-danger" :
-            feed.IsOutdated ? "link-secondary" :
-            feed.HasPosts ? "link-primary" :
-            "link-warning";
-    }
+else if (Model.Granularity == IndexModel.GranularityLevel.Feed)
+{
+    <partial name="Index/_Feed" model="Model.Channels.First()" />
+}
+else if (Model.Granularity >= IndexModel.GranularityLevel.Channel)
+{
+    <partial name="Index/_Channel" model="Model.Channels" />
 }

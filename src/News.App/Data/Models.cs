@@ -22,6 +22,8 @@ public record RssFeedInfo
     public Guid FeedId { get; init; }
     public string Title { get; init; }
     public string Slug { get; init; }
+    public string? Description { get; init; }
+    public string Link { get; init; }
     
     public DateTimeOffset Updated { get; init; }
     public DateTimeOffset UpdatedLocal => this.updateLocal ??= this.Updated.ToLocalTime();

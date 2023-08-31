@@ -19,3 +19,8 @@ $enable-gradients: true;
 .field-validation-valid {
     @extend .valid-feedback;
 }
+
+// Fix for img tags in posts
+img {
+    @extend .img-fluid
+}
