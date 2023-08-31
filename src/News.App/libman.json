@@ -12,6 +12,15 @@
       ]
     },
     {
+      "library": "bootstrap-icons@1.10.5",
+      "destination": "wwwroot/lib/bootstrap/",
+      "files": [
+        "font/fonts/bootstrap-icons.woff",
+        "font/fonts/bootstrap-icons.woff2",
+        "font/bootstrap-icons.min.css"
+      ]
+    },
+    {
       "provider": "unpkg",
       "library": "aspnet-client-validation@0.8.15",
       "destination": "wwwroot/lib/aspnet-client-validation/",

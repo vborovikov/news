@@ -64,10 +64,13 @@ public class FeedModel : PageModel
         public Guid FeedId { get; init; }
 
         [Required, Url, Display(Name = "Feed URL")]
-        public string? FeedUrl { get; init; }
+        public string FeedUrl { get; init; } = "";
+
+        [Display(Name = "Feed title")]
+        public string? FeedTitle { get; init; }
 
         [Required, RegularExpression("^[a-z][a-z0-9-]*$"), MaxLength(50), Display(Name = "Feed slug")]
-        public string? FeedSlug { get; init; }
+        public string FeedSlug { get; init; } = "";
 
         [Required, Display(Name = "Feed channel")]
         public Guid ChannelId { get; init; }

@@ -40,6 +40,16 @@
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-12">
+                    <label asp-for="Input.FeedTitle" class="form-label">Title</label>
+                    <div class="input-group has-validation">
+                        <span class="input-group-text">&#x1F50E;</span>
+                        <input asp-for="Input.FeedTitle" type="text" class="form-control" placeholder="Title">
+                        <span asp-validation-for="Input.FeedTitle"></span>
+                    </div>
+                </div>
+            </div>
         </fieldset>
 
         <div class="form-group mt-3">
