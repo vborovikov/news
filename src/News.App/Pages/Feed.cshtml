@@ -1,5 +1,54 @@
-﻿@page "/feed/{slug}/{id?}"
-
+﻿@page "/feed/{id:guid}"
 @model News.App.Pages.FeedModel
 @{
+    ViewData["Title"] = "Feed";
+}
+
+<div class="bg-white p-4 shadow">
+    <form method="post">
+        <input asp-for="Input.FeedId" type="hidden">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <fieldset class="form-group">
+            <legend>Feed</legend>
+            <div class="row">
+                <div class="col-12">
+                    <label asp-for="Input.FeedUrl" class="form-label">URL</label>
+                    <div class="input-group has-validation">
+                        <span class="input-group-text">&#x1F310;</span>
+                        <input asp-for="Input.FeedUrl" type="url" class="form-control" placeholder="Feed URL or website address">
+                        <span asp-validation-for="Input.FeedUrl"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 col-sm-7">
+                    <label asp-for="Input.ChannelId" class="form-label">Channel</label>
+                    <div class="input-group has-validation">
+                        <div class="input-group-text">&#x1F516;</div>
+                        <select asp-for="Input.ChannelId" asp-items="Model.Channels" class="form-control">
+                            <option value="">Select channel</option>
+                        </select>
+                        <span asp-validation-for="Input.ChannelId"></span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-5">
+                    <label asp-for="Input.FeedSlug" class="form-label">Slug</label>
+                    <div class="input-group has-validation">
+                        <span class="input-group-text">&#x1F50E;</span>
+                        <input asp-for="Input.FeedSlug" type="text" class="form-control" placeholder="Slug">
+                        <span asp-validation-for="Input.FeedSlug"></span>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-outline-primary">Update</button>
+            <button type="reset" class="btn btn-link link-secondary text-decoration-none">Cancel</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
 }
