@@ -29,6 +29,12 @@ public class ImportUrlModel : EditPageModel
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken = default)
     {
+        if (!this.ModelState.IsValid || !this.Input.IsValid)
+        {
+            this.ModelState.AddModelError("", "Invalid feed properties");
+            return Page();
+        }
+
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
 
@@ -114,10 +120,10 @@ public class ImportUrlModel : EditPageModel
     public record InputModel
     {
         [Required, Url, Display(Name = "Feed URL")]
-        public string? FeedUrl { get; init; }
+        public string FeedUrl { get; init; } = "";
 
-        [Required, RegularExpression("^[a-z][a-z0-9-]*$"), MaxLength(50), Display(Name = "Feed slug")]
-        public string? FeedSlug { get; init; }
+        [Required, RegularExpression("^[a-z][a-z0-9-]+$"), MaxLength(50), Display(Name = "Feed slug")]
+        public string FeedSlug { get; init; } = "";
 
         [RequiredIf(nameof(ChannelName), null), RequiredIf(nameof(ChannelSlug), null), Display(Name = "Existing channel")]
         public string? ChannelId { get; init; }
