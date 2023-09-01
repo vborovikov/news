@@ -4,20 +4,20 @@
     @foreach (var feed in Model.Feeds)
     {
         <div class="col-md-8">
-            <h3 class="pb-4 mb-4 border-bottom">
+            <h4 class="pb-4 mb-4 border-bottom">
                 <i class="be bi-rss-fill flex-shrink-0 @FeedTextClass(feed)"></i>
                 <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
                    asp-route-year="" class="link-dark text-decoration-none">
                     @feed.Title
                 </a>
-            </h3>
+            </h4>
 
             @foreach (var post in feed.Posts)
             {
                 <article class="feed-post">
-                    <h2 class="feed-post-title">
+                    <h3 class="feed-post-title">
                         <a href="@post.Link" target="_blank" class="link-dark text-decoration-none">@post.Title</a>
-                    </h2>
+                    </h3>
                     <section>
                         <p class="feed-post-meta">@post.PublishedLocal.ToString("f")</p>
                         <p class="feed-post-meta">@Html.Raw(post.Description)</p>
@@ -32,10 +32,13 @@
 
         <div class="col-md-4">
             <div class="position-sticky" style="top: 2rem;">
-                <div class="p-4 mb-3 bg-light rounded">
-                    <h4 class="">About</h4>
-                    <p class="mb-0">@Html.Raw(feed.Description)</p>
-                </div>
+                @if (feed.Description is not null)
+                {
+                    <div class="p-4 mb-3 bg-light rounded">
+                        <h4 class="">About</h4>
+                        <p class="mb-0">@Html.Raw(feed.Description)</p>
+                    </div>
+                }
 
                 @if (feed.LastPublishedLocal.HasValue)
                 {
@@ -46,7 +49,12 @@
                         <ol class="list-unstyled mb-0">
                             @while (pubDate > pubDateLast)
                             {
-                                <li><a href="#">@pubDate.ToString("MMMM yyyy")</a></li>
+                                <li>
+                                    <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+                                       asp-route-year="@pubDate.Year" asp-route-month="@pubDate.Month" asp-route-day="">
+                                        @pubDate.ToString("MMMM yyyy")
+                                    </a>
+                                </li>
                                 pubDate = pubDate.AddMonths(-1);
                             }
                         </ol>
@@ -56,8 +64,8 @@
                     <h4 class="">Elsewhere</h4>
                     <ol class="list-unstyled">
                         <li><a href="@feed.Link">Website</a></li>
-                        <li><a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug" asp-route-year="">Feed</a></li>
-                        <li><a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="">Channel</a></li>
+                        <li><a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug" asp-route-year="">@feed.Title</a></li>
+                        <li><a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="">@Model.Name</a></li>
                     </ol>
                 </div>
             </div>

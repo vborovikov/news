@@ -4,17 +4,14 @@
 {
     <div class="container">
         <div class="d-flex justify-content-between pb-2 border-bottom">
-            <h2>
+            <h3>
                 <i class="be bi-rss-fill flex-shrink-0 me-1 @FeedTextClass(feed)"></i>
-                <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
-                   asp-route-year="@feed.LastPublishedLocal?.Year" asp-route-month="@feed.LastPublishedLocal?.Month"
-                   asp-route-day="" class="link-dark text-decoration-none">
+                <a href="@Html.Raw(feed.Link)" class="link-dark text-decoration-none">
                     @feed.Title
                 </a>
-            </h2>
+            </h3>
             <div class="btn-group btn-group-sm align-self-center" role="group" aria-label="feed commands">
                 <a asp-page="/Feed" asp-route-id="@feed.FeedId" class="btn btn-outline-primary"><i class="bi bi-pencil-fill"></i></a>
-                <a href="@Html.Raw(feed.Link)" class="btn btn-outline-info"><i class="bi bi-box-arrow-up-right"></i></a>
                 <button type="button" class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
             </div>
         </div>
@@ -25,14 +22,14 @@
                 <div class="col d-flex align-items-start">
                     <i class="bi bi-file-text text-muted flex-shrink-0 me-3 fs-5"></i>
                     <div>
-                        <h4 class="mb-0">
+                        <h5 class="mb-0">
                             <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
                                asp-route-year="@post.PublishedLocal.Year" asp-route-month="@post.PublishedLocal.Month"
                                asp-route-day="@post.PublishedLocal.Day" asp-route-hour="@post.PublishedLocal.Hour"
                                asp-route-minute="@post.PublishedLocal.Minute" class="link-dark text-decoration-none">
                                 @post.Title
                             </a>
-                        </h4>
+                        </h5>
                         <p>@post.PublishedLocal.ToString("f")</p>
                         <p>@Html.Raw(post.Description)</p>
                     </div>
