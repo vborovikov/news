@@ -2,29 +2,20 @@ namespace News.App.Pages;
 
 using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
-using System.Net;
 using System.Threading;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using News.App.Data;
 
 [Authorize]
-public class ImportUrlModel : PageModel
+public class ImportUrlModel : EditPageModel
 {
-    private readonly UserManager<AppUser> userManager;
-    private readonly DbDataSource db;
     private readonly ILogger<ImportUrlModel> log;
-    private IEnumerable<RssChannelInfo> channels = Array.Empty<RssChannelInfo>();
 
-    public ImportUrlModel(UserManager<AppUser> userManager, DbDataSource db, ILogger<ImportUrlModel> log)
+    public ImportUrlModel(DbDataSource db, ILogger<ImportUrlModel> log)
+        : base(db)
     {
-        this.userManager = userManager;
-        this.db = db;
         this.log = log;
         this.Input = new();
     }
@@ -32,43 +23,12 @@ public class ImportUrlModel : PageModel
     [BindProperty]
     public InputModel Input { get; init; }
 
-    public SelectList Channels => new(this.channels, nameof(RssChannelInfo.ChannelId), nameof(RssChannelInfo.Name), this.Input.ChannelId);
-
-    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
-    {
-        var userIdStr = this.userManager.GetUserId(this.User);
-        if (!Guid.TryParse(userIdStr, out var userId))
-        {
-            // user not logged in or whatever
-            this.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-            return;
-        }
-
-        await using var cnn = await this.db.OpenConnectionAsync(this.HttpContext.RequestAborted);
-        this.channels = await cnn.QueryAsync<RssChannelInfo>(
-            """
-            select uc.Id as ChannelId, uc.Name, uc.Slug
-            from rss.UserChannels uc
-            where uc.UserId = @userId
-            order by uc.Name;
-            """, new { userId });
-
-        await base.OnPageHandlerExecutionAsync(context, next);
-    }
-
     public void OnGet()
     {
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken = default)
     {
-        var userIdStr = this.userManager.GetUserId(this.User);
-        if (!this.ModelState.IsValid || this.Input?.IsValid != true || !Guid.TryParse(userIdStr, out var userId))
-        {
-            this.ModelState.AddModelError("", "Invalid URL");
-            return Page();
-        }
-
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
 
@@ -86,7 +46,7 @@ public class ImportUrlModel : PageModel
                     insert into rss.UserChannels (UserId, Id, Name, Slug)
                     output inserted.Id as ChannelId, inserted.Name, inserted.Slug
                     values (@UserId, @ChannelId, @ChannelName, @ChannelSlug);
-                    """, new { UserId = userId, ChannelId = channelId, this.Input.ChannelName, this.Input.ChannelSlug }, tx);
+                    """, new { this.UserId, ChannelId = channelId, this.Input.ChannelName, this.Input.ChannelSlug }, tx);
 
             }
             else
@@ -97,7 +57,7 @@ public class ImportUrlModel : PageModel
                     select uc.Id as ChannelId, uc.Name, uc.Slug
                     from rss.UserChannels uc
                     where uc.UserId = @UserId and uc.Id = @ChannelId
-                    """, new { UserId = userId, ChannelId = channelId }, tx);
+                    """, new { this.UserId, ChannelId = channelId }, tx);
             }
 
             // insert feed if it's new, copy to user feeds, get feed slug
@@ -107,7 +67,7 @@ public class ImportUrlModel : PageModel
                 from rss.UserFeeds uf
                 right outer join rss.Feeds f on uf.FeedId = f.Id
                 where uf.UserId = @UserId and f.Source = @FeedUrl
-                """, new { UserId = userId, this.Input.FeedUrl }, tx);
+                """, new { this.UserId, this.Input.FeedUrl }, tx);
             if (userFeed is null)
             {
                 // user feed not found
@@ -133,7 +93,7 @@ public class ImportUrlModel : PageModel
                     insert into rss.UserFeeds (UserId, FeedId, ChannelId, Slug)
                     output inserted.FeedId as FeedId, inserted.Slug
                     values (@UserId, @FeedId, @ChannelId, @FeedSlug);
-                    """, new { UserId = userId, feed.FeedId, ChannelId = channelId, this.Input.FeedSlug }, tx);
+                    """, new { this.UserId, feed.FeedId, ChannelId = channelId, this.Input.FeedSlug }, tx);
             }
 
             await tx.CommitAsync(cancellationToken);

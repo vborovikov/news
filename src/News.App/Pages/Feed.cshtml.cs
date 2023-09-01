@@ -2,61 +2,34 @@ namespace News.App.Pages;
 
 using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
-using System.Net;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using News.App.Data;
 
 [Authorize]
-public class FeedModel : PageModel
+public class FeedModel : EditPageModel
 {
-    private readonly UserManager<AppUser> userManager;
-    private readonly DbDataSource db;
     private readonly ILogger<ImportUrlModel> log;
-    private IEnumerable<RssChannelInfo> channels = Array.Empty<RssChannelInfo>();
 
-    public FeedModel(UserManager<AppUser> userManager, DbDataSource db, ILogger<ImportUrlModel> log)
+    public FeedModel(DbDataSource db, ILogger<ImportUrlModel> log)
+        : base(db)
     {
-        this.userManager = userManager;
-        this.db = db;
         this.log = log;
         this.Input = new();
     }
 
     [BindProperty]
-    public InputModel Input { get; init; }
+    public InputModel Input { get; set; }
 
-    public SelectList Channels => new(this.channels, nameof(RssChannelInfo.ChannelId), nameof(RssChannelInfo.Name), this.Input.ChannelId);
-
-    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    public async Task OnGet(Guid id)
     {
-        var userIdStr = this.userManager.GetUserId(this.User);
-        if (!Guid.TryParse(userIdStr, out var userId))
-        {
-            // user not logged in or whatever
-            this.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-            return;
-        }
-
         await using var cnn = await this.db.OpenConnectionAsync(this.HttpContext.RequestAborted);
-        this.channels = await cnn.QueryAsync<RssChannelInfo>(
+        this.Input = await cnn.QuerySingleAsync<InputModel>(
             """
-            select uc.Id as ChannelId, uc.Name, uc.Slug
-            from rss.UserChannels uc
-            where uc.UserId = @userId
-            order by uc.Name;
-            """, new { userId });
-
-        await base.OnPageHandlerExecutionAsync(context, next);
-    }
-
-    public void OnGet(Guid id)
-    {
+            select af.FeedId, af.Source as FeedUrl, af.Title as FeedTitle, af.Slug as FeedSlug, af.ChannelId
+            from rss.AppFeeds af
+            where af.UserId = @UserId and af.FeedId = @FeedId;
+            """, new { this.UserId, FeedId = id });
     }
 
     public record InputModel

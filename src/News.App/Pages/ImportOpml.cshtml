@@ -5,16 +5,18 @@
 }
 
 <div class="bg-white p-4 shadow">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" class="row g-3">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-        <div class="mb-3">
+        <div class="col-12">
             <label asp-for="Input.OpmlFile" class="form-label">OPML file</label>
             <input asp-for="Input.OpmlFile" type="file" accept=".opml,text/x-opml" class="form-control">
             <span asp-validation-for="Input.OpmlFile"></span>
         </div>
 
-        <button type="submit" class="btn btn-outline-primary mt-3">@ViewBag.Title</button>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-outline-primary">@ViewBag.Title</button>
+        </div>
     </form>
 </div>
 
