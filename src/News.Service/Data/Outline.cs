@@ -35,7 +35,7 @@ record FeedOutline(string Text, string? Title, string XmlUrl, string? HtmlUrl) :
         var slug = text;
         if (string.IsNullOrWhiteSpace(slug))
         {
-            slug = SlugifyUrl(url);
+            slug = url.SlugifyFeed();
         }
 
         return SanitizeSlug(slug);
@@ -47,72 +47,6 @@ record FeedOutline(string Text, string? Title, string XmlUrl, string? HtmlUrl) :
             .Trim('_', '-', '@')
             .Replace(' ', '-')
             .ToLowerInvariant();
-    }
-
-    private static string SlugifyUrl(string url)
-    {
-        var parts = url.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        for (var i = parts.Length - 1; i >= 0; --i)
-        {
-            var part = parts[i];
-
-            if (i > 1 || (i == 1 && parts.Length == 2))
-            {
-                if (part.Length < 3 ||
-                    part.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
-                    part.EndsWith(".rss", StringComparison.OrdinalIgnoreCase) ||
-                    part.EndsWith(".axd", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("index.", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("rss", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("atom", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("author", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("blog", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("feed", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("post", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("page", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("default", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("syndication", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-            }
-
-            if (i <= 1 && part.Contains('.', StringComparison.OrdinalIgnoreCase))
-            {
-                var hostParts = part.Split('.', StringSplitOptions.RemoveEmptyEntries);
-                var j = hostParts.Length - 1;
-                while (j >= 0)
-                {
-                    if (hostParts[j].Length <= 3 || j == (hostParts.Length - 1))
-                    {
-                        if (j == 0)
-                        {
-                            if (hostParts[0] == "www")
-                            {
-                                ++j;
-                            }
-                            break;
-                        }
-
-                        --j;
-                        continue;
-                    }
-
-                    break;
-                }
-
-                part = hostParts[j];
-                if (part == "github" || part == "hashnode")
-                {
-                    part = hostParts[j - 1];
-                }
-            }
-
-            return part;
-        }
-
-        return parts[^1];
     }
 }
 

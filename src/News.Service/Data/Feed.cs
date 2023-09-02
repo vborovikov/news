@@ -8,7 +8,7 @@ using CodeHollow.FeedReader.Feeds;
 record DbFeed
 {
     public Guid Id { get; init; }
-    public string Source { get; init; }
+    public string Source { get; init; } = "";
 }
 
 record FeedItemWrapper
@@ -23,6 +23,8 @@ record FeedItemWrapper
     public string Id => this.item.Id ?? this.item.PublishingDateString;
 
     public string Link => (this.item.Link ?? this.item.Id).Trim();
+
+    public string Slug => this.Link.SlugifyPost();
 
     public DateTimeOffset Published
     {
