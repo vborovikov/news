@@ -22,7 +22,7 @@ record FeedItemWrapper
 
     public string Id => this.item.Id ?? this.item.PublishingDateString;
 
-    public string Link => this.item.Link ?? this.item.Id;
+    public string Link => (this.item.Link ?? this.item.Id).Trim();
 
     public DateTimeOffset Published
     {
