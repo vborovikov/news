@@ -310,6 +310,7 @@ sealed class Worker : BackgroundService
                 create table #Posts (
                     Id varchar(850) not null primary key,
                     Link nvarchar(850) not null,
+                    Slug varchar(100) not null,
                     Published datetimeoffset not null,
                     Title nvarchar(1000) not null,
                     Description nvarchar(max) null,
@@ -327,6 +328,7 @@ sealed class Worker : BackgroundService
                     update.Items.Select(item => new FeedItemWrapper(item)),
                     nameof(FeedItemWrapper.Id),
                     nameof(FeedItemWrapper.Link),
+                    nameof(FeedItemWrapper.Slug),
                     nameof(FeedItemWrapper.Published),
                     nameof(FeedItemWrapper.Title),
                     nameof(FeedItemWrapper.Description),
@@ -345,14 +347,15 @@ sealed class Worker : BackgroundService
                 when matched and tgt.FeedId = @FeedId then
                     update set
                         Link = src.Link,
+                        Slug = src.Slug,
                         Published = src.Published,
                         Title = src.Title,
                         Description = src.Description,
                         Author = src.Author,
                         Content = src.Content
                 when not matched then
-                    insert (FeedId, ExternalId, Link, Published, Title, Description, Author, Content)
-                    values (@FeedId, src.Id, src.Link, src.Published, src.Title, src.Description, src.Author, src.Content);
+                    insert (FeedId, ExternalId, Link, Slug, Published, Title, Description, Author, Content)
+                    values (@FeedId, src.Id, src.Link, src.Slug, src.Published, src.Title, src.Description, src.Author, src.Content);
 
                 set ansi_warnings on;
                 """, new { FeedId = feed.Id }, tx);

@@ -195,7 +195,7 @@ static class SlugGenerator
 
         public readonly ReadOnlySpan<char> Current => this.current;
 
-        public UrlPathEnumerator GetEnumerator() => this;
+        public readonly UrlPathEnumerator GetEnumerator() => this;
 
         public bool MoveNext()
         {
