@@ -51,7 +51,9 @@
                             {
                                 <li>
                                     <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
-                                       asp-route-year="@pubDate.Year" asp-route-month="@pubDate.Month" asp-route-day="">
+                                       asp-route-year="@pubDate.Year.ToString("D4")"
+                                       asp-route-month="@pubDate.Month.ToString("D2")"
+                                       asp-route-day="">
                                         @pubDate.ToString("MMMM yyyy")
                                     </a>
                                 </li>
