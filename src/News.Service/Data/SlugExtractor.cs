@@ -76,7 +76,7 @@ static class SlugExtractor
             break;
         }
 
-        return slug.ToString();
+        return (slug.Length > 100 ? slug[..100] : slug).ToString();
     }
 
     public static string SlugifyFeed(this string url)

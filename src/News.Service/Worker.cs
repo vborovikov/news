@@ -3,6 +3,7 @@ namespace News.Service;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
+using System.Threading;
 using System.Xml;
 using CodeHollow.FeedReader;
 using Dapper;
@@ -26,32 +27,72 @@ sealed class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await ImportOpmlAsync(stoppingToken);
-        await UpdateFeedsPeriodicallyAsync(stoppingToken);
+        var timer = new PeriodicTimer(this.options.UpdateInterval);
+        do
+        {
+            await ImportFeedsAsync(stoppingToken);
+            await UpdateFeedsAsync(stoppingToken);
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
-    private async Task ImportOpmlAsync(CancellationToken cancellationToken)
+    private async Task ImportFeedsAsync(CancellationToken cancellationToken)
     {
-        if (!this.options.OpmlDirectory.Exists)
+        try
         {
-            this.log.LogWarning("Opml directory '{opmlDirectory}' does not exist", this.options.OpmlDirectory);
-            return;
+            this.log.LogInformation("Importing feeds at: {time}", DateTimeOffset.Now);
+
+            if (!this.options.OpmlDirectory.Exists)
+            {
+                this.log.LogWarning("OPML directory '{opmlDirectory}' does not exist", this.options.OpmlDirectory);
+                return;
+            }
+
+            foreach (var opmlFile in this.options.OpmlDirectory.EnumerateFiles("*.opml"))
+            {
+                try
+                {
+                    this.log.LogInformation("Importing OPML file '{fileName}'", opmlFile.Name);
+                    await ImportOpmlFileAsync(opmlFile, cancellationToken);
+                    this.log.LogInformation("Finished importing OPML file '{fileName}'", opmlFile.Name);
+
+                    opmlFile.Delete();
+                }
+                catch (Exception x)
+                {
+                    this.log.LogError(x, "Error importing OPML file '{fileName}'", opmlFile.Name);
+                }
+            }
         }
-
-        foreach (var opmlFile in this.options.OpmlDirectory.EnumerateFiles("*.opml"))
+        catch (Exception x)
         {
-            try
-            {
-                this.log.LogInformation("Importing opml file '{fileName}'", opmlFile.Name);
-                await ImportOpmlFileAsync(opmlFile, cancellationToken);
-                this.log.LogInformation("Finished importing opml file '{fileName}'", opmlFile.Name);
+            this.log.LogError(x, "Error importing feeds");
+        }
+        finally
+        {
+            this.log.LogInformation("Finished importing feeds at: {time}", DateTimeOffset.Now);
+        }
+    }
 
-                opmlFile.Delete();
-            }
-            catch (Exception x)
+    private async Task UpdateFeedsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
+
+            var feeds = await GetFeedsAsync(cancellationToken);
+            foreach (var feed in feeds)
             {
-                this.log.LogError(x, "Error importing opml file '{fileName}'", opmlFile.Name);
+                await UpdateFeedAsync(feed, cancellationToken);
             }
+        }
+        catch (Exception x)
+        {
+            this.log.LogError(x, "Error updating feeds");
+        }
+        finally
+        {
+            this.log.LogInformation("Finished updating feeds at: {time}", DateTimeOffset.Now);
         }
     }
 
@@ -233,45 +274,6 @@ sealed class Worker : BackgroundService
         return channels.ToArray();
     }
 
-    private async Task UpdateFeedsPeriodicallyAsync(CancellationToken cancellationToken)
-    {
-        var timer = new PeriodicTimer(this.options.UpdateInterval);
-        do
-        {
-            try
-            {
-                this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
-
-                await UpdateFeedsAsync(cancellationToken);
-            }
-            catch (Exception x)
-            {
-                this.log.LogError(x, "Error updating feeds");
-            }
-            finally
-            {
-                this.log.LogInformation("Finished updating feeds at: {time}", DateTimeOffset.Now);
-            }
-        }
-        while (await timer.WaitForNextTickAsync(cancellationToken));
-    }
-
-    private async Task UpdateFeedsAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var feeds = await GetFeedsAsync(cancellationToken);
-            foreach (var feed in feeds)
-            {
-                await UpdateFeedAsync(feed, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            this.log.LogError(ex, "Error updating feeds");
-        }
-    }
-
     private async Task<IEnumerable<DbFeed>> GetFeedsAsync(CancellationToken cancellationToken)
     {
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
@@ -305,6 +307,8 @@ sealed class Worker : BackgroundService
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
         {
+            var feedUpdate = new FeedWrapper(update, feed);
+
             await cnn.ExecuteAsync(
                 """
                 create table #Posts (
@@ -325,7 +329,7 @@ sealed class Worker : BackgroundService
             })
             {
                 using var postReader = ObjectReader.Create(
-                    update.Items.Select(item => new FeedItemWrapper(item)),
+                    update.Items.Select(item => new FeedItemWrapper(item, feedUpdate)),
                     nameof(FeedItemWrapper.Id),
                     nameof(FeedItemWrapper.Link),
                     nameof(FeedItemWrapper.Slug),
@@ -365,41 +369,24 @@ sealed class Worker : BackgroundService
                 drop table #Posts;
                 """, transaction: tx);
 
-            if (FeedUpdateHasInfo(update))
-            {
-                await cnn.ExecuteAsync(
-                    """
-                    update rss.Feeds
-                    set
-                        Updated = @Updated,
-                        Title = @Title,
-                        Description = @Description,
-                        Link = @Link,
-                        Error = null
-                    where Id = @FeedId;
-                    """, new
-                    {
-                        FeedId = feed.Id,
-                        Updated = DateTimeOffset.Now,
-                        update.Title,
-                        update.Description,
-                        update.Link
-                    }, tx);
-            }
-            else
-            {
-                // some feeds are just broken
-                await cnn.ExecuteAsync(
-                    """
-                    update rss.Feeds
-                    set Updated = @Updated, Error = null
-                    where Id = @FeedId;
-                    """, new
-                    {
-                        FeedId = feed.Id,
-                        Updated = DateTimeOffset.Now
-                    }, tx);
-            }
+            await cnn.ExecuteAsync(
+                """
+                update rss.Feeds
+                set
+                    Updated = @Updated,
+                    Title = @Title,
+                    Description = @Description,
+                    Link = @Link,
+                    Error = null
+                where Id = @FeedId;
+                """, new
+                {
+                    FeedId = feed.Id,
+                    Updated = DateTimeOffset.Now,
+                    feedUpdate.Title,
+                    feedUpdate.Description,
+                    feedUpdate.Link
+                }, tx);
 
             await tx.CommitAsync(cancellationToken);
         }
@@ -432,13 +419,5 @@ sealed class Worker : BackgroundService
             await tx.RollbackAsync(cancellationToken);
             this.log.LogError(x, "Error storing feed update error");
         }
-    }
-
-    private static bool FeedUpdateHasInfo(Feed update)
-    {
-        return
-            !string.IsNullOrWhiteSpace(update.Title) &&
-            !string.IsNullOrWhiteSpace(update.Description) &&
-            !string.IsNullOrWhiteSpace(update.Link);
     }
 }
