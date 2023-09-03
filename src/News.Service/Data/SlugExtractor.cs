@@ -24,6 +24,12 @@ static class SlugExtractor
                 var eqSignIdx = slug.IndexOf('=');
                 if (eqSignIdx > 0)
                 {
+                    if (slug.StartsWith("utm_"))
+                    {
+                        // utm parameters, skip entirely
+                        continue;
+                    }
+
                     slug = slug[(eqSignIdx + 1)..];
                     var ampIdx = slug.IndexOf('&');
                     if (ampIdx > 0)

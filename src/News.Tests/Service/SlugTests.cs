@@ -17,6 +17,7 @@ public class SlugTests
     [DataRow("https://example.com/questions/13466/can-grep-output-only-specified-groupings-that-match#13472", "can-grep-output-only-specified-groupings-that-match")]
     [DataRow("https://example.com/2023/06/20/money-buys-happiness/?utm_source=rss&utm_medium=rss&utm_campaign=money-buys-happiness", "money-buys-happiness")]
     [DataRow("https://example.com/blog/?p=69", "69")]
+    [DataRow("https://www.infoq.com/news/2023/09/java-21-so-far/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global", "java-21-so-far")]
     public void SlugifyPost_NormalLinks_LastPathAsSlug(string link, string expected)
     {
         var slug = link.SlugifyPost();
