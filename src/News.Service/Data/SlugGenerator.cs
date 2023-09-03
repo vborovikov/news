@@ -203,7 +203,7 @@ static class SlugGenerator
         "terms",
     };
 
-    private static string[] commonExtensions =
+    private static readonly string[] commonExtensions =
     {
         ".aspx",
         ".axd",
