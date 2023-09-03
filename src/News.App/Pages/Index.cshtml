@@ -1,4 +1,4 @@
-﻿@page "/{channel?}/{feed?}/{year:int:min(1969):max(2100)?}/{month:int:min(1):max(12)?}/{day:int:min(1):max(31)?}/{hour:int:min(0):max(23)?}/{minute:int:min(0):max(59)?}"
+﻿@page "/{channel?}/{feed?}/{year:int:min(1969):max(2100)?}/{month:int:min(1):max(12)?}/{day:int:min(1):max(31)?}/{post?}"
 
 @model IndexModel
 @{
@@ -10,7 +10,7 @@
     @* nothing to show since no user logged in *@
     <h1 class="text-center display-1">Nothing to show, please log in to see the news.</h1>
 }
-else if (Model.Granularity == IndexModel.GranularityLevel.Posts)
+else if (Model.Granularity <= IndexModel.GranularityLevel.Posts)
 {
     <partial name="Index/_Post" model="Model.Channels.First()" />
 }

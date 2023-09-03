@@ -23,7 +23,7 @@ public class IndexModel : PageModel
     public IEnumerable<RssChannel> Channels { get; private set; } = Enumerable.Empty<RssChannel>();
 
     public async Task OnGetAsync(string? channel = null, string? feed = null,
-        int year = 0, int month = 0, int day = 0, int? hour = null, int? minute = null,
+        int year = 0, int month = 0, int day = 0, string? post = null,
         CancellationToken cancellationToken = default)
     {
         var userIdStr = this.userManager.GetUserId(this.User);
@@ -40,22 +40,10 @@ public class IndexModel : PageModel
         var maxDate = DateTimeOffset.Now;
         if (year > 0)
         {
-            this.Granularity = GranularityLevel.Posts;
+            this.Granularity = string.IsNullOrEmpty(post) ? GranularityLevel.Posts : GranularityLevel.Post;
 
             // tweaking dates when showing posts
-            if (minute is not null)
-            {
-                // one minute (super-noisy feeds)
-                minDate = new DateTimeOffset(year, month, day, hour ?? 0, minute.Value, 0, minDate.Offset);
-                maxDate = minDate.AddMinutes(1);
-            }
-            else if (hour is not null)
-            {
-                // one hour (noisy feeds)
-                minDate = new DateTimeOffset(year, month, day, hour.Value, minute: 0, second: 0, minDate.Offset);
-                maxDate = minDate.AddHours(1);
-            }
-            else if (day > 0)
+            if (day > 0)
             {
                 // one day
                 minDate = new DateTimeOffset(year, month, day, hour: 0, minute: 0, second: 0, minDate.Offset);
@@ -74,30 +62,63 @@ public class IndexModel : PageModel
                 maxDate = minDate.AddYears(1);
             }
 
-            sql =
-                """
-                select uc.Id as ChannelId, uc.Name, uc.Slug,
-                    json_query((
-                        select uf.FeedId, uf.Title, uf.Slug, uf.Description,
-                            uf.Link, uf.Updated, uf.Error,
-                            (select max(p.Published) 
-                             from rss.Posts p 
-                             where p.FeedId = uf.FeedId) as LastPublished,
-                            json_query((
-                                select p.PostId, p.Title, p.Published, p.Description, p.Link, p.IsRead, p.Content
-                                from rss.AppPosts p
-                                where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
-                                order by p.Published desc
-                                for json path
-                            )) as Posts
-                        from rss.AppFeeds uf
-                        where uf.UserId = @UserId and uf.ChannelId = uc.Id and uf.Slug = @FeedSlug
-                        for json path
-                    )) as Feeds
-                from rss.UserChannels uc
-                where uc.UserId = @UserId and uc.Slug = @ChannelSlug
-                for json path;
-                """;
+            if (this.Granularity == GranularityLevel.Posts)
+            {
+                sql =
+                    """
+                    select uc.Id as ChannelId, uc.Name, uc.Slug,
+                        json_query((
+                            select uf.FeedId, uf.Title, uf.Slug, uf.Description,
+                                uf.Link, uf.Updated, uf.Error,
+                                (select max(p.Published) 
+                                 from rss.Posts p 
+                                 where p.FeedId = uf.FeedId) as LastPublished,
+                                json_query((
+                                    select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, p.IsRead, p.Content
+                                    from rss.AppPosts p
+                                    where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
+                                    order by p.Published desc
+                                    for json path
+                                )) as Posts
+                            from rss.AppFeeds uf
+                            where uf.UserId = @UserId and uf.ChannelId = uc.Id and uf.Slug = @FeedSlug
+                            for json path
+                        )) as Feeds
+                    from rss.UserChannels uc
+                    where uc.UserId = @UserId and uc.Slug = @ChannelSlug
+                    for json path;
+                    """;
+            }
+            else
+            {
+                sql =
+                    """
+                    select uc.Id as ChannelId, uc.Name, uc.Slug,
+                        json_query((
+                            select uf.FeedId, uf.Title, uf.Slug, uf.Description,
+                                uf.Link, uf.Updated, uf.Error,
+                                (select max(p.Published) 
+                                 from rss.Posts p 
+                                 where p.FeedId = uf.FeedId) as LastPublished,
+                                json_query((
+                                    select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, p.IsRead, p.Content
+                                    from rss.AppPosts p
+                                    where 
+                                        p.FeedId = uf.FeedId and
+                                        p.Published >= @MinDate and p.Published <= @MaxDate and
+                                        p.Slug = @PostSlug
+                                    order by p.Published desc
+                                    for json path
+                                )) as Posts
+                            from rss.AppFeeds uf
+                            where uf.UserId = @UserId and uf.ChannelId = uc.Id and uf.Slug = @FeedSlug
+                            for json path
+                        )) as Feeds
+                    from rss.UserChannels uc
+                    where uc.UserId = @UserId and uc.Slug = @ChannelSlug
+                    for json path;
+                    """;
+            }
         }
         else if (!string.IsNullOrWhiteSpace(feed))
         {
@@ -113,7 +134,7 @@ public class IndexModel : PageModel
                              from rss.Posts p 
                              where p.FeedId = uf.FeedId) as LastPublished,
                             json_query((
-                                select p.PostId, p.Title, p.Description, p.Published, p.Link, p.IsRead
+                                select p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug, p.IsRead
                                 from rss.AppPosts p
                                 where p.FeedId = uf.FeedId
                                 order by p.Published desc
@@ -183,6 +204,7 @@ public class IndexModel : PageModel
                 UserId = userId,
                 ChannelSlug = channel,
                 FeedSlug = feed,
+                PostSlug = post,
                 MinDate = minDate,
                 MaxDate = maxDate
             }) ?? Enumerable.Empty<RssChannel>();
@@ -191,6 +213,8 @@ public class IndexModel : PageModel
     public enum GranularityLevel
     {
         None,
+        // the single post
+        Post,
         // some posts in the feed with content
         Posts,
         // all posts in the feed, no content

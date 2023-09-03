@@ -11,7 +11,6 @@ static class SlugGenerator
         var parts = new UrlPathEnumerator(url);
         while (parts.MoveNext())
         {
-
             // get last part of the url
             slug = parts.Current;
 
@@ -40,7 +39,7 @@ static class SlugGenerator
                 }
             }
 
-            // check for # then get the rest after the #
+            // check for # then get the rest after the # or before depending on the length
             var hashIdx = slug.IndexOf('#');
             if (hashIdx >= 0)
             {

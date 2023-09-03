@@ -25,8 +25,8 @@
                         <h5 class="mb-0">
                             <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
                                asp-route-year="@post.PublishedLocal.Year" asp-route-month="@post.PublishedLocal.Month"
-                               asp-route-day="@post.PublishedLocal.Day" asp-route-hour="@post.PublishedLocal.Hour"
-                               asp-route-minute="@post.PublishedLocal.Minute" class="link-dark text-decoration-none">
+                               asp-route-day="@post.PublishedLocal.Day" asp-route-post="@post.Slug"
+                               class="link-dark text-decoration-none">
                                 @post.Title
                             </a>
                         </h5>
