@@ -62,17 +62,16 @@ static class SlugGenerator
             }
 
             // check for file extension then remove it
-            var dotIdx = slug.LastIndexOf('.');
-            if (dotIdx > 0)
-            {
-                slug = slug[..dotIdx];
-            }
+            slug = slug.MaybeRemoveExtension();
+            // trim irrelevant characters
+            slug = slug.Trim("!()+-@[]_{}~");
 
             // check for common words then discard
-            if (slug.IsCommonWord())
+            if (slug.IsEmpty || slug.IsCommonWord())
             {
                 continue;
             }
+
 
             break;
         }
@@ -146,6 +145,20 @@ static class SlugGenerator
         return parts[^1];
     }
 
+    private static ReadOnlySpan<char> MaybeRemoveExtension(this ReadOnlySpan<char> path)
+    {
+        foreach (var ext in commonExtensions)
+        {
+            if (path.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+            {
+                path = path[..^ext.Length];
+                break;
+            }
+        }
+
+        return path;
+    }
+
     private static bool IsCommonWord(this ReadOnlySpan<char> word)
     {
         if (word.Length < 3)
@@ -155,7 +168,8 @@ static class SlugGenerator
 
         foreach (var commonWord in commonWords)
         {
-            if (word.StartsWith(commonWord, StringComparison.OrdinalIgnoreCase))
+            if (word.StartsWith(commonWord, StringComparison.OrdinalIgnoreCase) &&
+                (word.Length / commonWord.Length) < 3)
             {
                 return true;
             }
@@ -192,6 +206,7 @@ static class SlugGenerator
     private static string[] commonExtensions =
     {
         ".aspx",
+        ".axd",
         ".email",
         ".fyi",
         ".htm",
@@ -203,8 +218,10 @@ static class SlugGenerator
         ".pdf",
         ".php",
         ".py",
+        ".rss",
         ".txt",
         ".webm",
+        ".xml",
         ".yml",
     };
 
@@ -234,7 +251,7 @@ static class SlugGenerator
                 return false;
 
             var pos = remaining.LastIndexOf('/');
-            if (pos > 0)
+            if (pos >= 0)
             {
                 this.current = remaining[(pos + 1)..];
                 this.span = remaining[..pos];
