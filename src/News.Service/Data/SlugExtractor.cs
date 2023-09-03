@@ -2,7 +2,7 @@ namespace News.Service.Data;
 
 using System;
 
-static class SlugGenerator
+static class SlugExtractor
 {
     public static string SlugifyPost(this string url) => url.AsSpan().SlugifyPost();
 
