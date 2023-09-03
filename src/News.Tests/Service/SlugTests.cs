@@ -24,6 +24,27 @@ public class SlugTests
     }
 
     [DataTestMethod]
+    [DataRow("https://example.com/2020/04/03/zooms-encryption-is-not-suited-for-secrets-and-has-surprising-links-to-china-researchers-discover/)", "zooms-encryption-is-not-suited-for-secrets-and-has-surprising-links-to-china-researchers-discover")]
+    [DataRow("http://example.com/blog/2023/06/15/.FOIA-Request-Saga-For-Computer-Related-Things", ".FOIA-Request-Saga-For-Computer-Related-Things")]
+    [DataRow("https://example.com/article/2023/02/.net-serialization-benchmarks-feb-2023/", ".net-serialization-benchmarks-feb-2023")]
+    [DataRow("http://example.com/blog/-analogs-stranglehold-of-the-classroom", "analogs-stranglehold-of-the-classroom")]
+    [DataRow("https://example.com/--version-always.html", "version-always")]
+    [DataRow("/audio-books/", "audio-books")]
+    [DataRow("https://example.com/blog/2023/08/04/blogging-all-the-blogs/", "blogging-all-the-blogs")]
+    [DataRow("https://example.com/04.effect-concurrency", "04.effect-concurrency")]
+    [DataRow("https://example.com/books/awesome-lists/00.specials/weekly/2018/1/1.4-en/", "1.4-en")]
+    [DataRow("https://example.com/books/awesome-lists/00.specials/weekly/2017/11/11.3/", "11.3")]
+    [DataRow("https://example.com/daypages/2016.11.05/", "2016.11.05")]
+    [DataRow("https://example.com/journal/2023/newsletter-rule-in-quiet/", "newsletter-rule-in-quiet")]
+    [DataRow("https://example.com/journal/2023/comments-rule-in-quiet/", "comments-rule-in-quiet")]
+    [DataRow("https://example.com/blogging/posts/blogtober-2016-1-2/", "blogtober-2016-1-2")]
+    public void SlugifyPost_WeirdLinks_LastGoodPathAsSlug(string link, string expected)
+    {
+        var slug = link.SlugifyPost();
+        Assert.AreEqual(expected, slug);
+    }
+
+    [DataTestMethod]
     [DataRow("https://blog.antosubash.com/rss.xml", "antosubash")]
     [DataRow("https://chrissainty.com/rss/", "chrissainty")]
     [DataRow("https://www.respawnsive.com/en/feed/", "respawnsive")]

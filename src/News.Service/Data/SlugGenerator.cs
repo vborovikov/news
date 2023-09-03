@@ -4,7 +4,9 @@ using System;
 
 static class SlugGenerator
 {
-    public static string SlugifyPost(this string url)
+    public static string SlugifyPost(this string url) => url.AsSpan().SlugifyPost();
+
+    public static string SlugifyPost(this ReadOnlySpan<char> url)
     {
         var slug = ReadOnlySpan<char>.Empty;
 
@@ -164,21 +166,46 @@ static class SlugGenerator
 
     private static readonly string[] commonWords =
     {
-        "news",
-        "blog",
-        "article",
-        "feed",
-        "rss",
-        "atom",
-        "comment",
-        "default",
-        "index",
         "about",
+        "archive",
+        "article",
+        "atom",
+        "blog",
+        "comment",
         "contact",
-        "terms",
-        "privacy",
         "cookie",
+        "default",
+        "feed",
+        "index",
+        "like",
+        "link",
+        "news",
+        "note",
+        "post",
+        "privacy",
+        "replies",
+        "rss",
         "sitemap",
+        "terms",
+    };
+
+    private static string[] commonExtensions =
+    {
+        ".aspx",
+        ".email",
+        ".fyi",
+        ".htm",
+        ".html",
+        ".js",
+        ".md",
+        ".mdx",
+        ".page",
+        ".pdf",
+        ".php",
+        ".py",
+        ".txt",
+        ".webm",
+        ".yml",
     };
 
     private ref struct UrlPathEnumerator
