@@ -8,10 +8,24 @@ using CodeHollow.FeedReader.Feeds;
 record DbFeed
 {
     public Guid Id { get; init; }
-    public string Source { get; init; } = "";
+    public required string Source { get; init; }
 }
 
-record FeedWrapper
+abstract record WrapperBase
+{
+    protected static string GetNonEmpty(params string?[] strings)
+    {
+        foreach (var str in strings)
+        {
+            if (!string.IsNullOrWhiteSpace(str))
+                return str;
+        }
+
+        return strings[^1] ?? string.Empty;
+    }
+}
+
+record FeedWrapper : WrapperBase
 {
     private readonly Feed feed;
     private readonly DbFeed db;
@@ -23,8 +37,11 @@ record FeedWrapper
         this.db = db;
     }
 
-    public string Title => string.IsNullOrWhiteSpace(this.feed.Title) ? "<no title>" : this.feed.Title;
-    public string Description => string.IsNullOrWhiteSpace(this.feed.Description) ? "<no description>" : this.feed.Description;
+    public string Title => GetNonEmpty(this.feed.Title, "<no title>");
+    public string Description => GetNonEmpty(
+        this.feed.Description,
+        (this.feed.SpecificFeed as AtomFeed)?.Subtitle,
+        "<no description>");
     public string Link => this.link ??= GetLink();
 
     private string GetLink()
@@ -50,7 +67,7 @@ record FeedWrapper
     }
 }
 
-record FeedItemWrapper
+record FeedItemWrapper : WrapperBase
 {
     private readonly FeedItem item;
     private readonly FeedWrapper feed;
@@ -62,17 +79,19 @@ record FeedItemWrapper
         this.feed = feed;
     }
 
-    public string Id => string.IsNullOrWhiteSpace(this.item.Id) ?
-        this.Published.ToString() :
-        //todo: adding the pubDate to the ID really is needed for broken feeds which I don't use in prod, so it's commented out for now
-        this.item.Id /*+ $"#{Uri.EscapeDataString(this.Published.ToString())}"*/;
+    public string Id => GetNonEmpty(
+        this.item.Id,
+        (this.item.SpecificItem as Rss20FeedItem)?.Comments,
+        this.PublishedDateStringSafe,
+        this.Published.ToString());
 
-    public string? PublishedDateStringSafe => this.item.PublishingDateString ??
-        (this.item.SpecificItem as AtomFeedItem)?.UpdatedDateString ??
-        (this.item.SpecificItem as Rss091FeedItem)?.PublishingDateString ??
-        (this.item.SpecificItem as Rss20FeedItem)?.PublishingDateString;
+    public string? PublishedDateStringSafe => GetNonEmpty(
+        this.item.PublishingDateString,
+        (this.item.SpecificItem as AtomFeedItem)?.UpdatedDateString,
+        (this.item.SpecificItem as Rss091FeedItem)?.PublishingDateString,
+        (this.item.SpecificItem as Rss20FeedItem)?.PublishingDateString);
 
-    public string Link => EnsureAbsoluteUrl((this.item.Link ?? this.item.Id).Trim());
+    public string Link => EnsureAbsoluteUrl(GetNonEmpty(this.item.Link, this.item.Id).Trim());
 
     private string EnsureAbsoluteUrl(string link)
     {
@@ -124,17 +143,12 @@ record FeedItemWrapper
         this.item.Title.Length >= 1000 ? this.item.Title[..1000] :
         this.item.Title;
 
-    public string? Description => this.item.Content is not null ? this.item.Description : null;
+    public string? Description => this.item.Content is not null ?
+        GetNonEmpty(this.item.Description, (this.item.SpecificItem as AtomFeedItem)?.Summary) :
+        null;
 
     public string Author => this.item.Author;
 
-    public string Content
-    {
-        get
-        {
-            // null checks in case the author is having a writer's block
-            var content = this.item.Content ?? this.item.Description ?? this.Link;
-            return string.IsNullOrWhiteSpace(content) ? "<no content>" : content;
-        }
-    }
+    // null checks in case the author is having a writer's block
+    public string Content => GetNonEmpty(this.item.Content, this.item.Description, this.Link, "<no content>");
 }
