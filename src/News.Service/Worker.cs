@@ -6,11 +6,13 @@ using System.IO;
 using System.Threading;
 using System.Xml;
 using CodeHollow.FeedReader;
+using CodeHollow.FeedReader.Parser;
 using Dapper;
 using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using News.Service.Data;
+using Spryer;
 
 sealed class Worker : BackgroundService
 {
@@ -167,7 +169,7 @@ sealed class Worker : BackgroundService
         }
     }
 
-    private async Task ImportFeedsAsync(FeedOutline[] feeds, Guid channelId, Guid userId, DbTransaction tx, CancellationToken cancellationToken)
+    private static async Task ImportFeedsAsync(FeedOutline[] feeds, Guid channelId, Guid userId, DbTransaction tx, CancellationToken cancellationToken)
     {
         // create temp feeds tables
         await tx.Connection.ExecuteAsync(
@@ -279,7 +281,7 @@ sealed class Worker : BackgroundService
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         var feeds = await cnn.QueryAsync<DbFeed>(
             """
-            select f.Id, f.Source
+            select f.Id, f.Source, f.Status
             from rss.Feeds f
             order by f.Updated;
             """);
@@ -408,9 +410,15 @@ sealed class Worker : BackgroundService
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
-                set Updated = @Updated, Error = @Error
+                set Updated = @Updated, Status = @Status, Error = @Error
                 where Id = @FeedId;
-                """, new { FeedId = feed.Id, Updated = DateTimeOffset.Now, Error = error.Message }, tx);
+                """, new
+                {
+                    FeedId = feed.Id,
+                    Updated = DateTimeOffset.Now,
+                    Status = GetStatus(error, feed.Status),
+                    Error = error.Message
+                }, tx);
 
             await tx.CommitAsync(cancellationToken);
         }
@@ -419,5 +427,29 @@ sealed class Worker : BackgroundService
             await tx.RollbackAsync(cancellationToken);
             this.log.LogError(x, "Error storing feed update error");
         }
+    }
+
+    private static DbEnum<FeedUpdateStatus> GetStatus(Exception error, FeedUpdateStatus prevStatus)
+    {
+        if (error is SqlException sqlEx && sqlEx.Number == 2627)
+        {
+            return 
+                prevStatus.HasFlag(FeedUpdateStatus.UniqueId) ? FeedUpdateStatus.SkipUpdate :
+                FeedUpdateStatus.UniqueId & prevStatus;
+        }
+        if (error is HttpRequestException)
+        {
+            return prevStatus.HasFlag(FeedUpdateStatus.HttpError) ? FeedUpdateStatus.SkipUpdate :
+                FeedUpdateStatus.HttpError & prevStatus;
+        }
+        if (error is XmlException || error is FeedTypeNotSupportedException)
+        {
+            return
+                prevStatus.HasFlag(FeedUpdateStatus.MimeType) ? FeedUpdateStatus.HtmlResponse & ~FeedUpdateStatus.MimeType & prevStatus :
+                prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
+                FeedUpdateStatus.MimeType & prevStatus;
+        }
+
+        return prevStatus;
     }
 }

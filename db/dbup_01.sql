@@ -13,6 +13,7 @@ create table rss.Feeds (
     Source nvarchar(850) not null unique check (Source != N''),
     Link nvarchar(850) not null unique check (Link != N''),
     Updated datetimeoffset not null default sysdatetimeoffset(),
+    Status varchar(50) not null default 'OK',
     Error nvarchar(2000) null
 );
 go

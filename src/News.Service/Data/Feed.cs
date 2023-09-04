@@ -4,11 +4,35 @@ using System;
 using System.Diagnostics;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Feeds;
+using Spryer;
+
+[Flags]
+enum FeedUpdateStatus
+{
+    None = 0 << 0,
+    OK = None,
+
+    UniqueId = 1 << 0,
+    UQID = UniqueId,
+
+    MimeType = 1 << 1,
+    MIME = MimeType,
+
+    HtmlResponse = 1 << 2,
+    HTML = HtmlResponse,
+
+    HttpError = 1 << 3,
+    HTTP = HttpError,
+
+    SkipUpdate = 1 << 4,
+    SKIP = SkipUpdate,
+}
 
 record DbFeed
 {
     public Guid Id { get; init; }
     public required string Source { get; init; }
+    public DbEnum<FeedUpdateStatus> Status { get; init; }
 }
 
 abstract record WrapperBase
@@ -43,6 +67,8 @@ record FeedWrapper : WrapperBase
         (this.feed.SpecificFeed as AtomFeed)?.Subtitle,
         "<no description>");
     public string Link => this.link ??= GetLink();
+
+    internal bool ItemsRequireUniqueIds => this.db.Status.HasFlag(FeedUpdateStatus.UniqueId);
 
     private string GetLink()
     {
@@ -79,13 +105,28 @@ record FeedItemWrapper : WrapperBase
         this.feed = feed;
     }
 
-    public string Id => GetNonEmpty(
-        this.item.Id,
-        (this.item.SpecificItem as Rss20FeedItem)?.Comments,
-        this.PublishedDateStringSafe,
-        this.Published.ToString());
+    public string Id
+    {
+        get
+        {
+            var id = GetNonEmpty(this.item.Id,
+                (this.item.SpecificItem as Rss20FeedItem)?.Comments, this.item.Link,
+                this.PublishedDateString, this.Published.ToString());
 
-    public string? PublishedDateStringSafe => GetNonEmpty(
+            if (this.feed.ItemsRequireUniqueIds)
+            {
+                var pubDate = this.PublishedDateString;
+                if (pubDate is not null)
+                {
+                    return $"{id}#{Uri.EscapeDataString(pubDate)}";
+                }
+            }
+
+            return id;
+        }
+    }
+
+    public string? PublishedDateString => GetNonEmpty(
         this.item.PublishingDateString,
         (this.item.SpecificItem as AtomFeedItem)?.UpdatedDateString,
         (this.item.SpecificItem as Rss091FeedItem)?.PublishingDateString,
@@ -111,7 +152,7 @@ record FeedItemWrapper : WrapperBase
 
     private DateTimeOffset GetPublished()
     {
-        var publishedStr = this.PublishedDateStringSafe;
+        var publishedStr = this.PublishedDateString;
 
         DateTimeOffset published;
         while (!DateTimeOffset.TryParse(publishedStr, out published))

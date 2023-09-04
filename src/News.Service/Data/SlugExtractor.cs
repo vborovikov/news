@@ -78,7 +78,6 @@ static class SlugExtractor
                 continue;
             }
 
-
             break;
         }
 

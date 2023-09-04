@@ -2,6 +2,8 @@ namespace News.Service;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
+using News.Service.Data;
+using Spryer;
 
 record ServiceOptions
 {
@@ -17,6 +19,11 @@ record ServiceOptions
 
 static class Program
 {
+    static Program()
+    {
+        DbEnum<FeedUpdateStatus>.Initialize();
+    }
+
     public static Task Main(string[] args)
     {
         var host = Host.CreateDefaultBuilder(args)
