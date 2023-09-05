@@ -35,4 +35,14 @@ public class BrokenDateTimeOffsetTests
         Assert.AreEqual(TimeSpan.Parse(offset), parsed.Offset);
     }
 
+    [DataTestMethod]
+    [DataRow("2021-04-01 00:00:00 +0000 +00:00", "2021-04-01T00:00:00", "00:00")]
+    [DataRow("2023-05-16 00:00:00 +0000 +00:00", "2023-05-16T00:00:00", "00:00")]
+    public void TryParse_SortableFormatDoubleOffset_Parsed(string dateTimeOffset, string dateTime, string offset)
+    {   
+        Assert.IsTrue(BrokenDateTimeOffset.TryParse(dateTimeOffset, out var parsed));
+
+        Assert.AreEqual(DateTime.Parse(dateTime), parsed.DateTime);
+        Assert.AreEqual(TimeSpan.Parse(offset), parsed.Offset);
+    }
 }

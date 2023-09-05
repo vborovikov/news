@@ -26,7 +26,7 @@ static class BrokenDateTimeOffset
 
     public static bool TryParse(ReadOnlySpan<char> str, out DateTimeOffset dateTimeOffset)
     {
-        Span<char> buffer = stackalloc char[31];
+        Span<char> buffer = stackalloc char[32];
         buffer.Fill(' ');
 
         var components = new DateTimeOffsetEnumerator(str);
@@ -37,36 +37,45 @@ static class BrokenDateTimeOffset
             {
                 case DateTimeOffsetComponentType.DayOfWeek:
                     cmp.Span[..3].CopyTo(buffer);
+                    buffer[3] = ',';
                     break;
                 case DateTimeOffsetComponentType.Day:
                     if (cmp.Span.Length < 2)
                     {
-                        buffer[4] = '0';
-                        buffer[5] = cmp.Span[0];
+                        buffer[5] = '0';
+                        buffer[6] = cmp.Span[0];
                     }
                     else
                     {
-                        cmp.Span.CopyTo(buffer[4..]);
+                        cmp.Span[..2].CopyTo(buffer[5..]);
                     }
                     break;
                 case DateTimeOffsetComponentType.Month:
-                    cmp.Span[..3].CopyTo(buffer[7..]);
+                    cmp.Span[..3].CopyTo(buffer[8..]);
                     break;
                 case DateTimeOffsetComponentType.Year:
-                    cmp.Span.CopyTo(buffer[11..]);
+                    cmp.Span.CopyTo(buffer[12..]);
+                    break;
+                case DateTimeOffsetComponentType.Date:
+                    if (!DateTime.TryParse(cmp.Span, CultureInfo.InvariantCulture, ParsingStyle, out var date) ||
+                        !date.TryFormat(buffer, out _, "R", CultureInfo.InvariantCulture))
+                    {
+                        dateTimeOffset = default;
+                        return false;
+                    }
                     break;
                 case DateTimeOffsetComponentType.Time:
-                    cmp.Span.CopyTo(buffer[16..]);
+                    cmp.Span.CopyTo(buffer[17..]);
                     break;
                 case DateTimeOffsetComponentType.Offset:
-                    cmp.Span[..3].CopyTo(buffer[25..]);
-                    buffer[28] = ':';
-                    cmp.Span[^2..].CopyTo(buffer[29..]);
+                    cmp.Span[..3].CopyTo(buffer[26..]);
+                    buffer[29] = ':';
+                    cmp.Span[^2..].CopyTo(buffer[30..]);
                     
                     if (((cmp.Span[1] == '1' && cmp.Span[2] > '4') || cmp.Span[1] > '1') &&
-                        DateTimeOffset.TryParse(buffer[4..24], CultureInfo.InvariantCulture, ParsingStyle, out var dateTime))
+                        DateTimeOffset.TryParse(buffer[5..25], CultureInfo.InvariantCulture, ParsingStyle, out var dateTime))
                     {
-                        var offsetSpan = buffer[25..];
+                        var offsetSpan = buffer[26..];
                         if (offsetSpan[0] == '+')
                             offsetSpan = offsetSpan[1..];
 
@@ -83,7 +92,7 @@ static class BrokenDateTimeOffset
                     {
                         if (timeZone.Equals(tz.Key, StringComparison.OrdinalIgnoreCase))
                         {
-                            tz.Value.CopyTo(buffer[25..]);
+                            tz.Value.CopyTo(buffer[26..]);
                             break;
                         }
                     }
@@ -92,7 +101,7 @@ static class BrokenDateTimeOffset
         }
 
         // "ddd dd MMM yyyy HH:mm:ss K" but we remove day-of-week component
-        return DateTimeOffset.TryParse(buffer[4..], CultureInfo.InvariantCulture, ParsingStyle, out dateTimeOffset);
+        return DateTimeOffset.TryParse(buffer[5..], CultureInfo.InvariantCulture, ParsingStyle, out dateTimeOffset);
     }
 
     private enum DateTimeOffsetComponentType
@@ -102,6 +111,7 @@ static class BrokenDateTimeOffset
         Day,
         Month,
         Year,
+        Date,
         Time,
         Offset,
         TimeZone
@@ -187,6 +197,8 @@ static class BrokenDateTimeOffset
                     { Length: 4 } => DateTimeOffsetComponentType.Year,
 
                     { Length: 8 } => DateTimeOffsetComponentType.Time,
+
+                    { Length: 10 } => DateTimeOffsetComponentType.Date,
 
                     _ => suggestedType,
                 } :
