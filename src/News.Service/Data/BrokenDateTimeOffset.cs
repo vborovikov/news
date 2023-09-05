@@ -39,6 +39,7 @@ static class BrokenDateTimeOffset
                     cmp.Span[..3].CopyTo(buffer);
                     buffer[3] = ',';
                     break;
+
                 case DateTimeOffsetComponentType.Day:
                     if (cmp.Span.Length < 2)
                     {
@@ -50,12 +51,15 @@ static class BrokenDateTimeOffset
                         cmp.Span[..2].CopyTo(buffer[5..]);
                     }
                     break;
+
                 case DateTimeOffsetComponentType.Month:
                     cmp.Span[..3].CopyTo(buffer[8..]);
                     break;
+
                 case DateTimeOffsetComponentType.Year:
                     cmp.Span.CopyTo(buffer[12..]);
                     break;
+
                 case DateTimeOffsetComponentType.Date:
                     if (!DateTime.TryParse(cmp.Span, CultureInfo.InvariantCulture, ParsingStyle, out var date) ||
                         !date.TryFormat(buffer, out _, "R", CultureInfo.InvariantCulture))
@@ -64,9 +68,11 @@ static class BrokenDateTimeOffset
                         return false;
                     }
                     break;
+
                 case DateTimeOffsetComponentType.Time:
                     cmp.Span.CopyTo(buffer[17..]);
                     break;
+
                 case DateTimeOffsetComponentType.Offset:
                     cmp.Span[..3].CopyTo(buffer[26..]);
                     buffer[29] = ':';
@@ -86,6 +92,7 @@ static class BrokenDateTimeOffset
                         }
                     }
                     break;
+
                 case DateTimeOffsetComponentType.TimeZone:
                     var timeZone = cmp.Span[..Math.Min(3, cmp.Span.Length)];
                     foreach (var tz in knownTimeZones)
