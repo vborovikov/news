@@ -154,29 +154,14 @@ record FeedItemWrapper : WrapperBase
     {
         var publishedStr = this.PublishedDateString;
 
-        DateTimeOffset published;
-        while (!DateTimeOffset.TryParse(publishedStr, out published))
-        {
-            if (publishedStr is null)
-            {
-                return DateTimeOffset.Now;
-            }
-            else if (publishedStr.EndsWith("CST", StringComparison.OrdinalIgnoreCase))
-            {
-                publishedStr = publishedStr.Replace("CST", "-06:00", StringComparison.OrdinalIgnoreCase);
-            }
-            else if (publishedStr.EndsWith("UTC", StringComparison.OrdinalIgnoreCase))
-            {
-                publishedStr = publishedStr.Replace("UTC", "+00:00", StringComparison.OrdinalIgnoreCase);
-            }
-            else
-            {
-                Debug.WriteLine($"Unable to parse '{publishedStr}'");
-                publishedStr = null;
-            }
-        }
+        if (DateTimeOffset.TryParse(publishedStr, out var published))
+            return published;
 
-        return published;
+        if (BrokenDateTimeOffset.TryParse(publishedStr, out published))
+            return published;
+
+        Debug.WriteLine($"Unable to parse '{publishedStr}'");
+        return DateTimeOffset.Now;
     }
 
     public string Title =>
