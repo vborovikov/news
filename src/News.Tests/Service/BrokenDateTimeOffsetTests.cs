@@ -25,8 +25,8 @@ public class BrokenDateTimeOffsetTests
     }
 
     [DataTestMethod]
-    [DataRow("Tue, 01 Aug 2023 11:23:32 +1600", "2023-08-01T13:23:32", "14:00")]
-    [DataRow("Mon, 03 Apr 2023 17:10:00 +2000", "2023-04-03T23:10:00", "14:00")]
+    [DataRow("Tue, 01 Aug 2023 11:23:32 +1600", "2023-08-02T03:23:32", "00:00")]
+    [DataRow("Mon, 03 Apr 2023 17:10:00 +2000", "2023-04-04T13:10:00", "00:00")]
     public void TryParse_ImpossibleOffset_DateTimeOffsetAdjusted(string dateTimeOffset, string dateTime, string offset)
     {
         Assert.IsTrue(BrokenDateTimeOffset.TryParse(dateTimeOffset, out var parsed));

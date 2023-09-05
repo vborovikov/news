@@ -6,6 +6,9 @@ using System.Globalization;
 
 static class BrokenDateTimeOffset
 {
+    private const DateTimeStyles ParsingStyle = 
+        DateTimeStyles.AllowLeadingWhite | DateTimeStyles.AllowTrailingWhite | DateTimeStyles.AssumeUniversal;
+
     // they better should provide correct offsets instead of abbreviations, we just assume the values here
     private static readonly Dictionary<string, string> knownTimeZones = new()
     {
@@ -56,7 +59,23 @@ static class BrokenDateTimeOffset
                     cmp.Span.CopyTo(buffer[16..]);
                     break;
                 case DateTimeOffsetComponentType.Offset:
-                    cmp.Span.CopyTo(buffer[25..]);
+                    cmp.Span[..3].CopyTo(buffer[25..]);
+                    buffer[28] = ':';
+                    cmp.Span[^2..].CopyTo(buffer[29..]);
+                    
+                    if (((cmp.Span[1] == '1' && cmp.Span[2] > '4') || cmp.Span[1] > '1') &&
+                        DateTimeOffset.TryParse(buffer[4..24], CultureInfo.InvariantCulture, ParsingStyle, out var dateTime))
+                    {
+                        var offsetSpan = buffer[25..];
+                        if (offsetSpan[0] == '+')
+                            offsetSpan = offsetSpan[1..];
+
+                        if (TimeSpan.TryParse(offsetSpan, out var offset))
+                        {
+                            dateTimeOffset = dateTime + offset;
+                            return true;
+                        }
+                    }
                     break;
                 case DateTimeOffsetComponentType.TimeZone:
                     var timeZone = cmp.Span[..Math.Min(3, cmp.Span.Length)];
@@ -73,9 +92,7 @@ static class BrokenDateTimeOffset
         }
 
         // "ddd dd MMM yyyy HH:mm:ss K" but we remove day-of-week component
-        return DateTimeOffset.TryParse(buffer[4..], CultureInfo.InvariantCulture,
-            DateTimeStyles.AllowLeadingWhite | DateTimeStyles.AllowTrailingWhite | DateTimeStyles.AssumeUniversal,
-            out dateTimeOffset);
+        return DateTimeOffset.TryParse(buffer[4..], CultureInfo.InvariantCulture, ParsingStyle, out dateTimeOffset);
     }
 
     private enum DateTimeOffsetComponentType
