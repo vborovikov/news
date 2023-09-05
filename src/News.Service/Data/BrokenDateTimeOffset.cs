@@ -23,7 +23,7 @@ static class BrokenDateTimeOffset
 
     public static bool TryParse(ReadOnlySpan<char> str, out DateTimeOffset dateTimeOffset)
     {
-        Span<char> buffer = stackalloc char[32];
+        Span<char> buffer = stackalloc char[31];
         buffer.Fill(' ');
 
         var components = new DateTimeOffsetEnumerator(str);
@@ -72,8 +72,8 @@ static class BrokenDateTimeOffset
             }
         }
 
-        // "ddd dd MMM yyyy HH:mm:ss K"
-        return DateTimeOffset.TryParse(buffer, CultureInfo.InvariantCulture,
+        // "ddd dd MMM yyyy HH:mm:ss K" but we remove day-of-week component
+        return DateTimeOffset.TryParse(buffer[4..], CultureInfo.InvariantCulture,
             DateTimeStyles.AllowLeadingWhite | DateTimeStyles.AllowTrailingWhite | DateTimeStyles.AssumeUniversal,
             out dateTimeOffset);
     }
