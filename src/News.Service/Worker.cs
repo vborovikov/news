@@ -329,6 +329,7 @@ sealed class Worker : BackgroundService
             using (var bulkCopy = new SqlBulkCopy((SqlConnection)cnn, SqlBulkCopyOptions.Default, (SqlTransaction)tx)
             {
                 DestinationTableName = "#Posts",
+                EnableStreaming = true,
             })
             {
                 var feedItems = update.Items.Select(item => new FeedItemWrapper(item, feedUpdate));
