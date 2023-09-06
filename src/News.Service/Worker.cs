@@ -283,6 +283,7 @@ sealed class Worker : BackgroundService
             """
             select f.Id, f.Source, f.Status
             from rss.Feeds f
+            where f.Status not like '%SKIP%'
             order by f.Updated;
             """);
 
@@ -373,6 +374,8 @@ sealed class Worker : BackgroundService
 
             await cnn.ExecuteAsync(
                 """
+                set ansi_warnings off;
+                
                 update rss.Feeds
                 set
                     Updated = @Updated,
@@ -381,6 +384,8 @@ sealed class Worker : BackgroundService
                     Link = @Link,
                     Error = null
                 where Id = @FeedId;
+
+                set ansi_warnings on;
                 """, new
                 {
                     FeedId = feed.Id,
@@ -433,21 +438,21 @@ sealed class Worker : BackgroundService
     {
         if (error is SqlException sqlEx && sqlEx.Number == 2627)
         {
-            return 
+            return
                 prevStatus.HasFlag(FeedUpdateStatus.UniqueId) ? FeedUpdateStatus.SkipUpdate :
-                FeedUpdateStatus.UniqueId & prevStatus;
+                FeedUpdateStatus.UniqueId | prevStatus;
         }
         if (error is HttpRequestException)
         {
             return prevStatus.HasFlag(FeedUpdateStatus.HttpError) ? FeedUpdateStatus.SkipUpdate :
-                FeedUpdateStatus.HttpError & prevStatus;
+                FeedUpdateStatus.HttpError | prevStatus;
         }
         if (error is XmlException || error is FeedTypeNotSupportedException)
         {
             return
-                prevStatus.HasFlag(FeedUpdateStatus.MimeType) ? FeedUpdateStatus.HtmlResponse & ~FeedUpdateStatus.MimeType & prevStatus :
+                prevStatus.HasFlag(FeedUpdateStatus.MimeType) ? FeedUpdateStatus.HtmlResponse | (~FeedUpdateStatus.MimeType & prevStatus) :
                 prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
-                FeedUpdateStatus.MimeType & prevStatus;
+                FeedUpdateStatus.MimeType | prevStatus;
         }
 
         return prevStatus;
