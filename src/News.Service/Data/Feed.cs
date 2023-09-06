@@ -15,16 +15,19 @@ enum FeedUpdateStatus
     UniqueId = 1 << 0,
     UQID = UniqueId,
 
-    MimeType = 1 << 1,
+    DistinctId = 1 << 1,
+    DSID = DistinctId,
+
+    MimeType = 1 << 2,
     MIME = MimeType,
 
-    HtmlResponse = 1 << 2,
+    HtmlResponse = 1 << 3,
     HTML = HtmlResponse,
 
-    HttpError = 1 << 3,
+    HttpError = 1 << 4,
     HTTP = HttpError,
 
-    SkipUpdate = 1 << 4,
+    SkipUpdate = 1 << 5,
     SKIP = SkipUpdate,
 }
 
@@ -115,10 +118,10 @@ record FeedItemWrapper : WrapperBase
 
             if (this.feed.ItemsRequireUniqueIds)
             {
-                var pubDate = this.PublishedDateString;
-                if (pubDate is not null)
+                var uniquePart = this.item.Link.SlugifyPost() + (this.PublishedDateString ?? string.Empty);
+                if (!string.IsNullOrWhiteSpace(uniquePart))
                 {
-                    return $"{id}#{Uri.EscapeDataString(pubDate)}";
+                    return $"{id}#{Uri.EscapeDataString(uniquePart)}";
                 }
             }
 

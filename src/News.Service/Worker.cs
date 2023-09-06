@@ -331,8 +331,14 @@ sealed class Worker : BackgroundService
                 DestinationTableName = "#Posts",
             })
             {
+                var feedItems = update.Items.Select(item => new FeedItemWrapper(item, feedUpdate));
+                if (feed.Status.HasFlag(FeedUpdateStatus.DistinctId))
+                {
+                    feedItems = feedItems.DistinctBy(fi => fi.Id);
+                }
+
                 using var postReader = ObjectReader.Create(
-                    update.Items.Select(item => new FeedItemWrapper(item, feedUpdate)),
+                    feedItems,
                     nameof(FeedItemWrapper.Id),
                     nameof(FeedItemWrapper.Link),
                     nameof(FeedItemWrapper.Slug),
@@ -439,7 +445,8 @@ sealed class Worker : BackgroundService
         if (error is SqlException sqlEx && sqlEx.Number == 2627)
         {
             return
-                prevStatus.HasFlag(FeedUpdateStatus.UniqueId) ? FeedUpdateStatus.SkipUpdate :
+                prevStatus.HasFlag(FeedUpdateStatus.DistinctId) ? FeedUpdateStatus.SkipUpdate :
+                prevStatus.HasFlag(FeedUpdateStatus.UniqueId) ? FeedUpdateStatus.DistinctId | prevStatus :
                 FeedUpdateStatus.UniqueId | prevStatus;
         }
         if (error is HttpRequestException)
