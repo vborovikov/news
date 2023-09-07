@@ -48,7 +48,7 @@ public class FeedModel : EditPageModel
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
-                set Source = @FeedUrl, Error = null
+                set Source = @FeedUrl, Status = 'OK', Error = null
                 where Id = @FeedId;
 
                 update rss.UserFeeds
