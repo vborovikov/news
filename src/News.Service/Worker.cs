@@ -84,7 +84,7 @@ sealed class Worker : BackgroundService
         {
             this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
-            var client = this.http.CreateClient("xml");
+            var client = this.http.CreateClient("Feed");
             var feeds = await GetFeedsAsync(cancellationToken);
             var total = feeds.Count();
             var count = 0;

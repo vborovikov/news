@@ -43,7 +43,7 @@ static class Program
                 });
 #pragma warning restore CA1416 // Validate platform compatibility
 
-                services.AddHttpClient("xml", httpClient =>
+                services.AddHttpClient("Feed", httpClient =>
                 {
                     httpClient.DefaultRequestHeaders.Accept.Clear();
                     httpClient.DefaultRequestHeaders.Accept.Add(new("application/rss+xml"));
