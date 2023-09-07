@@ -60,13 +60,13 @@ sealed class Worker : BackgroundService
 
                     opmlFile.Delete();
                 }
-                catch (Exception x)
+                catch (Exception x) when (x is not OperationCanceledException)
                 {
                     this.log.LogError(x, "Error importing OPML file '{fileName}'", opmlFile.Name);
                 }
             }
         }
-        catch (Exception x)
+        catch (Exception x) when (x is not OperationCanceledException)
         {
             this.log.LogError(x, "Error importing feeds");
         }
@@ -83,12 +83,15 @@ sealed class Worker : BackgroundService
             this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
             var feeds = await GetFeedsAsync(cancellationToken);
+            var total = feeds.Count();
+            var count = 0;
             foreach (var feed in feeds)
             {
+                this.log.LogDebug("Updating feed ({count}/{total}) {feedUrl}", ++count, total,  feed.Source);
                 await UpdateFeedAsync(feed, cancellationToken);
             }
         }
-        catch (Exception x)
+        catch (Exception x) when (x is not OperationCanceledException)
         {
             this.log.LogError(x, "Error updating feeds");
         }
@@ -103,15 +106,15 @@ sealed class Worker : BackgroundService
         var userId = GetUserId(opmlFile);
         if (userId == default)
         {
-            this.log.LogWarning("Opml file '{fileName}' has no user id", opmlFile.Name);
-            throw new InvalidOperationException("Opml file has no user id");
+            this.log.LogWarning("OPML file '{fileName}' has no user id", opmlFile.Name);
+            throw new InvalidOperationException("OPML file has no user id");
         }
 
         var channels = ParseOpmlFile(opmlFile);
         if (channels.Length == 0)
         {
-            this.log.LogWarning("Opml file '{fileName}' has no channels", opmlFile.Name);
-            throw new InvalidOperationException("Opml file has no channels");
+            this.log.LogWarning("OPML file '{fileName}' has no channels", opmlFile.Name);
+            throw new InvalidOperationException("OPML file has no channels");
         }
 
         foreach (var channel in channels)
@@ -139,7 +142,7 @@ sealed class Worker : BackgroundService
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
         {
-            this.log.LogInformation("Importing channel '{channel}'", channel.Name);
+            this.log.LogDebug("Importing channel '{channel}'", channel.Name);
 
             // upsert channel
             var channelId = await cnn.ExecuteScalarAsync<Guid>(
@@ -159,7 +162,13 @@ sealed class Worker : BackgroundService
             await ImportFeedsAsync(channel.Feeds, channelId, userId, tx, cancellationToken);
 
             await tx.CommitAsync(cancellationToken);
-            this.log.LogInformation("Finished importing channel '{channel}'", channel.Name);
+            this.log.LogDebug("Finished importing channel '{channel}'", channel.Name);
+        }
+        catch (OperationCanceledException)
+        {
+            this.log.LogDebug("Import of channel '{channel}' was cancelled", channel.Name);
+            await tx.RollbackAsync(cancellationToken);
+            throw;
         }
         catch (Exception x)
         {
@@ -175,15 +184,15 @@ sealed class Worker : BackgroundService
         await tx.Connection.ExecuteAsync(
             """
             create table #Feeds (
-                Title nvarchar(1000) not null,
-                Slug nvarchar(100) not null,
-                Source nvarchar(850) not null primary key,
-                Link nvarchar(850) not null
+                Title nvarchar(1000) collate database_default not null,
+                Slug varchar(100) collate database_default not null,
+                Source nvarchar(850) collate database_default not null primary key,
+                Link nvarchar(850) collate database_default not null
             );
 
             create table #ImportedFeeds (
                 FeedId uniqueidentifier not null primary key,
-                Source nvarchar(850) not null
+                Source nvarchar(850) collate database_default not null
             );
             """, transaction: tx);
 
@@ -248,16 +257,16 @@ sealed class Worker : BackgroundService
 
         if (opml.DocumentElement is null || opml.DocumentElement.Name != "opml" || !opml.DocumentElement.HasChildNodes)
         {
-            this.log.LogError("Opml file '{fileName}' is not an OPML file", opmlFile.Name);
-            throw new InvalidOperationException("Opml file is not an OPML file");
+            this.log.LogError("File '{fileName}' is not an OPML file", opmlFile.Name);
+            throw new InvalidOperationException("File is not an OPML file");
         }
 
         // get <body> element
         var body = opml.DocumentElement.ChildNodes[1];
         if (body is null || body.Name != "body" || !body.HasChildNodes)
         {
-            this.log.LogError("Opml file '{fileName}' has no <body> element or it has no child nodes", opmlFile.Name);
-            throw new InvalidOperationException("Opml file has no <body> element or it has no child nodes");
+            this.log.LogError("OPML file '{fileName}' has no <body> element or it has no child nodes", opmlFile.Name);
+            throw new InvalidOperationException("OPML file has no <body> element or it has no child nodes");
         }
 
         // find channel <outline> elements
@@ -297,9 +306,9 @@ sealed class Worker : BackgroundService
             var update = await FeedReader.ReadAsync(feed.Source, cancellationToken);
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
         }
-        catch (Exception x)
+        catch (Exception x) when (x is not OperationCanceledException)
         {
-            this.log.LogError(x, "Error updating feed {FeedUrl}", feed.Source);
+            this.log.LogError(x, "Error updating feed {feedUrl}", feed.Source);
             await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
         }
     }
@@ -315,14 +324,14 @@ sealed class Worker : BackgroundService
             await cnn.ExecuteAsync(
                 """
                 create table #Posts (
-                    Id varchar(850) not null primary key,
-                    Link nvarchar(850) not null,
-                    Slug varchar(100) not null,
+                    Id varchar(850) collate database_default not null primary key,
+                    Link nvarchar(max) collate database_default not null,
+                    Slug varchar(100) collate database_default not null,
                     Published datetimeoffset not null,
-                    Title nvarchar(1000) not null,
-                    Description nvarchar(max) null,
-                    Author nvarchar(100) null,
-                    Content nvarchar(max) null
+                    Title nvarchar(1000) collate database_default not null,
+                    Description nvarchar(max) collate database_default null,
+                    Author nvarchar(100) collate database_default null,
+                    Content nvarchar(max) collate database_default null
                 );
                 """, transaction: tx);
 
@@ -404,10 +413,16 @@ sealed class Worker : BackgroundService
 
             await tx.CommitAsync(cancellationToken);
         }
+        catch (OperationCanceledException)
+        {
+            this.log.LogDebug("Updating feed {feedUrl} was cancelled", feed.Source);
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
         catch (Exception x)
         {
             await tx.RollbackAsync(cancellationToken);
-            this.log.LogError(x, "Error merging feed {FeedUrl}", feed.Source);
+            this.log.LogError(x, "Error merging feed {feedUrl}", feed.Source);
 
             await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
         }
@@ -434,7 +449,7 @@ sealed class Worker : BackgroundService
 
             await tx.CommitAsync(cancellationToken);
         }
-        catch (Exception x)
+        catch (Exception x) when (x is not OperationCanceledException)
         {
             await tx.RollbackAsync(cancellationToken);
             this.log.LogError(x, "Error storing feed update error");

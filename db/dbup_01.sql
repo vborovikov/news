@@ -26,7 +26,7 @@ create table rss.Posts (
     Slug varchar(100) not null check (Slug != '') index IX_Posts_Slug nonclustered,
     Published datetimeoffset not null default sysdatetimeoffset(),
     Title nvarchar(1000) not null check (Title != N''),
-    Description nvarchar(2000) null,
+    Description nvarchar(max) null,
     Content nvarchar(max) not null check (Content != N''),
     Author nvarchar(100) null,
     index IXC_Posts clustered (FeedId, Id),
@@ -80,7 +80,7 @@ go
 create view rss.AppPosts with schemabinding as
     select 
         up.UserId, p.FeedId, p.Id as PostId, up.IsRead, up.IsFavorite,
-        p.Link, p.Published, p.Title, p.Description, p.Content, p.Author
+        p.Link, p.Slug, p.Published, p.Title, p.Description, p.Content, p.Author
     from rss.Posts p
     left outer join rss.UserPosts up on up.PostId = p.Id;
 go
