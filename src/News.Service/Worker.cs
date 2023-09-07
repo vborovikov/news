@@ -16,12 +16,14 @@ using Spryer;
 
 sealed class Worker : BackgroundService
 {
+    private readonly IHttpClientFactory http;
     private readonly DbDataSource db;
     private readonly ServiceOptions options;
     private readonly ILogger<Worker> log;
 
-    public Worker(DbDataSource db, IOptions<ServiceOptions> options, ILogger<Worker> log)
+    public Worker(IHttpClientFactory http, DbDataSource db, IOptions<ServiceOptions> options, ILogger<Worker> log)
     {
+        this.http = http;
         this.db = db;
         this.options = options.Value;
         this.log = log;
@@ -82,13 +84,14 @@ sealed class Worker : BackgroundService
         {
             this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
+            var client = this.http.CreateClient("xml");
             var feeds = await GetFeedsAsync(cancellationToken);
             var total = feeds.Count();
             var count = 0;
             foreach (var feed in feeds)
             {
                 this.log.LogDebug("Updating feed ({count}/{total}) {feedUrl}", ++count, total,  feed.Source);
-                await UpdateFeedAsync(feed, cancellationToken);
+                await UpdateFeedAsync(feed, client, cancellationToken);
             }
         }
         catch (Exception x) when (x is not OperationCanceledException)
@@ -292,18 +295,19 @@ sealed class Worker : BackgroundService
             """
             select f.Id, f.Source, f.Status
             from rss.Feeds f
-            where f.Status not like '%SKIP%'
+            where f.Status not like '%SKIP%' and f.Status not like '%HTTP%'
             order by f.Updated;
             """);
 
         return feeds;
     }
 
-    private async Task UpdateFeedAsync(DbFeed feed, CancellationToken cancellationToken)
+    private async Task UpdateFeedAsync(DbFeed feed, HttpClient client, CancellationToken cancellationToken)
     {
         try
         {
-            var update = await FeedReader.ReadAsync(feed.Source, cancellationToken);
+            var feedData = await client.GetByteArrayAsync(feed.Source, cancellationToken);
+            var update = FeedReader.ReadFromByteArray(feedData);
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
         }
         catch (Exception x) when (x is not OperationCanceledException)
@@ -472,10 +476,8 @@ sealed class Worker : BackgroundService
         }
         if (error is XmlException || error is FeedTypeNotSupportedException)
         {
-            return
-                prevStatus.HasFlag(FeedUpdateStatus.MimeType) ? FeedUpdateStatus.HtmlResponse | (~FeedUpdateStatus.MimeType & prevStatus) :
-                prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
-                FeedUpdateStatus.MimeType | prevStatus;
+            return prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
+                FeedUpdateStatus.HtmlResponse | prevStatus;
         }
 
         return prevStatus;

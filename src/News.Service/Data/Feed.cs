@@ -18,16 +18,13 @@ enum FeedUpdateStatus
     DistinctId = 1 << 1,
     DSID = DistinctId,
 
-    MimeType = 1 << 2,
-    MIME = MimeType,
-
-    HtmlResponse = 1 << 3,
+    HtmlResponse = 1 << 2,
     HTML = HtmlResponse,
 
-    HttpError = 1 << 4,
+    HttpError = 1 << 3,
     HTTP = HttpError,
 
-    SkipUpdate = 1 << 5,
+    SkipUpdate = 1 << 4,
     SKIP = SkipUpdate,
 }
 
@@ -129,8 +126,10 @@ record FeedItemWrapper : WrapperBase
         }
     }
 
+    //todo: handle this.item.SpecificItem.Element directly
     public string? PublishedDateString => GetNonEmpty(
         this.item.PublishingDateString,
+        (this.item.SpecificItem as AtomFeedItem)?.PublishedDateString,
         (this.item.SpecificItem as AtomFeedItem)?.UpdatedDateString,
         (this.item.SpecificItem as Rss091FeedItem)?.PublishingDateString,
         (this.item.SpecificItem as Rss20FeedItem)?.PublishingDateString);

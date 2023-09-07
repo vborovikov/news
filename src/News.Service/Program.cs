@@ -1,5 +1,6 @@
 namespace News.Service;
 
+using System.Net.Http.Headers;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 using News.Service.Data;
@@ -42,6 +43,14 @@ static class Program
                 });
 #pragma warning restore CA1416 // Validate platform compatibility
 
+                services.AddHttpClient("xml", httpClient =>
+                {
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("application/rss+xml"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("application/atom+xml"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("application/xml"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("text/xml"));
+                });
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();
             })
