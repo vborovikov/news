@@ -203,6 +203,7 @@ sealed class Worker : BackgroundService
         using (var bulkCopy = new SqlBulkCopy((SqlConnection)tx.Connection!, SqlBulkCopyOptions.Default, (SqlTransaction)tx)
         {
             DestinationTableName = "#Feeds",
+            EnableStreaming = true,
         })
         {
             using var feedReader = ObjectReader.Create(feeds,
