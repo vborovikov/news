@@ -150,7 +150,7 @@ sealed class Worker : BackgroundService
             // upsert channel
             var channelId = await cnn.ExecuteScalarAsync<Guid>(
                 """
-                merge into rss.UserChannels as target
+                merge into rss.UserChannels with (holdlock) as target
                 using (values (@UserId, @Name, @Slug)) as source (UserId, Name, Slug)
                 on (target.UserId = source.UserId and (target.Name = source.Name or target.Slug = source.Slug))
                 when matched then
@@ -215,8 +215,8 @@ sealed class Worker : BackgroundService
         // merge feeds
         await tx.Connection.ExecuteAsync(
             """
-            merge rss.Feeds as tgt using #Feeds as src 
-                on tgt.Source = src.Source
+            merge into rss.Feeds with (holdlock) as tgt
+            using #Feeds as src on tgt.Source = src.Source
             when not matched by target then
                 insert (Title, Source, Link)
                 values (src.Title, src.Source, src.Link)
@@ -236,8 +236,8 @@ sealed class Worker : BackgroundService
             left outer join #Feeds f on imf.Source = f.Source
             where uf.UserId = @UserId or uf.UserId is null;
 
-            merge rss.UserFeeds as tgt using #UserFeeds as src
-                on tgt.FeedId = src.FeedId and tgt.UserId = @UserId
+            merge into rss.UserFeeds with (holdlock) as tgt
+            using #UserFeeds as src on tgt.FeedId = src.FeedId and tgt.UserId = @UserId
             when not matched then
                 insert (UserId, ChannelId, FeedId, Slug)
                 values (@UserId, @ChannelId, src.FeedId, src.Slug);
@@ -369,8 +369,8 @@ sealed class Worker : BackgroundService
                 """
                 set ansi_warnings off;
 
-                merge rss.Posts as tgt using #Posts as src
-                    on tgt.ExternalId = src.Id
+                merge into rss.Posts with (holdlock) as tgt
+                using #Posts as src on tgt.ExternalId = src.Id
                 when matched and tgt.FeedId = @FeedId then
                     update set
                         Link = src.Link,
