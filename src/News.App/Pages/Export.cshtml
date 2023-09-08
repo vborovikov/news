@@ -4,6 +4,31 @@
     ViewData["Title"] = "Export";
 }
 
-<div class="row m-4">
-    <a asp-page="Export" asp-route-format="opml" class="btn btn-primary">Export as OPML</a>
+<div class="bg-white p-4 shadow">
+    <form method="post" class="row g-3">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="col-12">
+            <label asp-for="Input.Format" class="form-label">Format</label>
+            <select asp-for="Input.Format" asp-items="Html.GetEnumSelectList<ExportModel.FeedExportFormat>()" class="form-control">
+                <option value="">Select format</option>
+            </select>
+            <span asp-validation-for="Input.Format"></span>
+        </div>
+
+        <div class="col-12">
+            <div class="form-check">
+                <input asp-for="Input.IncludeBroken" type="checkbox" class="form-check-input" />
+                <label asp-for="Input.IncludeBroken" class="form-check-label">Include broken feeds</label>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-outline-primary">@ViewBag.Title</button>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
