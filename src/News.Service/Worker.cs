@@ -296,7 +296,7 @@ sealed class Worker : BackgroundService
             """
             select f.Id, f.Source, f.Status
             from rss.Feeds f
-            where f.Status not like '%SKIP%' and f.Status not like '%HTTP%'
+            where f.Status not like '%SKIP%' --and f.Status not like '%HTTP%'
             order by f.Updated;
             """);
 
