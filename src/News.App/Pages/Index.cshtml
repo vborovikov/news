@@ -12,13 +12,31 @@
 }
 else if (Model.Granularity <= IndexModel.GranularityLevel.Posts)
 {
-    <partial name="Index/_Post" model="Model.Channels.First()" />
+    var channel = Model.Channels.First();
+    var feed = channel.Feeds.First();
+    if (Model.Granularity == IndexModel.GranularityLevel.Post)
+    {
+        var post = feed.Posts.First();
+        ViewData["Title"] = $"{post.Title} | {feed.Title} | {channel.Name}";
+    }
+    else
+    {
+        ViewData["Title"] = $"{feed.Title} | {channel.Name}";
+    }
+
+    <partial name="Index/_Post" model="channel" />
 }
 else if (Model.Granularity == IndexModel.GranularityLevel.Feed)
 {
-    <partial name="Index/_Feed" model="Model.Channels.First()" />
+    var channel = Model.Channels.First();
+    var feed = channel.Feeds.First();
+    ViewData["Title"] = $"{feed.Title} | {channel.Name}";
+
+    <partial name="Index/_Feed" model="channel" />
 }
 else if (Model.Granularity >= IndexModel.GranularityLevel.Channel)
 {
+    ViewData["Title"] = "All";
+
     <partial name="Index/_Channel" model="Model.Channels" />
 }
