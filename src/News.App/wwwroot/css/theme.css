@@ -6184,16 +6184,16 @@ textarea.form-control-lg {
   color: #1a1e21;
 }
 
-.ratio {
+.ratio, video {
   position: relative;
   width: 100%;
 }
-.ratio::before {
+.ratio::before, video::before {
   display: block;
   padding-top: var(--bs-aspect-ratio);
   content: "";
 }
-.ratio > * {
+.ratio > *, video > * {
   position: absolute;
   top: 0;
   left: 0;
@@ -6209,7 +6209,7 @@ textarea.form-control-lg {
   --bs-aspect-ratio: 75%;
 }
 
-.ratio-16x9 {
+.ratio-16x9, video {
   --bs-aspect-ratio: 56.25%;
 }
 

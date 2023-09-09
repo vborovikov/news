@@ -22,5 +22,10 @@ $enable-gradients: true;
 
 // Fix for img tags in posts
 img {
-    @extend .img-fluid
+    @extend .img-fluid;
+}
+
+video {
+    @extend .ratio;
+    @extend .ratio-16x9;
 }
