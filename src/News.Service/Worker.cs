@@ -230,7 +230,7 @@ sealed class Worker : BackgroundService
         // merge user feeds
         await tx.Connection.ExecuteAsync(
             """
-            select imf.FeedId, isnull(uf.Slug, f.Slug) as Slug
+            select imf.FeedId, isnull(uf.Slug, f.Slug) as Slug, isnull(uf.Title, f.Title) as Title
             into #UserFeeds
             from #ImportedFeeds imf
             left outer join rss.UserFeeds uf on imf.FeedId = uf.FeedId
@@ -240,8 +240,8 @@ sealed class Worker : BackgroundService
             merge into rss.UserFeeds with (holdlock) as tgt
             using #UserFeeds as src on tgt.FeedId = src.FeedId and tgt.UserId = @UserId
             when not matched then
-                insert (UserId, ChannelId, FeedId, Slug)
-                values (@UserId, @ChannelId, src.FeedId, src.Slug);
+                insert (UserId, ChannelId, FeedId, Slug, Title)
+                values (@UserId, @ChannelId, src.FeedId, src.Slug, src.Title);
             """, new { UserId = userId, ChannelId = channelId }, tx);
 
         await tx.Connection.ExecuteAsync(
