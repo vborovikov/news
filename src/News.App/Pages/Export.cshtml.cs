@@ -4,21 +4,17 @@ using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using News.App.Data;
 
 [Authorize]
-public class ExportModel : PageModel
+public class ExportModel : AppPageModel
 {
-    private readonly UserManager<AppUser> userManager;
     private readonly DbDataSource db;
     private readonly ILogger<ExportModel> log;
 
-    public ExportModel(UserManager<AppUser> userManager, DbDataSource db, ILogger<ExportModel> log)
+    public ExportModel(DbDataSource db, ILogger<ExportModel> log)
     {
-        this.userManager = userManager;
         this.db = db;
         this.log = log;
         this.Input = new();
@@ -37,11 +33,6 @@ public class ExportModel : PageModel
         {
             this.ModelState.AddModelError("", "Format not supported yet");
             return Page();
-        }
-        var userIdStr = this.userManager.GetUserId(this.User);
-        if (!Guid.TryParse(userIdStr, out var userId))
-        {
-            return Forbid();
         }
 
         try
@@ -69,7 +60,7 @@ public class ExportModel : PageModel
                 from asp.Users u
                 where u.Id = @UserId
                 for xml raw('opml'), type;
-                """, new { UserId = userId, this.Input.IncludeBroken });
+                """, new { this.UserId, this.Input.IncludeBroken });
 
             return File(Encoding.UTF8.GetBytes(xml), "text/x-opml", "feeds.opml");
         }
