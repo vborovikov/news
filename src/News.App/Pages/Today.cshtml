@@ -1,0 +1,52 @@
+﻿@page
+@model News.App.Pages.TodayModel
+@{
+    ViewData["Title"] = "Today";
+}
+
+<div class="row g-5">
+    <div class="col-md-8">
+        <h4 class="pb-4 mb-4 border-bottom">
+            <i class="be bi-calendar-day text-info"></i> Today
+        </h4>
+
+        <article class="feed-post">
+            <h3 class="feed-post-title">Latest News</h3>
+            <section>
+                <p class="feed-post-meta">@DateTimeOffset.Now.ToString("D")</p>
+                <p class="feed-post-meta"></p>
+                <hr />
+            </section>
+            <section>
+                @foreach (var channel in Model.Channels)
+                {
+                    if (!channel.Posts.Any())
+                    {
+                        continue;
+                    }
+
+                    <h4>
+                        <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed=""
+                            class="link-dark text-decoration-none">
+                            @channel.Name
+                        </a>
+                    </h4>
+                    <ul>
+                        @foreach (var post in channel.Posts)
+                        {
+                            <li>
+                                <a asp-page="/Index"
+                                   asp-route-channel="@channel.Slug" asp-route-feed="@post.FeedSlug"
+                                   asp-route-year="@post.PublishedLocal.Year.ToString("D4")"
+                                   asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
+                                   asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
+                                   asp-route-post="@post.Slug" class="link-dark">@post.Title</a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        </article>
+    </div>
+    <div class="col-md-4"></div>
+</div>

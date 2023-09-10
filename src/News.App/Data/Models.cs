@@ -1,5 +1,12 @@
 namespace News.App.Data;
 
+public abstract record ChannelBase
+{
+    public required Guid ChannelId { get; init; }
+    public required string Name { get; init; }
+    public required string Slug { get; init; }
+}
+
 record FeedPath
 {
     public Guid ChannelId { get; init; }
@@ -50,6 +57,21 @@ public record RssFeedInfo
 public record RssFeed : RssFeedInfo
 {
     public IEnumerable<RssPost> Posts { get; init; } = Enumerable.Empty<RssPost>();
+}
+
+public abstract record PostBase
+{
+    private DateTimeOffset? publishedLocal;
+
+    public required Guid PostId { get; init; }
+    public required string Title { get; init; }
+    public string? Description { get; init; }
+    public required string Link { get; init; }
+    public required string Slug { get; init; }
+    public required DateTimeOffset Published { get; init; }
+    public DateTimeOffset PublishedLocal => this.publishedLocal ??= this.Published.ToLocalTime();
+    public bool IsRead { get; init; }
+    public string? Author { get; init; }
 }
 
 public record RssPostInfo
