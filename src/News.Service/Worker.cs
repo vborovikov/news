@@ -16,16 +16,16 @@ using Spryer;
 
 sealed class Worker : BackgroundService
 {
-    private readonly IHttpClientFactory http;
-    private readonly DbDataSource db;
     private readonly ServiceOptions options;
+    private readonly DbDataSource db;
+    private readonly IHttpClientFactory web;
     private readonly ILogger<Worker> log;
 
-    public Worker(IHttpClientFactory http, DbDataSource db, IOptions<ServiceOptions> options, ILogger<Worker> log)
+    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, ILogger<Worker> log)
     {
-        this.http = http;
-        this.db = db;
         this.options = options.Value;
+        this.db = db;
+        this.web = web;
         this.log = log;
     }
 
@@ -84,7 +84,7 @@ sealed class Worker : BackgroundService
         {
             this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
-            var client = this.http.CreateClient("Feed");
+            var client = this.web.CreateClient("Feed");
             var feeds = await GetFeedsAsync(cancellationToken);
             var total = feeds.Count();
             var count = 0;
