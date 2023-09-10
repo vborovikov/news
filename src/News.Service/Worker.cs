@@ -88,11 +88,11 @@ sealed class Worker : BackgroundService
             var feeds = await GetFeedsAsync(cancellationToken);
             var total = feeds.Count();
             var count = 0;
-            foreach (var feed in feeds)
+            await Parallel.ForEachAsync(feeds, cancellationToken, async (feed, cancellationToken) =>
             {
-                this.log.LogDebug("Updating feed ({count}/{total}) {feedUrl}", ++count, total,  feed.Source);
+                this.log.LogDebug("Updating feed ({count}/{total}) {feedUrl}", Interlocked.Increment(ref count), total, feed.Source);
                 await UpdateFeedAsync(feed, client, cancellationToken);
-            }
+            });
         }
         catch (Exception x) when (x is not OperationCanceledException)
         {
