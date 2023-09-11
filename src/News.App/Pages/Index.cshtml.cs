@@ -1,19 +1,15 @@
 ﻿namespace News.App.Pages;
 
 using System.Data.Common;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using News.App.Data;
 
-public class IndexModel : PageModel
+public class IndexModel : AppPageModel
 {
-    private readonly UserManager<AppUser> userManager;
     private readonly DbDataSource db;
     private readonly ILogger<IndexModel> log;
 
-    public IndexModel(UserManager<AppUser> userManager, DbDataSource db, ILogger<IndexModel> log)
+    public IndexModel(DbDataSource db, ILogger<IndexModel> log)
     {
-        this.userManager = userManager;
         this.db = db;
         this.log = log;
     }
@@ -22,12 +18,11 @@ public class IndexModel : PageModel
 
     public IEnumerable<RssChannel> Channels { get; private set; } = Enumerable.Empty<RssChannel>();
 
-    public async Task OnGetAsync(string? channel = null, string? feed = null,
+    public async Task OnGet(string? channel = null, string? feed = null,
         int year = 0, int month = 0, int day = 0, string? post = null,
         CancellationToken cancellationToken = default)
     {
-        var userIdStr = this.userManager.GetUserId(this.User);
-        if (!Guid.TryParse(userIdStr, out var userId))
+        if (this.UserId == default)
         {
             // user not logged in
             return;
@@ -201,7 +196,7 @@ public class IndexModel : PageModel
         this.Channels = await cnn.QueryJsonAsync<IEnumerable<RssChannel>>(sql,
             new
             {
-                UserId = userId,
+                this.UserId,
                 ChannelSlug = channel,
                 FeedSlug = feed,
                 PostSlug = post,
