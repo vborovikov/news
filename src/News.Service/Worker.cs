@@ -311,18 +311,18 @@ sealed class Worker : BackgroundService
         try
         {
             Feed? update = null;
-            try
+            if (feed.Status.HasFlag(FeedUpdateStatus.UserAgent))
+            {
+                var feedData = await this.usr.GetStringAsync(feed.Source, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(feedData))
+                {
+                    update = FeedReader.ReadFromString(feedData);
+                }
+            }
+            if (update is null)
             {
                 var feedData = await client.GetByteArrayAsync(feed.Source, cancellationToken);
                 update = FeedReader.ReadFromByteArray(feedData);
-            }
-            catch (HttpRequestException x) when (x.StatusCode == HttpStatusCode.Unauthorized || x.StatusCode == HttpStatusCode.Forbidden)
-            {
-                var feedData = await this.usr.GetStringAsync(feed.Source, cancellationToken);
-                if (string.IsNullOrWhiteSpace(feedData))
-                    throw;
-
-                update = FeedReader.ReadFromString(feedData);
             }
 
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
@@ -486,9 +486,13 @@ sealed class Worker : BackgroundService
                 prevStatus.HasFlag(FeedUpdateStatus.UniqueId) ? FeedUpdateStatus.DistinctId | prevStatus :
                 FeedUpdateStatus.UniqueId | prevStatus;
         }
-        if (error is HttpRequestException)
+        if (error is HttpRequestException httpEx)
         {
-            return prevStatus.HasFlag(FeedUpdateStatus.HttpError) ? FeedUpdateStatus.SkipUpdate :
+            return
+                prevStatus.HasFlag(FeedUpdateStatus.HttpError) ? FeedUpdateStatus.SkipUpdate :
+                httpEx.StatusCode == HttpStatusCode.Unauthorized || httpEx.StatusCode == HttpStatusCode.Forbidden ?
+                prevStatus.HasFlag(FeedUpdateStatus.UserAgent) ? FeedUpdateStatus.SkipUpdate :
+                FeedUpdateStatus.UserAgent | prevStatus :
                 FeedUpdateStatus.HttpError | prevStatus;
         }
         if (error is XmlException || error is FeedTypeNotSupportedException)

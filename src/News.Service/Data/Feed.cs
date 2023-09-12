@@ -24,7 +24,10 @@ enum FeedUpdateStatus
     HttpError = 1 << 3,
     HTTP = HttpError,
 
-    SkipUpdate = 1 << 4,
+    UserAgent = 1 << 4,
+    USER = UserAgent,
+
+    SkipUpdate = 1 << 5,
     SKIP = SkipUpdate,
 }
 
