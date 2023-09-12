@@ -321,7 +321,18 @@ sealed class Worker : BackgroundService
             }
             if (update is null)
             {
-                var feedData = await client.GetByteArrayAsync(feed.Source, cancellationToken);
+                using var response = await client.GetAsync(feed.Source, cancellationToken);
+                if (response.StatusCode == HttpStatusCode.Moved || response.StatusCode == HttpStatusCode.MovedPermanently)
+                {
+                    var feedNewSource = response.Headers.Location?.ToString();
+                    if (!string.IsNullOrWhiteSpace(feedNewSource))
+                    {
+                        feed = feed with { Source = feedNewSource };
+                    }
+                }
+                response.EnsureSuccessStatusCode();
+
+                var feedData = await response.Content.ReadAsByteArrayAsync(cancellationToken);
                 update = FeedReader.ReadFromByteArray(feedData);
             }
 
@@ -458,11 +469,12 @@ sealed class Worker : BackgroundService
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
-                set Updated = @Updated, Status = @Status, Error = @Error
+                set Updated = @Updated, Source = @Source, Status = @Status, Error = @Error
                 where Id = @FeedId;
                 """, new
                 {
                     FeedId = feed.Id,
+                    Source = feed.Source,
                     Updated = DateTimeOffset.Now,
                     Status = GetStatus(error, feed.Status),
                     Error = error.Message
