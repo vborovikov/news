@@ -3,6 +3,7 @@ namespace News.Service;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
+using System.Net;
 using System.Threading;
 using System.Xml;
 using CodeHollow.FeedReader;
@@ -19,13 +20,15 @@ sealed class Worker : BackgroundService
     private readonly ServiceOptions options;
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
+    private readonly UserAgent usr;
     private readonly ILogger<Worker> log;
 
-    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, ILogger<Worker> log)
+    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, UserAgent usr, ILogger<Worker> log)
     {
         this.options = options.Value;
         this.db = db;
         this.web = web;
+        this.usr = usr;
         this.log = log;
     }
 
@@ -307,8 +310,21 @@ sealed class Worker : BackgroundService
     {
         try
         {
-            var feedData = await client.GetByteArrayAsync(feed.Source, cancellationToken);
-            var update = FeedReader.ReadFromByteArray(feedData);
+            Feed? update = null;
+            try
+            {
+                var feedData = await client.GetByteArrayAsync(feed.Source, cancellationToken);
+                update = FeedReader.ReadFromByteArray(feedData);
+            }
+            catch (HttpRequestException x) when (x.StatusCode == HttpStatusCode.Unauthorized || x.StatusCode == HttpStatusCode.Forbidden)
+            {
+                var feedData = await this.usr.GetStringAsync(feed.Source, cancellationToken);
+                if (string.IsNullOrWhiteSpace(feedData))
+                    throw;
+
+                update = FeedReader.ReadFromString(feedData);
+            }
+
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
         }
         catch (Exception x) when (x is not OperationCanceledException)

@@ -1,6 +1,6 @@
 namespace News.Service;
 
-using System.Net.Http.Headers;
+using Dodkin;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
@@ -16,6 +16,8 @@ record ServiceOptions
     public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(3);
 
     public string? UserAgent { get; init; }
+
+    public required string UserAgentQueue {  get; init; }
 
     public required string OpmlPath { get; init; } = @"C:\Tools\News\opml";
     public DirectoryInfo OpmlDirectory => this.opmlDirectory ??= new(this.OpmlPath);
@@ -61,6 +63,7 @@ static class Program
                         httpClient.DefaultRequestHeaders.Add("User-Agent", options.Value.UserAgent);
                     }
                 });
+                services.AddSingleton<UserAgent>();
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();
             })
