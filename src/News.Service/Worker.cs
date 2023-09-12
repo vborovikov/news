@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Xml;
 using CodeHollow.FeedReader;
@@ -316,13 +317,23 @@ sealed class Worker : BackgroundService
                 var feedData = await this.usr.GetStringAsync(feed.Source, cancellationToken);
                 if (!string.IsNullOrWhiteSpace(feedData))
                 {
-                    update = FeedReader.ReadFromString(feedData);
+                    try
+                    {
+                        update = FeedReader.ReadFromString(feedData);
+                    }
+                    catch (XmlException)
+                    {
+                        feed = MaybeUpdateFeedSource(feed, feedData);
+                        throw;
+                    }
                 }
             }
             if (update is null)
             {
                 using var response = await client.GetAsync(feed.Source, cancellationToken);
-                if (response.StatusCode == HttpStatusCode.Moved || response.StatusCode == HttpStatusCode.MovedPermanently)
+                if (response.StatusCode == HttpStatusCode.Moved ||
+                    response.StatusCode == HttpStatusCode.MovedPermanently ||
+                    response.StatusCode == HttpStatusCode.PermanentRedirect)
                 {
                     var feedNewSource = response.Headers.Location?.ToString();
                     if (!string.IsNullOrWhiteSpace(feedNewSource))
@@ -333,7 +344,15 @@ sealed class Worker : BackgroundService
                 response.EnsureSuccessStatusCode();
 
                 var feedData = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-                update = FeedReader.ReadFromByteArray(feedData);
+                try
+                {
+                    update = FeedReader.ReadFromByteArray(feedData);
+                }
+                catch (XmlException)
+                {
+                    feed = MaybeUpdateFeedSource(feed, Encoding.UTF8.GetString(feedData));
+                    throw;
+                }
             }
 
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
@@ -343,6 +362,20 @@ sealed class Worker : BackgroundService
             this.log.LogError(x, "Error updating feed {feedUrl}", feed.Source);
             await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
         }
+    }
+
+    private static DbFeed MaybeUpdateFeedSource(DbFeed feed, string feedData)
+    {
+        var feedLinks = FeedReader.ParseFeedUrlsFromHtml(feedData);
+        var feedLink =
+            feedLinks.FirstOrDefault(fl => fl.FeedType != FeedType.Unknown) ??
+            feedLinks.FirstOrDefault();
+        if (feedLink is not null && Uri.IsWellFormedUriString(feedLink.Url, UriKind.Absolute))
+        {
+            feed = feed with { Source = feedLink.Url };
+        }
+
+        return feed;
     }
 
     private async Task MergeFeedUpdateAsync(DbFeed feed, Feed update, CancellationToken cancellationToken)
