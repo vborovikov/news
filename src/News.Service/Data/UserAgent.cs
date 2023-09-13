@@ -24,8 +24,16 @@ sealed class UserAgent
     public UserAgent(IOptions<ServiceOptions> options, ILogger<UserAgent> log)
     {
         this.options = options.Value;
-        this.dispatcher = new QueueRequestDispatcher(MessageQueueName.Parse(this.options.UserAgentQueue), serviceEndpoint);
         this.log = log;
+        try
+        {
+            this.dispatcher = new QueueRequestDispatcher(MessageQueueName.Parse(this.options.UserAgentQueue), serviceEndpoint);
+        }
+        catch (Exception x)
+        {
+            this.log.LogError(x, "Error creating request dispatcher for message queue {queueName}", this.options.UserAgentQueue);
+            throw;
+        }
     }
 
     public async Task<string?> GetStringAsync(string url, CancellationToken cancellationToken)
