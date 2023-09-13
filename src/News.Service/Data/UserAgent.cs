@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 sealed class UserAgent
 {
     private static readonly MessageEndpoint serviceEndpoint = MessageEndpoint.FromName(ServiceOptions.ServiceName.ToLowerInvariant());
-    private static readonly TimeSpan timeout = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan timeout = TimeSpan.FromMinutes(5);
 
     private readonly ServiceOptions options;
     private readonly IQueueRequestDispatcher dispatcher;
