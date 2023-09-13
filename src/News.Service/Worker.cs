@@ -338,6 +338,7 @@ sealed class Worker : BackgroundService
                     var feedNewSource = response.Headers.Location?.ToString();
                     if (!string.IsNullOrWhiteSpace(feedNewSource))
                     {
+                        this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, feedNewSource);
                         feed = feed with { Source = feedNewSource };
                     }
                 }
@@ -364,7 +365,7 @@ sealed class Worker : BackgroundService
         }
     }
 
-    private static DbFeed MaybeUpdateFeedSource(DbFeed feed, string feedData)
+    private DbFeed MaybeUpdateFeedSource(DbFeed feed, string feedData)
     {
         var feedLinks = FeedReader.ParseFeedUrlsFromHtml(feedData);
         var feedLink =
@@ -372,6 +373,7 @@ sealed class Worker : BackgroundService
             feedLinks.FirstOrDefault();
         if (feedLink is not null && Uri.IsWellFormedUriString(feedLink.Url, UriKind.Absolute))
         {
+            this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, feedLink.Url);
             feed = feed with { Source = feedLink.Url };
         }
 
