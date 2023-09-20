@@ -17,7 +17,7 @@ record ServiceOptions
 
     public string? UserAgent { get; init; }
 
-    public required string UserAgentQueue {  get; init; }
+    public required MessageQueueName UserAgentQueue {  get; init; }
 
     public required string OpmlPath { get; init; } = @"C:\Tools\News\opml";
     public DirectoryInfo OpmlDirectory => this.opmlDirectory ??= new(this.OpmlPath);

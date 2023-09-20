@@ -27,7 +27,7 @@ sealed class UserAgent
         this.log = log;
         try
         {
-            this.dispatcher = new QueueRequestDispatcher(MessageQueueName.Parse(this.options.UserAgentQueue), serviceEndpoint);
+            this.dispatcher = new QueueRequestDispatcher(this.options.UserAgentQueue, serviceEndpoint);
         }
         catch (Exception x)
         {
