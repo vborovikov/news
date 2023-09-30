@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodeHollow.FeedReader" Version="1.2.6" />
+    <PackageReference Include="Brackets.FeedReader" Version="1.2.7-beta" />
     <PackageReference Include="Dapper" Version="2.0.151" />
     <PackageReference Include="Dodkin" Version="0.4.4-beta" />
     <PackageReference Include="Dodkin.Dispatch" Version="0.4.4-beta" />
