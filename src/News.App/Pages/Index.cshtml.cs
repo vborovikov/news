@@ -69,7 +69,7 @@ public class IndexModel : AppPageModel
                                  from rss.Posts p 
                                  where p.FeedId = uf.FeedId) as LastPublished,
                                 json_query((
-                                    select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, p.IsRead, p.Content
+                                    select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, p.IsRead, p.Content, p.Author
                                     from rss.AppPosts p
                                     where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
                                     order by p.Published desc
@@ -96,7 +96,7 @@ public class IndexModel : AppPageModel
                                  from rss.Posts p 
                                  where p.FeedId = uf.FeedId) as LastPublished,
                                 json_query((
-                                    select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, p.IsRead, p.Content
+                                    select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, p.IsRead, p.Content, p.Author
                                     from rss.AppPosts p
                                     where 
                                         p.FeedId = uf.FeedId and
@@ -129,7 +129,7 @@ public class IndexModel : AppPageModel
                              from rss.Posts p 
                              where p.FeedId = uf.FeedId) as LastPublished,
                             json_query((
-                                select p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug, p.IsRead
+                                select p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug, p.IsRead, p.Author
                                 from rss.AppPosts p
                                 where p.FeedId = uf.FeedId
                                 order by p.Published desc

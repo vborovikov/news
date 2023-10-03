@@ -178,7 +178,9 @@ record FeedItemWrapper : WrapperBase
         GetNonEmpty(this.item.Description, (this.item.SpecificItem as AtomFeedItem)?.Summary) :
         null;
 
-    public string Author => this.item.Author;
+    public string? Author => this.item.Author ??
+        (this.item.SpecificItem as Rss20FeedItem)?.DC.Creator ??
+        (this.item.SpecificItem as Rss10FeedItem)?.DC.Creator;
 
     // null checks in case the author is having a writer's block
     public string Content => GetNonEmpty(this.item.Content, this.item.Description, this.Link, "<no content>");

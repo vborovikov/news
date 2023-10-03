@@ -81,10 +81,11 @@ public record RssPostInfo
     public Guid PostId { get; init; }
     public DateTimeOffset Published { get; init; }
     public DateTimeOffset PublishedLocal => this.publishedLocal ??= this.Published.ToLocalTime();
-    public string Link { get; init; } = "";
-    public string Slug { get; init; } = "";
-    public string Title { get; init; } = "";
-    public string Description { get; init; } = "";
+    public required string Link { get; init; }
+    public required string Slug { get; init; }
+    public required string Title { get; init; }
+    public string? Description { get; init; }
+    public string? Author { get; init; }
     public bool IsRead { get; init; }
 }
 
