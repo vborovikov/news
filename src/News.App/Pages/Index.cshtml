@@ -5,7 +5,7 @@
     ViewData["Title"] = "Home";
 }
 
-@if (Model.Granularity == IndexModel.GranularityLevel.None)
+@if (Model.Granularity == IndexModel.GranularityLevel.None || !Model.Channels.Any())
 {
     @* nothing to show since no user logged in *@
     <h1 class="text-center display-1">Nothing to show, please log in to see the news.</h1>
