@@ -19,7 +19,9 @@
                         <a href="@post.Link" target="_blank" class="link-dark text-decoration-none">@post.Title</a>
                     </h3>
                     <section>
-                        <p class="feed-post-meta">@post.PublishedLocal.ToString("f")</p>
+                        <p class="feed-post-meta">
+                            @post.PublishedLocal.ToString("f")@(string.IsNullOrWhiteSpace(post.Author) ? "" : $" | {post.Author}")
+                        </p>
                         <p class="feed-post-meta">@Html.Raw(post.Description)</p>
                         <hr />
                     </section>
