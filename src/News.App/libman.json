@@ -28,6 +28,16 @@
         "dist/aspnet-validation.min.js",
         "dist/aspnet-validation.min.js.map"
       ]
+    },
+    {
+      "provider": "cdnjs",
+      "library": "highlight.js@11.8.0",
+      "destination": "wwwroot/lib/highlight.js/",
+      "files": [
+        "highlight.min.js",
+        "styles/**",
+        "languages/**"
+      ]
     }
   ]
 }
