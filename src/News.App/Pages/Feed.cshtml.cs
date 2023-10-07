@@ -5,7 +5,8 @@ using System.Data.Common;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using News.App.Data;
+using Data;
+using Spryer;
 
 [Authorize]
 public class FeedModel : EditPageModel
@@ -27,7 +28,10 @@ public class FeedModel : EditPageModel
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         this.Input = await cnn.QuerySingleAsync<InputModel>(
             """
-            select af.FeedId, af.Source as FeedUrl, af.Title as FeedTitle, af.Slug as FeedSlug, af.ChannelId
+            select 
+                af.FeedId, af.ChannelId, af.Source as FeedUrl, 
+                af.Title as FeedTitle, af.Slug as FeedSlug,
+                af.Safeguards
             from rss.AppFeeds af
             where af.UserId = @UserId and af.FeedId = @FeedId;
             """, new { this.UserId, FeedId = id });
@@ -48,7 +52,7 @@ public class FeedModel : EditPageModel
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
-                set Source = @FeedUrl, Status = 'OK', Error = null
+                set Source = @FeedUrl, Status = 'OK', Error = null, Safeguards = @Safeguards
                 where Id = @FeedId;
 
                 update rss.UserFeeds
@@ -62,6 +66,7 @@ public class FeedModel : EditPageModel
                     this.Input.FeedUrl,
                     this.Input.FeedSlug,
                     this.Input.FeedTitle,
+                    this.Input.Safeguards
                 }, tx);
 
             await tx.CommitAsync(cancellationToken);
@@ -102,6 +107,27 @@ public class FeedModel : EditPageModel
 
         [Required, Display(Name = "Feed channel")]
         public Guid ChannelId { get; init; }
+
+        [Display(Name = "Safety measures")]
+        public DbEnum<FeedSafeguard> Safeguards { get; set; }
+
+        public bool SafeguardCodeBlockEncoder
+        {
+            get => this.Safeguards.HasFlag(FeedSafeguard.CodeBlockEncoder);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.CodeBlockEncoder : this.Safeguards & ~FeedSafeguard.CodeBlockEncoder;
+        }
+
+        public bool SafeguardDescriptionRemover
+        {
+            get => this.Safeguards.HasFlag(FeedSafeguard.DescriptionRemover);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.DescriptionRemover : this.Safeguards & ~FeedSafeguard.DescriptionRemover;
+        }
+
+        public bool SafeguardLastParaTrimmer
+        {
+            get => this.Safeguards.HasFlag(FeedSafeguard.LastParaTrimmer);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.LastParaTrimmer : this.Safeguards & ~FeedSafeguard.LastParaTrimmer;
+        }
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute) && this.ChannelId != Guid.Empty;
     }

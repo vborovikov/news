@@ -1,9 +1,10 @@
 namespace News.App;
 
+using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
-using News.App.Data;
-using News.App.Services;
+using Services;
+using Spryer;
 
 public record ServiceOptions
 {
@@ -17,6 +18,11 @@ public record ServiceOptions
 
 public static class Program
 {
+    static Program()
+    {
+        DbEnum<FeedSafeguard>.Initialize();
+    }
+
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);

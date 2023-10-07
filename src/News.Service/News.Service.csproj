@@ -36,4 +36,8 @@
       <_Parameter1>News.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\News\News.csproj" />
+  </ItemGroup>
 </Project>

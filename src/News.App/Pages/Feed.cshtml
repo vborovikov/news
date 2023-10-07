@@ -46,6 +46,24 @@
             </div>
         </fieldset>
 
+        <fieldset class="row g-3 mt-2">
+            <legend>Content</legend>
+            <div class="col-6 mt-0">
+                <div class="form-check form-switch">
+                    <input asp-for="Input.SafeguardCodeBlockEncoder" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardCodeBlockEncoder" class="form-check-label">Encode code blocks</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input asp-for="Input.SafeguardLastParaTrimmer" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardLastParaTrimmer" class="form-check-label">Trim last paragraph</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input asp-for="Input.SafeguardDescriptionRemover" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardDescriptionRemover" class="form-check-label">Remove description</label>
+                </div>
+            </div>
+        </fieldset>
+
         <div class="mt-4">
             <button type="submit" class="btn btn-outline-primary">Update</button>
             <button type="reset" class="btn btn-link link-secondary text-decoration-none">Cancel</button>
