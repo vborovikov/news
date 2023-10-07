@@ -5,6 +5,10 @@
     ViewData["Title"] = "Home";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/lib/highlight.js/styles/default.min.css" />
+}
+
 @if (Model.Granularity == IndexModel.GranularityLevel.None || !Model.Channels.Any())
 {
     @* nothing to show since no user logged in *@
@@ -39,4 +43,9 @@ else if (Model.Granularity >= IndexModel.GranularityLevel.Channel)
     ViewData["Title"] = Model.Granularity == IndexModel.GranularityLevel.Channels ? "All" : Model.Channels.First().Name;
 
     <partial name="Index/_Channel" model="Model.Channels" />
+}
+
+@section Scripts {
+    <script src="~/lib/highlight.js/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
 }
