@@ -28,6 +28,7 @@ static class Program
     static Program()
     {
         DbEnum<FeedUpdateStatus>.Initialize();
+        DbEnum<FeedSafeguard>.Initialize();
     }
 
     public static Task Main(string[] args)

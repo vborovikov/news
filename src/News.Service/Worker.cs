@@ -7,6 +7,8 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using Brackets;
+using Brackets.Html;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Parser;
 using Dapper;
@@ -40,8 +42,141 @@ sealed class Worker : BackgroundService
         {
             await ImportFeedsAsync(stoppingToken);
             await UpdateFeedsAsync(stoppingToken);
+            await SafeguardFeedsAsync(stoppingToken);
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+
+    private async Task SafeguardFeedsAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            this.log.LogInformation("Safeguarding feeds at: {time}", DateTimeOffset.Now);
+            var feeds = await GetFeedsToSafeguardAsync(stoppingToken);
+            var total = feeds.Count();
+            var count = 0;
+            await Parallel.ForEachAsync(feeds, stoppingToken, async (feed, cancellationToken) =>
+            {
+                this.log.LogDebug("Safeguarding feed ({count}/{total}) {feedSource}", Interlocked.Increment(ref count), total, feed.Source);
+                await SafeguardFeedAsync(feed, cancellationToken);
+            });
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            this.log.LogError(x, "Error safeguarding feeds");
+        }
+        finally
+        {
+            this.log.LogInformation("Finished safeguarding feeds at: {time}", DateTimeOffset.Now);
+        }
+    }
+
+    private async Task SafeguardFeedAsync(DbFeed feed, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var posts = await cnn.QueryAsync<DbPost>(
+                """
+                select p.Id, p.Title, p.Description, p.Content
+                from rss.Posts p
+                where p.FeedId = @FeedId and p.SafeContent is null;
+                """, new { FeedId = feed.Id }, tx);
+
+            var total = posts.Count();
+            var count = 0;
+            await Parallel.ForEachAsync(posts, cancellationToken, async (post, cancellationToken) =>
+            {
+                this.log.LogDebug("Safeguarding post '{postTitle}' ({count}/{total}) {feedSource}",
+                    post.Title, Interlocked.Increment(ref count), total, feed.Source);
+                await SafeguardPostAsync(post, feed, tx, cancellationToken);
+            });
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            this.log.LogDebug("Safeguarding feed {feedSource} was canceled", feed.Source);
+            throw;
+        }
+        catch (Exception x)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            this.log.LogError(x, "Error safeguarding feed {feedSource}", feed.Source);
+        }
+    }
+
+    private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
+    {
+        string? safeContent = null;
+        string? safeDescription = null;
+        
+        if (feed.Safeguards.HasFlag(FeedSafeguard.DescriptionRemover))
+        {
+            safeDescription = string.Empty;
+        }
+
+        if (feed.Safeguards != FeedSafeguard.DescriptionRemover)
+        {
+            if (!string.IsNullOrWhiteSpace(post.Description))
+            {
+                safeDescription = Safeguard(post.Description, feed.Safeguards);
+            }
+            safeContent = Safeguard(post.Content, feed.Safeguards);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await tx.Connection.ExecuteAsync(
+            """
+            update rss.Posts
+            set SafeContent = @SafeContent, SafeDescription = @SafeDescription
+            where Id = @Id;
+            """, new { post.Id, SafeContent = safeContent, SafeDescription = safeDescription }, tx);
+    }
+
+    private static string Safeguard(string text, FeedSafeguard safeguards)
+    {
+        var parser = new HtmlReference(); // new parser for thread safety
+        var html = parser.Parse(text);
+
+        if (safeguards.HasFlag(FeedSafeguard.CodeBlockEncoder))
+        {
+            foreach (var codeElement in html.Find("//code"))
+            {
+                if (codeElement is ParentTag codeTag && codeTag.SingleOrDefault() is Content rawContent)
+                {
+                    var encodedContent = new EncodedContent(rawContent.ToString());
+                    codeTag.Remove(rawContent);
+                    codeTag.Add(encodedContent);
+                }
+            }
+        }
+
+        if (safeguards.HasFlag(FeedSafeguard.LastParaTrimmer))
+        {
+            var lastPara = html.Find("/p[last()]").SingleOrDefault();
+            if (lastPara?.Parent is ParentTag parent)
+            {
+                parent.Remove(lastPara);
+            }
+        }
+
+        return html.ToText();
+    }
+
+    private async Task<IEnumerable<DbFeed>> GetFeedsToSafeguardAsync(CancellationToken stoppingToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(stoppingToken);
+        var feeds = await cnn.QueryAsync<DbFeed>(
+            """
+            select f.Id, f.Source, f.Status, f.Safeguards
+            from rss.Feeds f
+            where f.Status not like '%SKIP%' and f.Safeguards not like 'OK'
+            order by f.Updated;
+            """);
+        return feeds;
     }
 
     private async Task ImportFeedsAsync(CancellationToken cancellationToken)
@@ -89,7 +224,7 @@ sealed class Worker : BackgroundService
             this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
             var client = this.web.CreateClient("Feed");
-            var feeds = await GetFeedsAsync(cancellationToken);
+            var feeds = await GetFeedsToUpdateAsync(cancellationToken);
             var total = feeds.Count();
             var count = 0;
             await Parallel.ForEachAsync(feeds, cancellationToken, async (feed, cancellationToken) =>
@@ -293,7 +428,7 @@ sealed class Worker : BackgroundService
         return channels.ToArray();
     }
 
-    private async Task<IEnumerable<DbFeed>> GetFeedsAsync(CancellationToken cancellationToken)
+    private async Task<IEnumerable<DbFeed>> GetFeedsToUpdateAsync(CancellationToken cancellationToken)
     {
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         var feeds = await cnn.QueryAsync<DbFeed>(

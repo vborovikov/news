@@ -36,6 +36,15 @@ record DbFeed
     public Guid Id { get; init; }
     public required string Source { get; init; }
     public DbEnum<FeedUpdateStatus> Status { get; init; }
+    public DbEnum<FeedSafeguard> Safeguards { get; init; }
+}
+
+record DbPost
+{
+    public Guid Id { get; init; }
+    public required string Title { get; init; }
+    public string? Description { get; init; }
+    public required string Content {get; init; }
 }
 
 abstract record WrapperBase
