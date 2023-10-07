@@ -3,6 +3,7 @@ namespace News.App;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using News.App.Data;
+using News.App.Services;
 
 public record ServiceOptions
 {
@@ -21,6 +22,8 @@ public static class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
+        builder.Services.AddSingleton<IApp, AppService>();
+
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         builder.Services.Configure<ServiceOptions>(builder.Configuration.GetSection(ServiceOptions.ServiceName));
         builder.Services.AddScoped(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
