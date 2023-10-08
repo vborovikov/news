@@ -69,6 +69,16 @@ public class FeedModel : EditPageModel
                     this.Input.Safeguards
                 }, tx);
 
+            if (this.Input.Safeguards == FeedSafeguard.None)
+            {
+                await cnn.ExecuteAsync(
+                    """
+                    update rss.Posts
+                    set SafeDescription = null, SafeContent = null
+                    where FeedId = @FeedId;
+                    """, new { this.Input.FeedId }, tx);
+            }
+
             await tx.CommitAsync(cancellationToken);
         }
         catch (Exception x)
@@ -127,6 +137,12 @@ public class FeedModel : EditPageModel
         {
             get => this.Safeguards.HasFlag(FeedSafeguard.LastParaTrimmer);
             set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.LastParaTrimmer : this.Safeguards & ~FeedSafeguard.LastParaTrimmer;
+        }
+
+        public bool SafeguardDescriptionImageRemover
+        {
+            get => this.Safeguards.HasFlag(FeedSafeguard.DescriptionImageRemover);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.DescriptionImageRemover : this.Safeguards & ~FeedSafeguard.DescriptionImageRemover;
         }
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute) && this.ChannelId != Guid.Empty;

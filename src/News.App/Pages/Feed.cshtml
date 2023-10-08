@@ -57,9 +57,15 @@
                     <input asp-for="Input.SafeguardLastParaTrimmer" type="checkbox" class="form-check-input" />
                     <label asp-for="Input.SafeguardLastParaTrimmer" class="form-check-label">Trim last paragraph</label>
                 </div>
+            </div>
+            <div class="col-6 mt-0">
                 <div class="form-check form-switch">
                     <input asp-for="Input.SafeguardDescriptionRemover" type="checkbox" class="form-check-input" />
                     <label asp-for="Input.SafeguardDescriptionRemover" class="form-check-label">Remove description</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input asp-for="Input.SafeguardDescriptionImageRemover" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardDescriptionImageRemover" class="form-check-label">Remove description image</label>
                 </div>
             </div>
         </fieldset>

@@ -14,5 +14,8 @@
 
         DescriptionRemover = 1 << 2,
         DESC = DescriptionRemover,
+
+        DescriptionImageRemover = 1 << 3,
+        DIMG = DescriptionImageRemover,
     }
 }

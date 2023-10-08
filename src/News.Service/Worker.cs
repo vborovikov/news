@@ -110,21 +110,19 @@ sealed class Worker : BackgroundService
 
     private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
     {
-        string? safeContent = null;
-        string? safeDescription = null;
-        
-        if (feed.Safeguards.HasFlag(FeedSafeguard.DescriptionRemover))
-        {
-            safeDescription = string.Empty;
-        }
+        var safeContent = SanitizeContent(post.Content, feed.Safeguards);
 
-        if (feed.Safeguards != FeedSafeguard.DescriptionRemover)
+        string? safeDescription = null;
+        if (!string.IsNullOrWhiteSpace(post.Description))
         {
-            if (!string.IsNullOrWhiteSpace(post.Description))
+            if (feed.Safeguards.HasFlag(FeedSafeguard.DescriptionRemover))
             {
-                safeDescription = Safeguard(post.Description, feed.Safeguards);
+                safeDescription = string.Empty;
             }
-            safeContent = Safeguard(post.Content, feed.Safeguards);
+            else
+            {
+                safeDescription = SanitizeDescription(post.Description, feed.Safeguards);
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -136,7 +134,28 @@ sealed class Worker : BackgroundService
             """, new { post.Id, SafeContent = safeContent, SafeDescription = safeDescription }, tx);
     }
 
-    private static string Safeguard(string text, FeedSafeguard safeguards)
+    private static string SanitizeDescription(string text, FeedSafeguard safeguards)
+    {
+        var parser = new HtmlReference(); // new parser for thread safety
+        var html = parser.Parse(text);
+
+        if (safeguards.HasFlag(FeedSafeguard.DescriptionImageRemover))
+        {
+            foreach (var img in html.Find("//img"))
+            {
+                if (img.Parent is ParentTag parent)
+                {
+                    parent.Remove(img);
+                }
+            }
+        }
+
+        SanitizeCommon(html, safeguards);
+
+        return html.ToText();
+    }
+
+    private static string SanitizeContent(string text, FeedSafeguard safeguards)
     {
         var parser = new HtmlReference(); // new parser for thread safety
         var html = parser.Parse(text);
@@ -154,6 +173,13 @@ sealed class Worker : BackgroundService
             }
         }
 
+        SanitizeCommon(html, safeguards);
+
+        return html.ToText();
+    }
+
+    private static void SanitizeCommon(Document html, FeedSafeguard safeguards)
+    {
         if (safeguards.HasFlag(FeedSafeguard.LastParaTrimmer))
         {
             var lastPara = html.Find("/p[last()]").SingleOrDefault();
@@ -162,8 +188,6 @@ sealed class Worker : BackgroundService
                 parent.Remove(lastPara);
             }
         }
-
-        return html.ToText();
     }
 
     private async Task<IEnumerable<DbFeed>> GetFeedsToSafeguardAsync(CancellationToken stoppingToken)
