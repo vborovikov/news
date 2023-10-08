@@ -49,6 +49,10 @@ public class FeedModel : EditPageModel
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
         {
+            var prevSafeguards = await cnn.ExecuteScalarAsync<DbEnum<FeedSafeguard>>(
+                """select f.Safeguards from rss.Feeds f where f.Id = @FeedId;""",
+                new { this.Input.FeedId }, tx);
+
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
@@ -69,7 +73,7 @@ public class FeedModel : EditPageModel
                     this.Input.Safeguards
                 }, tx);
 
-            if (this.Input.Safeguards == FeedSafeguard.None)
+            if (this.Input.Safeguards != (FeedSafeguard)prevSafeguards)
             {
                 await cnn.ExecuteAsync(
                     """
