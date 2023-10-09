@@ -23,11 +23,13 @@ alter view rss.AppFeeds with schemabinding as
 go
 
 alter table rss.Posts drop
+    constraint CK_Posts_SafeContent,
 	column SafeDescription,
     column SafeContent;
-go;
+go
 
 alter table rss.Feeds drop
+    constraint DF_Feeds_Safeguards,
 	column Safeguards;
 go
 

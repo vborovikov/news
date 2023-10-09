@@ -7,12 +7,12 @@ begin transaction;
 go
 
 alter table rss.Feeds add
-	Safeguards varchar(150) not null default 'OK';
+	Safeguards varchar(150) not null constraint DF_Feeds_Safeguards default 'OK';
 go    
 
 alter table rss.Posts add
 	SafeDescription nvarchar(max) null,
-    SafeContent nvarchar(max) null check (SafeContent != N'');
+    SafeContent nvarchar(max) null constraint CK_Posts_SafeContent check (SafeContent != N'');
 go
 
 alter view rss.AppFeeds with schemabinding as
