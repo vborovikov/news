@@ -480,7 +480,7 @@ sealed class Worker : BackgroundService
                     {
                         update = FeedReader.ReadFromString(feedData);
                     }
-                    catch (XmlException)
+                    catch (Exception)
                     {
                         feed = MaybeUpdateFeedSource(feed, feedData);
                         throw;
@@ -508,7 +508,7 @@ sealed class Worker : BackgroundService
                 {
                     update = FeedReader.ReadFromByteArray(feedData);
                 }
-                catch (XmlException)
+                catch (Exception)
                 {
                     feed = MaybeUpdateFeedSource(feed, Encoding.UTF8.GetString(feedData));
                     throw;
@@ -530,10 +530,14 @@ sealed class Worker : BackgroundService
         var feedLink =
             feedLinks.FirstOrDefault(fl => fl.FeedType != FeedType.Unknown) ??
             feedLinks.FirstOrDefault();
-        if (feedLink is not null && Uri.IsWellFormedUriString(feedLink.Url, UriKind.Absolute))
+        if (feedLink is not null)
         {
-            this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, feedLink.Url);
-            feed = feed with { Source = feedLink.Url };
+            feedLink = FeedReader.GetAbsoluteFeedUrl(feed.Source, feedLink);
+            if (Uri.IsWellFormedUriString(feedLink.Url, UriKind.Absolute))
+            {
+                this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, feedLink.Url);
+                feed = feed with { Source = feedLink.Url };
+            }
         }
 
         return feed;
@@ -701,7 +705,7 @@ sealed class Worker : BackgroundService
                 FeedUpdateStatus.UserAgent | prevStatus :
                 FeedUpdateStatus.HttpError | prevStatus;
         }
-        if (error is XmlException || error is FeedTypeNotSupportedException)
+        if (error is FeedTypeNotSupportedException)
         {
             return prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
                 FeedUpdateStatus.HtmlResponse | prevStatus;
