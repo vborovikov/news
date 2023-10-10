@@ -12,10 +12,10 @@ using Brackets.Html;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Parser;
 using Dapper;
+using Data;
 using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
-using News.Service.Data;
 using Spryer;
 
 sealed class Worker : BackgroundService
@@ -141,12 +141,10 @@ sealed class Worker : BackgroundService
 
         if (safeguards.HasFlag(FeedSafeguard.DescriptionImageRemover))
         {
-            foreach (var img in html.Find("//img"))
+            var imgElements = html.Find("//img").ToArray();
+            foreach (var img in imgElements)
             {
-                if (img.Parent is ParentTag parent)
-                {
-                    parent.Remove(img);
-                }
+                img.TryDelete();
             }
         }
 
@@ -162,7 +160,8 @@ sealed class Worker : BackgroundService
 
         if (safeguards.HasFlag(FeedSafeguard.CodeBlockEncoder))
         {
-            foreach (var codeElement in html.Find("//code"))
+            var codeElements = html.Find("//code").ToArray();
+            foreach (var codeElement in codeElements)
             {
                 if (codeElement is ParentTag codeTag && codeTag.SingleOrDefault() is Content rawContent)
                 {
@@ -182,10 +181,22 @@ sealed class Worker : BackgroundService
     {
         if (safeguards.HasFlag(FeedSafeguard.LastParaTrimmer))
         {
-            var lastPara = html.Find("/p[last()]").SingleOrDefault();
-            if (lastPara?.Parent is ParentTag parent)
+            var lastElement = html.LastOrDefault();
+            if (lastElement is Tag { Name: "p" } para)
             {
-                parent.Remove(lastPara);
+                // remove last paragraph
+                para.TryDelete();
+            }
+            else if (lastElement is not null)
+            {
+                // remove last content
+                var firstElement = html.First();
+                while (lastElement != firstElement && lastElement is not Tag { Level: ElementLevel.Block })
+                {
+                    if (!lastElement.TryDelete())
+                        break;
+                    lastElement = html.Last();
+                }
             }
         }
     }

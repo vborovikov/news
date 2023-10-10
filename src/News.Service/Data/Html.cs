@@ -19,8 +19,19 @@ sealed class EncodedContent : Content
     public override string ToString() => this.text;
 }
 
-internal static class PrintExtensions
+internal static class HtmlExtensions
 {
+    public static bool TryDelete(this Element element)
+    {
+        if (element.Parent is ParentTag parent)
+        {
+            parent.Remove(element);
+            return true;
+        }
+
+        return false;
+    }
+
     public static string ToText(this Document document)
     {
         var text = new StringBuilder(document.Length);
