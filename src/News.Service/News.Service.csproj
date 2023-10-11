@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Brackets" Version="0.4.11-beta" />
+    <PackageReference Include="Brackets" Version="0.4.13-beta" />
     <PackageReference Include="Brackets.FeedReader" Version="1.2.13-beta" />
     <PackageReference Include="Dapper" Version="2.0.151" />
     <PackageReference Include="Dodkin" Version="0.4.4-beta" />
