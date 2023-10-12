@@ -1,7 +1,9 @@
 ﻿namespace News.App.Pages;
 
 using System.Data.Common;
+using Microsoft.AspNetCore.Mvc;
 using News.App.Data;
+using Relay.InteractionModel;
 
 public class IndexModel : AppPageModel
 {
@@ -18,7 +20,7 @@ public class IndexModel : AppPageModel
 
     public IEnumerable<RssChannel> Channels { get; private set; } = Enumerable.Empty<RssChannel>();
 
-    public async Task OnGet(string? channel = null, string? feed = null,
+    public async Task OnGet([FromQuery] PageRequest page, string? channel = null, string? feed = null,
         int year = 0, int month = 0, int day = 0, string? post = null,
         CancellationToken cancellationToken = default)
     {
@@ -73,6 +75,7 @@ public class IndexModel : AppPageModel
                                     from rss.AppPosts p
                                     where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
                                     order by p.Published desc
+                                    offset @SkipCount rows fetch next @TakeCount rows only
                                     for json path
                                 )) as Posts
                             from rss.AppFeeds uf
@@ -133,6 +136,7 @@ public class IndexModel : AppPageModel
                                 from rss.AppPosts p
                                 where p.FeedId = uf.FeedId
                                 order by p.Published desc
+                                offset @SkipCount rows fetch next @TakeCount rows only
                                 for json path
                             )) as Posts
                         from rss.AppFeeds uf
@@ -201,7 +205,9 @@ public class IndexModel : AppPageModel
                 FeedSlug = feed,
                 PostSlug = post,
                 MinDate = minDate,
-                MaxDate = maxDate
+                MaxDate = maxDate,
+                ((IPage)page).SkipCount,
+                ((IPage)page).TakeCount
             }) ?? Enumerable.Empty<RssChannel>();
     }
 

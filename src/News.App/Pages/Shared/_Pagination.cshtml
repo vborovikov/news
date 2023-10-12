@@ -1,0 +1,20 @@
+﻿@model IEnumerable<object>
+
+@{
+    var routeData = Context.Request.Query.ToDictionary(x => x.Key, x => x.Value.ToString());
+    var p = 1;
+    if (Context.Request.Query.TryGetValue("p", out var val) && int.TryParse(val.ToString(), out var n))
+    {
+        p = n;
+        routeData.Remove("p");
+    }
+}
+
+<nav class="feed-pagination" aria-label="Pagination">
+    <a class="btn @(Model.Any() ? "btn-outline-primary" : "btn-outline-secondary disabled")" asp-all-route-data="routeData" asp-route-p="@(p + 1)">
+        Older
+    </a>
+    <a class="btn @(p > 1 ? "btn-outline-primary" : "btn-outline-secondary disabled")" asp-all-route-data="routeData" asp-route-p="@(p - 1)">
+        Newer
+    </a>
+</nav>

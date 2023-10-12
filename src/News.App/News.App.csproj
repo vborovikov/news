@@ -23,6 +23,7 @@
     <PackageReference Include="Dapper" Version="2.0.151" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="7.0.10" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.1" />
+    <PackageReference Include="RelayTk" Version="2.4.0" />
     <PackageReference Include="Spryer" Version="0.9.4-beta" />
   </ItemGroup>
 
