@@ -38,8 +38,8 @@ public class ImportUrlModel : EditPageModel
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
 
-        RssChannelInfo channel = null!;
-        RssFeedInfo feed = null!;
+        RssChannelInfo? channel = null;
+        RssFeedInfo? feed = null;
         try
         {
             // insert user channel if it's new

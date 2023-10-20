@@ -126,7 +126,7 @@ sealed class Worker : BackgroundService
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        await tx.Connection.ExecuteAsync(
+        await tx.Connection!.ExecuteAsync(
             """
             update rss.Posts
             set SafeContent = @SafeContent, SafeDescription = @SafeDescription
@@ -358,7 +358,7 @@ sealed class Worker : BackgroundService
     private static async Task ImportFeedsAsync(FeedOutline[] feeds, Guid channelId, Guid userId, DbTransaction tx, CancellationToken cancellationToken)
     {
         // create temp feeds tables
-        await tx.Connection.ExecuteAsync(
+        await tx.Connection!.ExecuteAsync(
             """
             create table #Feeds (
                 Title nvarchar(1000) collate database_default not null,
@@ -489,7 +489,7 @@ sealed class Worker : BackgroundService
                 {
                     try
                     {
-                        update = FeedReader.ReadFromString(feedData);
+                        update = Feed.FromString(feedData);
                     }
                     catch (Exception)
                     {
@@ -514,14 +514,14 @@ sealed class Worker : BackgroundService
                 }
                 response.EnsureSuccessStatusCode();
 
-                var feedData = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                var feedData = await response.Content.ReadAsStreamAsync(cancellationToken);
                 try
                 {
-                    update = FeedReader.ReadFromByteArray(feedData);
+                    update = await Feed.FromStreamAsync(feedData, cancellationToken);
                 }
-                catch (Exception)
+                catch (HtmlContentDetectedException x)
                 {
-                    feed = MaybeUpdateFeedSource(feed, Encoding.UTF8.GetString(feedData));
+                    feed = MaybeUpdateFeedSource(feed, x.FeedLinks);
                     throw;
                 }
             }
@@ -538,6 +538,11 @@ sealed class Worker : BackgroundService
     private DbFeed MaybeUpdateFeedSource(DbFeed feed, string feedData)
     {
         var feedLinks = FeedReader.ParseFeedUrlsFromHtml(feedData);
+        return MaybeUpdateFeedSource(feed, feedLinks);
+    }
+
+    private DbFeed MaybeUpdateFeedSource(DbFeed feed, IEnumerable<HtmlFeedLink> feedLinks)
+    {
         var feedLink =
             feedLinks.FirstOrDefault(fl => fl.FeedType != FeedType.Unknown) ??
             feedLinks.FirstOrDefault();
@@ -700,7 +705,7 @@ sealed class Worker : BackgroundService
 
     private static DbEnum<FeedUpdateStatus> GetStatus(Exception error, FeedUpdateStatus prevStatus)
     {
-        if (error is SqlException sqlEx && sqlEx.Number == 2627)
+        if (error is SqlException { Number: 2627 })
         {
             return
                 prevStatus.HasFlag(FeedUpdateStatus.DistinctId) ? FeedUpdateStatus.SkipUpdate :
@@ -716,7 +721,7 @@ sealed class Worker : BackgroundService
                 FeedUpdateStatus.UserAgent | prevStatus :
                 FeedUpdateStatus.HttpError | prevStatus;
         }
-        if (error is FeedTypeNotSupportedException)
+        if (error is FeedTypeNotSupportedException or HtmlContentDetectedException)
         {
             return prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
                 FeedUpdateStatus.HtmlResponse | prevStatus;
