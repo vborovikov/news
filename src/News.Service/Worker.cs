@@ -9,6 +9,7 @@ using System.Threading;
 using System.Xml;
 using Brackets;
 using Brackets.Html;
+using Brackets.Xml;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Parser;
 using Dapper;
@@ -84,13 +85,14 @@ sealed class Worker : BackgroundService
                 where p.FeedId = @FeedId and p.SafeContent is null;
                 """, new { FeedId = feed.Id }, tx);
 
+            using var parser = new ThreadLocal<HtmlReference>(() => new(), trackAllValues: false);
             var total = posts.Count();
             var count = 0;
             await Parallel.ForEachAsync(posts, cancellationToken, async (post, cancellationToken) =>
             {
                 this.log.LogDebug("Safeguarding post '{postTitle}' ({count}/{total}) {feedSource}",
                     post.Title, Interlocked.Increment(ref count), total, feed.Source);
-                await SafeguardPostAsync(post, feed, tx, cancellationToken);
+                await SafeguardPostAsync(post, feed, parser.Value!, tx, cancellationToken);
             });
 
             await tx.CommitAsync(cancellationToken);
@@ -108,9 +110,9 @@ sealed class Worker : BackgroundService
         }
     }
 
-    private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
+    private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, HtmlReference parser, DbTransaction tx, CancellationToken cancellationToken)
     {
-        var safeContent = SanitizeContent(post.Content, feed.Safeguards);
+        var safeContent = SanitizeContent(post.Content, feed.Safeguards, parser);
 
         string? safeDescription = null;
         if (!string.IsNullOrWhiteSpace(post.Description))
@@ -121,7 +123,7 @@ sealed class Worker : BackgroundService
             }
             else
             {
-                safeDescription = SanitizeDescription(post.Description, feed.Safeguards);
+                safeDescription = SanitizeDescription(post.Description, feed.Safeguards, parser);
             }
         }
 
@@ -134,9 +136,8 @@ sealed class Worker : BackgroundService
             """, new { post.Id, SafeContent = safeContent, SafeDescription = safeDescription }, tx);
     }
 
-    private static string SanitizeDescription(string text, FeedSafeguard safeguards)
+    private static string SanitizeDescription(string text, FeedSafeguard safeguards, HtmlReference parser)
     {
-        var parser = new HtmlReference(); // new parser for thread safety
         var html = parser.Parse(text);
 
         if (safeguards.HasFlag(FeedSafeguard.DescriptionImageRemover))
@@ -153,9 +154,8 @@ sealed class Worker : BackgroundService
         return html.ToText();
     }
 
-    private static string SanitizeContent(string text, FeedSafeguard safeguards)
+    private static string SanitizeContent(string text, FeedSafeguard safeguards, HtmlReference parser)
     {
-        var parser = new HtmlReference(); // new parser for thread safety
         var html = parser.Parse(text);
 
         if (safeguards.HasFlag(FeedSafeguard.CodeBlockEncoder))
@@ -258,14 +258,15 @@ sealed class Worker : BackgroundService
         {
             this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
-            var client = this.web.CreateClient("Feed");
             var feeds = await GetFeedsToUpdateAsync(cancellationToken);
+            var client = this.web.CreateClient("Feed");
+            using var parser = new ThreadLocal<XmlReference>(() => new(), trackAllValues: false);
             var total = feeds.Count();
             var count = 0;
             await Parallel.ForEachAsync(feeds, cancellationToken, async (feed, cancellationToken) =>
             {
                 this.log.LogDebug("Updating feed ({count}/{total}) {feedUrl}", Interlocked.Increment(ref count), total, feed.Source);
-                await UpdateFeedAsync(feed, client, cancellationToken);
+                await UpdateFeedAsync(feed, client, parser.Value!, cancellationToken);
             });
         }
         catch (Exception x) when (x is not OperationCanceledException)
@@ -388,7 +389,7 @@ sealed class Worker : BackgroundService
         }
 
         // merge feeds
-        await tx.Connection.ExecuteAsync(
+        await tx.Connection!.ExecuteAsync(
             """
             merge into rss.Feeds with (holdlock) as tgt
             using #Feeds as src on tgt.Source = src.Source
@@ -402,7 +403,7 @@ sealed class Worker : BackgroundService
             """, transaction: tx);
 
         // merge user feeds
-        await tx.Connection.ExecuteAsync(
+        await tx.Connection!.ExecuteAsync(
             """
             select imf.FeedId, isnull(uf.Slug, f.Slug) as Slug, isnull(uf.Title, f.Title) as Title
             into #UserFeeds
@@ -418,7 +419,7 @@ sealed class Worker : BackgroundService
                 values (@UserId, @ChannelId, src.FeedId, src.Slug, src.Title);
             """, new { UserId = userId, ChannelId = channelId }, tx);
 
-        await tx.Connection.ExecuteAsync(
+        await tx.Connection!.ExecuteAsync(
             """
             drop table #ImportedFeeds;
             drop table #Feeds;
@@ -477,7 +478,7 @@ sealed class Worker : BackgroundService
         return feeds;
     }
 
-    private async Task UpdateFeedAsync(DbFeed feed, HttpClient client, CancellationToken cancellationToken)
+    private async Task UpdateFeedAsync(DbFeed feed, HttpClient client, XmlReference parser, CancellationToken cancellationToken)
     {
         try
         {
@@ -489,7 +490,8 @@ sealed class Worker : BackgroundService
                 {
                     try
                     {
-                        update = Feed.FromString(feedData);
+                        var feedDocument = parser.Parse(feedData);
+                        update = Feed.FromDocument(feedDocument);
                     }
                     catch (Exception)
                     {
@@ -517,7 +519,8 @@ sealed class Worker : BackgroundService
                 var feedData = await response.Content.ReadAsStreamAsync(cancellationToken);
                 try
                 {
-                    update = await Feed.FromStreamAsync(feedData, cancellationToken);
+                    var feedDocument = await parser.ParseAsync(feedData, cancellationToken);
+                    update = Feed.FromDocument(feedDocument);
                 }
                 catch (HtmlContentDetectedException x)
                 {
