@@ -85,14 +85,13 @@ sealed class Worker : BackgroundService
                 where p.FeedId = @FeedId and p.SafeContent is null;
                 """, new { FeedId = feed.Id }, tx);
 
-            using var parser = new ThreadLocal<HtmlReference>(() => new(), trackAllValues: false);
             var total = posts.Count();
             var count = 0;
             await Parallel.ForEachAsync(posts, cancellationToken, async (post, cancellationToken) =>
             {
                 this.log.LogDebug("Safeguarding post '{postTitle}' ({count}/{total}) {feedSource}",
                     post.Title, Interlocked.Increment(ref count), total, feed.Source);
-                await SafeguardPostAsync(post, feed, parser.Value!, tx, cancellationToken);
+                await SafeguardPostAsync(post, feed, tx, cancellationToken);
             });
 
             await tx.CommitAsync(cancellationToken);
@@ -110,9 +109,9 @@ sealed class Worker : BackgroundService
         }
     }
 
-    private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, HtmlReference parser, DbTransaction tx, CancellationToken cancellationToken)
+    private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
     {
-        var safeContent = SanitizeContent(post.Content, feed.Safeguards, parser);
+        var safeContent = SanitizeContent(post.Content, feed.Safeguards);
 
         string? safeDescription = null;
         if (!string.IsNullOrWhiteSpace(post.Description))
@@ -123,7 +122,7 @@ sealed class Worker : BackgroundService
             }
             else
             {
-                safeDescription = SanitizeDescription(post.Description, feed.Safeguards, parser);
+                safeDescription = SanitizeDescription(post.Description, feed.Safeguards);
             }
         }
 
@@ -136,9 +135,9 @@ sealed class Worker : BackgroundService
             """, new { post.Id, SafeContent = safeContent, SafeDescription = safeDescription }, tx);
     }
 
-    private static string SanitizeDescription(string text, FeedSafeguard safeguards, HtmlReference parser)
+    private static string SanitizeDescription(string text, FeedSafeguard safeguards)
     {
-        var html = parser.Parse(text);
+        var html = Document.Html.Parse(text);
 
         if (safeguards.HasFlag(FeedSafeguard.DescriptionImageRemover))
         {
@@ -154,9 +153,9 @@ sealed class Worker : BackgroundService
         return html.ToText();
     }
 
-    private static string SanitizeContent(string text, FeedSafeguard safeguards, HtmlReference parser)
+    private static string SanitizeContent(string text, FeedSafeguard safeguards)
     {
-        var html = parser.Parse(text);
+        var html = Document.Html.Parse(text);
 
         if (safeguards.HasFlag(FeedSafeguard.CodeBlockEncoder))
         {
@@ -260,13 +259,12 @@ sealed class Worker : BackgroundService
 
             var feeds = await GetFeedsToUpdateAsync(cancellationToken);
             var client = this.web.CreateClient("Feed");
-            using var parser = new ThreadLocal<XmlReference>(() => new(), trackAllValues: false);
             var total = feeds.Count();
             var count = 0;
             await Parallel.ForEachAsync(feeds, cancellationToken, async (feed, cancellationToken) =>
             {
                 this.log.LogDebug("Updating feed ({count}/{total}) {feedUrl}", Interlocked.Increment(ref count), total, feed.Source);
-                await UpdateFeedAsync(feed, client, parser.Value!, cancellationToken);
+                await UpdateFeedAsync(feed, client, cancellationToken);
             });
         }
         catch (Exception x) when (x is not OperationCanceledException)
@@ -478,7 +476,7 @@ sealed class Worker : BackgroundService
         return feeds;
     }
 
-    private async Task UpdateFeedAsync(DbFeed feed, HttpClient client, XmlReference parser, CancellationToken cancellationToken)
+    private async Task UpdateFeedAsync(DbFeed feed, HttpClient client, CancellationToken cancellationToken)
     {
         try
         {
@@ -490,8 +488,7 @@ sealed class Worker : BackgroundService
                 {
                     try
                     {
-                        var feedDocument = parser.Parse(feedData);
-                        update = Feed.FromDocument(feedDocument);
+                        update = Feed.FromString(feedData);
                     }
                     catch (Exception)
                     {
@@ -519,8 +516,7 @@ sealed class Worker : BackgroundService
                 var feedData = await response.Content.ReadAsStreamAsync(cancellationToken);
                 try
                 {
-                    var feedDocument = await parser.ParseAsync(feedData, cancellationToken);
-                    update = Feed.FromDocument(feedDocument);
+                    update = await Feed.FromStreamAsync(feedData, cancellationToken);
                 }
                 catch (HtmlContentDetectedException x)
                 {
