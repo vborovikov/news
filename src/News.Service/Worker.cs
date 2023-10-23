@@ -113,17 +113,10 @@ sealed class Worker : BackgroundService
     {
         var safeContent = SanitizeContent(post.Content, feed.Safeguards);
 
-        string? safeDescription = null;
-        if (!string.IsNullOrWhiteSpace(post.Description))
+        var safeDescription = feed.Safeguards.HasFlag(FeedSafeguard.DescriptionReplacer) ? post.Content : post.Description;
+        if (!string.IsNullOrWhiteSpace(safeDescription))
         {
-            if (feed.Safeguards.HasFlag(FeedSafeguard.DescriptionRemover))
-            {
-                safeDescription = string.Empty;
-            }
-            else
-            {
-                safeDescription = SanitizeDescription(post.Description, feed.Safeguards);
-            }
+            safeDescription = SanitizeDescription(safeDescription, feed.Safeguards);
         }
 
         cancellationToken.ThrowIfCancellationRequested();

@@ -12,8 +12,8 @@
         LastParaTrimmer = 1 << 1,
         PARA = LastParaTrimmer,
 
-        DescriptionRemover = 1 << 2,
-        DESC = DescriptionRemover,
+        DescriptionReplacer = 1 << 2,
+        DESC = DescriptionReplacer,
 
         DescriptionImageRemover = 1 << 3,
         DIMG = DescriptionImageRemover,

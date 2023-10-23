@@ -1,5 +1,6 @@
 namespace News.Service;
 
+using System.Text;
 using Dodkin;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
@@ -33,6 +34,12 @@ static class Program
 
     public static Task Main(string[] args)
     {
+        if (Environment.UserInteractive)
+        {
+            Console.InputEncoding = Encoding.Default;
+            Console.OutputEncoding = Encoding.Default;
+        }
+
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((hostContext, services) =>
             {

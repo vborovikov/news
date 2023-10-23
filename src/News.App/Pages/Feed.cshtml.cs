@@ -131,10 +131,10 @@ public class FeedModel : EditPageModel
             set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.CodeBlockEncoder : this.Safeguards & ~FeedSafeguard.CodeBlockEncoder;
         }
 
-        public bool SafeguardDescriptionRemover
+        public bool SafeguardDescriptionReplacer
         {
-            get => this.Safeguards.HasFlag(FeedSafeguard.DescriptionRemover);
-            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.DescriptionRemover : this.Safeguards & ~FeedSafeguard.DescriptionRemover;
+            get => this.Safeguards.HasFlag(FeedSafeguard.DescriptionReplacer);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.DescriptionReplacer : this.Safeguards & ~FeedSafeguard.DescriptionReplacer;
         }
 
         public bool SafeguardLastParaTrimmer
