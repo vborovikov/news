@@ -22,7 +22,6 @@
                         <p class="feed-post-meta">
                             @post.PublishedLocal.ToString("f")@(string.IsNullOrWhiteSpace(post.Author) ? "" : $" | {post.Author}")
                         </p>
-                        <p class="feed-post-meta">@Html.Raw(post.Description)</p>
                         <hr />
                     </section>
                     <section>
