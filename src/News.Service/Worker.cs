@@ -180,22 +180,29 @@ sealed class Worker : BackgroundService
     {
         if (safeguards.HasFlag(FeedSafeguard.LastParaTrimmer))
         {
-            var lastElement = html.LastOrDefault();
-            if (lastElement is Tag { Name: "p" } para)
+            // remove any inline content at the end
+            if (html.LastOrDefault() is Element { Level: ElementLevel.Inline } lastElement)
             {
-                // remove last paragraph
-                para.TryDelete();
-            }
-            else if (lastElement is not null)
-            {
-                // remove last content
                 var firstElement = html.First();
-                while (lastElement != firstElement && lastElement is not Tag { Level: ElementLevel.Block })
+                while (lastElement != firstElement)
                 {
+                    if (lastElement is Tag { Level: ElementLevel.Block } tag &&
+                        !tag.Name.Equals("hr", StringComparison.OrdinalIgnoreCase))
+                    {
+                        break;
+                    }
+
                     if (!lastElement.TryDelete())
                         break;
                     lastElement = html.Last();
                 }
+            }
+
+            // remove last paragraph
+            if (html.LastOrDefault() is Tag { Level: ElementLevel.Block } para &&
+                para.Name.Equals("p", StringComparison.OrdinalIgnoreCase))
+            {
+                para.TryDelete();
             }
         }
     }
