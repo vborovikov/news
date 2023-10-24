@@ -29,6 +29,13 @@
                     </section>
                 </article>
             }
+
+            @if (feed.Posts.Count() > 1)
+            {
+                <div class="mt-2">
+                    <partial name="_Pagination" model="feed.Posts" />
+                </div>
+            }
         </div>
 
         <div class="col-md-4">
