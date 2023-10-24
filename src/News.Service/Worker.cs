@@ -179,8 +179,7 @@ sealed class Worker : BackgroundService
                 var firstElement = html.First();
                 while (lastElement != firstElement)
                 {
-                    if (lastElement is Tag { Level: ElementLevel.Block } tag &&
-                        !tag.Name.Equals("hr", StringComparison.OrdinalIgnoreCase))
+                    if (lastElement is Tag { Level: ElementLevel.Block } tag && tag.Name != "hr")
                     {
                         break;
                     }
@@ -192,8 +191,7 @@ sealed class Worker : BackgroundService
             }
 
             // remove last paragraph
-            if (html.LastOrDefault() is Tag { Level: ElementLevel.Block } para &&
-                para.Name.Equals("p", StringComparison.OrdinalIgnoreCase))
+            if (html.LastOrDefault() is Tag { Name: "p" } para)
             {
                 para.TryDelete();
             }
