@@ -21,15 +21,23 @@ sealed class EncodedContent : Content
 
 internal static class HtmlExtensions
 {
-    public static bool TryDelete(this Element element)
+    public static bool TryDelete(this Element element, bool deleteEmptyAncestors = false)
     {
-        if (element.Parent is ParentTag parent)
+        var done = false;
+
+        while (element.Parent is ParentTag parent)
         {
             parent.Remove(element);
-            return true;
+            done = true;
+
+            if (!deleteEmptyAncestors)
+                break;
+            if (parent.Any())
+                break;
+            element = parent;
         }
 
-        return false;
+        return done;
     }
 
     public static string ToText(this Document document)

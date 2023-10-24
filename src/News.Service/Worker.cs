@@ -137,7 +137,7 @@ sealed class Worker : BackgroundService
             var imgElements = html.Find("//img").ToArray();
             foreach (var img in imgElements)
             {
-                img.TryDelete();
+                img.TryDelete(deleteEmptyAncestors: true);
             }
         }
 
