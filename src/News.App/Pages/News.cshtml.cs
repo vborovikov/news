@@ -44,8 +44,10 @@ public class NewsModel : AppPageModel
                 json_query((
                     select rp.*
                     from (
-                        select ap.PostId, ap.Title, ap.Published, ap.Description, 
-                            ap.Link, ap.Slug, af.Slug as FeedSlug, ap.Author, ap.IsRead,
+                        select 
+                            ap.PostId, ap.Title, ap.Published, ap.Description, 
+                            ap.Link, ap.Slug, ap.Author, ap.IsRead,
+                            af.Slug as FeedSlug, af.Title as FeedTitle,
                             row_number() over (partition by af.FeedId order by ap.Published desc) as PostNumber
                         from rss.AppFeeds af
                         inner join rss.AppPosts ap on af.FeedId = ap.FeedId
@@ -71,6 +73,7 @@ public class NewsModel : AppPageModel
     public record PostSummary : PostBase
     {
         public required string FeedSlug { get; init; }
+        public required string FeedTitle { get; init; }
     }
 
     public record ChannelSummary : ChannelBase

@@ -53,6 +53,7 @@
                                    asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
                                    asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
                                    asp-route-post="@post.Slug" class="link-dark">@post.Title</a>
+                                <small class="text-muted">| @post.FeedTitle</small>
                             </li>
                         }
                     </ul>
