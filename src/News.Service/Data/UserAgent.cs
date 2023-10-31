@@ -27,7 +27,7 @@ sealed class UserAgent
         this.log = log;
         try
         {
-            this.dispatcher = new QueueRequestDispatcher(this.options.UserAgentQueue, serviceEndpoint);
+            this.dispatcher = new QueueRequestDispatcher(this.options.UserAgentQueue, serviceEndpoint, this.log);
         }
         catch (Exception x)
         {
@@ -41,7 +41,7 @@ sealed class UserAgent
         var pageInfo = await this.dispatcher.RunAsync(new PageInfoQuery(new(url)) { CancellationToken = cancellationToken }, timeout);
         await this.dispatcher.ExecuteAsync(new GoBlankCommand());
 
-        if (pageInfo is not null && pageInfo.StatusCode >= 300)
+        if (pageInfo is { StatusCode: >= 300 })
         {
             var httpStatucCode = (HttpStatusCode)pageInfo.StatusCode;
             throw new HttpRequestException(
@@ -65,7 +65,7 @@ public record PageInfo
     public int StatusCode { get; init; }
 }
 
-public class PageInfoQuery : Query<PageInfo>
+public record PageInfoQuery : Query<PageInfo>
 {
     public PageInfoQuery(Uri pageUri)
     {
@@ -77,7 +77,6 @@ public class PageInfoQuery : Query<PageInfo>
     public bool UseContent => true;
 }
 
-public class GoBlankCommand : Command
+public record GoBlankCommand : Command
 {
 }
-
