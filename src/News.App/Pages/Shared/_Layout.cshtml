@@ -18,8 +18,8 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container">
-                <a class="navbar-brand p-0 fs-2" asp-area="" asp-page="/Index" asp-route-channel="">
-                    <img alt="Brand" src="~/android-chrome-256x256.png" width="32" height="32">
+                <a class="navbar-brand" asp-area="" asp-page="/Index" asp-route-channel="">
+                    <img alt="Brand" src="~/android-chrome-256x256.png" width="24" height="24">
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,15 @@
                             </ul>
                         </li>
                     </ul>
+                    <form class="d-flex" method="get">
+                        <div class="input-group input-group-sm">
+                            <input name="q" class="form-control" type="search" placeholder="Search" aria-label="Search"
+                                   value="@Context.Request.Query["q"].ToString()">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
                     <partial name="_LoginPartial" />
                 </div>
             </div>
