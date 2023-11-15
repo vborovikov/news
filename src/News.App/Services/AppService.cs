@@ -24,6 +24,12 @@ class AppService : IApp
         version = assembly?
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? string.Empty;
+
+        var metadataPos = version.IndexOf('+');
+        if (metadataPos > 0)
+        {
+            version = version[..metadataPos];
+        }
     }
 
     public string Product => product;
