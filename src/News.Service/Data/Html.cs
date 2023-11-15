@@ -14,7 +14,9 @@ sealed class EncodedContent : Content
         this.text = WebUtility.HtmlEncode(text);
     }
 
-    protected override ReadOnlySpan<char> Source => this.text.AsSpan();
+    protected override ReadOnlySpan<char> Source => this.text;
+
+    public override ReadOnlySpan<char> Data => this.text;
 
     public override string ToString() => this.text;
 }
@@ -78,33 +80,43 @@ internal static class HtmlExtensions
 
     private static void AppendSimpleElement(this StringBuilder text, Element element)
     {
-        if (element is Tag tag)
+        switch (element)
         {
-            text.Append('<').Append(tag.Name);
-            if (tag.HasAttributes)
-            {
-                text.Append(' ').AppendAttributes(tag.EnumerateAttributes()).Append(' ');
-            }
-            text.Append("/>");
-        }
-        else
-        {
-            text.Append(element.ToString());
+            case Tag tag:
+                text.Append('<').Append(tag.Name);
+                if (tag.HasAttributes)
+                {
+                    text.Append(' ').AppendAttributes(tag.EnumerateAttributes()).Append(' ');
+                }
+                text.Append("/>");
+                break;
+            case Comment comment:
+                text.Append("<!--").Append(comment.Data).Append("-->");
+                break;
+            case Section section:
+                text.Append("<[CDATA[").Append(section.Data).Append("]]>");
+                break;
+            case Content content:
+                text.Append(content.Data);
+                break;
+            default:
+                text.Append(element.ToString());
+                break;
         }
     }
 
-    private static StringBuilder AppendAttributes(this StringBuilder printer, Attribute.Enumerator attributes)
+    private static StringBuilder AppendAttributes(this StringBuilder text, Attribute.Enumerator attributes)
     {
         foreach (var attribute in attributes)
         {
-            if (printer.Length > 0 && printer[^1] != ' ')
+            if (text.Length > 0 && text[^1] != ' ')
             {
-                printer.Append(' ');
+                text.Append(' ');
             }
-            printer.Append(attribute.Name);
+            text.Append(attribute.Name);
             if (attribute.HasValue)
             {
-                printer
+                text
                     .Append('=')
                     .Append('"')
                     .Append(attribute.Value)
@@ -112,6 +124,6 @@ internal static class HtmlExtensions
             }
         }
 
-        return printer;
+        return text;
     }
 }
