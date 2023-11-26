@@ -525,7 +525,8 @@ sealed class Worker : BackgroundService
 
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
         }
-        catch (Exception x) when (x is not OperationCanceledException)
+        // HttpClient throws a TimeoutException wrapped in TaskCanceledException so we must check that CancellationToken is not ours
+        catch (Exception x) when (x is not OperationCanceledException oce || oce.CancellationToken != cancellationToken)
         {
             this.log.LogError(x, "Error updating feed {feedUrl}", feed.Source);
             await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
