@@ -10,11 +10,11 @@
     }
 }
 
-<nav class="feed-pagination" aria-label="Pagination">
+<nav class="btn-group" aria-label="Pagination">
     <a class="btn @(Model.Any() ? "btn-outline-primary" : "btn-outline-secondary disabled")" asp-all-route-data="routeData" asp-route-p="@(p + 1)">
-        Older
+        <i class="bi bi-arrow-left"></i>
     </a>
     <a class="btn @(p > 1 ? "btn-outline-primary" : "btn-outline-secondary disabled")" asp-all-route-data="routeData" asp-route-p="@(p - 1)">
-        Newer
+        <i class="bi bi-arrow-right"></i>
     </a>
 </nav>

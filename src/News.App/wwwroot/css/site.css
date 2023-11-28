@@ -40,15 +40,3 @@ body {
     margin-bottom: 1.25rem;
     color: #727272;
 }
-
-/*
- * Pagination
- */
-.feed-pagination {
-    margin-bottom: 4rem;
-}
-
-    .feed-pagination > .btn {
-        border-radius: 2rem;
-    }
-
