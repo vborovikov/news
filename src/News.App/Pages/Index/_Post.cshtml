@@ -20,7 +20,12 @@
                     </h3>
                     <section>
                         <p class="feed-post-meta">
-                            @post.PublishedLocal.ToString("f")@(string.IsNullOrWhiteSpace(post.Author) ? "" : $" | {post.Author}")
+                            @post.PublishedLocal.ToString("f")
+                            @if (!string.IsNullOrWhiteSpace(post.Author))
+                            {
+                                <text>|&nbsp;</text>
+                                @Html.Raw(post.Author)
+                            }
                         </p>
                         <hr />
                     </section>
