@@ -13,7 +13,7 @@
                 </h3>
                 <div class="btn-group btn-group-sm align-self-center" role="group" aria-label="feed commands">
                     <a asp-page="/Feed" asp-route-id="@feed.FeedId" class="btn btn-outline-primary"><i class="bi bi-pencil-fill"></i></a>
-                    <button type="button" class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    <confirm-dialog>Are you sure you want to delete this feed?</confirm-dialog>
                 </div>
             </div>
 
