@@ -12,8 +12,14 @@
                     </a>
                 </h3>
                 <div class="btn-group btn-group-sm align-self-center" role="group" aria-label="feed commands">
-                    <a asp-page="/Feed" asp-route-id="@feed.FeedId" class="btn btn-outline-primary"><i class="bi bi-pencil-fill"></i></a>
-                    <confirm-dialog>Are you sure you want to delete this feed?</confirm-dialog>
+                    <a asp-page="/Feed" asp-route-id="@feed.FeedId" class="btn btn-outline-primary" title="Edit @feed.Title">
+                        <i class="bi bi-pencil-fill"></i>
+                    </a>
+                    <button is="confirm-dialog" type="button" class="btn btn-outline-danger"
+                            action="@Url.Page("Feed", new { id = feed.FeedId })"
+                            title="Delete @feed.Title" action-text="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
             </div>
 

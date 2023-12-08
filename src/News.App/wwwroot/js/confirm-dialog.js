@@ -1,29 +1,46 @@
-class ConfirmDialog extends HTMLElement {
+class ConfirmDialog extends HTMLButtonElement {
     constructor() {
         super();
+        this.modalDiv = document.createElement('div');
     }
 
     connectedCallback() {
         this.render();
 
-        const confirmBtn = this.querySelector("#confirm-btn");
+        const confirmBtn = this.modalDiv.querySelector("#confirm-btn");
         confirmBtn.addEventListener("click", () => {
             const action = this.getAttribute("action");
             if (action) {
                 fetch(action, {
-                    method: "POST",
+                    method: "DELETE",
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded"
                     },
                     body: this.getActionParams()
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    }
                 });
             }
         });
+
+        const dialogDiv = this.modalDiv.querySelector("#dialog");
+        document.body.append(dialogDiv);
+
+        this.setAttribute("data-bs-toggle", "modal");
+        this.setAttribute("data-bs-target", "#dialog");
     }
 
     disconnectedCallback() {
-        const confirmBtn = this.querySelector("#confirm-btn");
+        this.removeEventListener("click");
+
+        const confirmBtn = this.modalDiv.querySelector("#confirm-btn");
         confirmBtn.removeEventListener("click");
+
+        const dialogDiv = this.modalDiv.querySelector("#dialog");
+        dialogDiv.remove();
     }
 
     getActionParams() {
@@ -34,8 +51,8 @@ class ConfirmDialog extends HTMLElement {
             const attributeName = attributes[i].name;
             const attributeValue = attributes[i].value;
 
-            if (attributeName.startsWith('param-')) {
-                const paramName = attributeName.slice(6);
+            if (attributeName.startsWith('action-param-')) {
+                const paramName = attributeName.slice(13);
                 params.append(paramName, attributeValue);
             }
         }
@@ -44,12 +61,8 @@ class ConfirmDialog extends HTMLElement {
     }
 
     render() {
-        this.innerHTML = `
-            <button id="dialog-btn" type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#dialog">
-                ${this.getAttribute("action-text") || this.getAttribute("title") || "<i class=\"bi bi-trash\"></i>"}
-            </button>
-
-            <div id="dialog" class="modal fade" tabindex="-1" aria-hidden="true" style="display: none;">
+        this.modalDiv.innerHTML = `
+            <div id="dialog" class="modal fade" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header bg-danger text-white">
@@ -61,7 +74,7 @@ class ConfirmDialog extends HTMLElement {
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <p>${this.textContent || this.getAttribute("text") || "Are you sure?"}</p>
+                            <p>${this.getAttribute("text") || "Are you sure?"}</p>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -78,4 +91,4 @@ class ConfirmDialog extends HTMLElement {
     }
 }
 
-window.customElements.define('confirm-dialog', ConfirmDialog);
+window.customElements.define('confirm-dialog', ConfirmDialog, { extends: 'button' });
