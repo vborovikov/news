@@ -499,7 +499,7 @@ sealed class Worker : BackgroundService
             {
                 using var response = await client.GetAsync(feed.Source, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.Moved ||
-                    response.StatusCode == HttpStatusCode.MovedPermanently ||
+                    response.StatusCode == HttpStatusCode.Redirect ||
                     response.StatusCode == HttpStatusCode.PermanentRedirect)
                 {
                     var feedNewSource = response.Headers.Location?.ToString();
