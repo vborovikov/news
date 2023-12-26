@@ -83,9 +83,13 @@ static class Program
                 services.AddHttpClient(HttpClients.Image, (sp, httpClient) =>
                 {
                     httpClient.DefaultRequestHeaders.Accept.Clear();
-                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/png"));
-                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/jpeg"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/avif"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/bmp"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/gif"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/jpeg"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/png"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/svg+xml"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/tiff"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/webp"));
 
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>();
