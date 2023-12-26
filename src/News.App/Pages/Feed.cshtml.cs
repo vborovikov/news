@@ -181,6 +181,18 @@ public class FeedModel : EditPageModel
             set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.DescriptionImageRemover : this.Safeguards & ~FeedSafeguard.DescriptionImageRemover;
         }
 
+        public bool SafeguardImageLinkFixer
+        {
+            get => this.Safeguards.HasFlag(FeedSafeguard.ImageLinkFixer);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.ImageLinkFixer : this.Safeguards & ~FeedSafeguard.ImageLinkFixer;
+        }
+
+        public bool SafeguardPostLinkFixer
+        {
+            get => this.Safeguards.HasFlag(FeedSafeguard.PostLinkFixer);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.PostLinkFixer : this.Safeguards & ~FeedSafeguard.PostLinkFixer;
+        }
+
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute) && this.ChannelId != Guid.Empty;
     }
 }
