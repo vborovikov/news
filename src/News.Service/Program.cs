@@ -24,6 +24,12 @@ record ServiceOptions
     public DirectoryInfo OpmlDirectory => this.opmlDirectory ??= new(this.OpmlPath);
 }
 
+static class HttpClients
+{
+    public const string Feed = "Feed";
+    public const string Image = "Image";
+}
+
 static class Program
 {
     static Program()
@@ -56,7 +62,8 @@ static class Program
                 });
 #pragma warning restore CA1416 // Validate platform compatibility
 
-                services.AddHttpClient("Feed", (sp, httpClient) =>
+                // feed http client
+                services.AddHttpClient(HttpClients.Feed, (sp, httpClient) =>
                 {
                     httpClient.DefaultRequestHeaders.Accept.Clear();
                     httpClient.DefaultRequestHeaders.Accept.Add(new("application/rss+xml"));
@@ -71,6 +78,24 @@ static class Program
                         httpClient.DefaultRequestHeaders.Add("User-Agent", options.Value.UserAgent);
                     }
                 });
+
+                // image download http client
+                services.AddHttpClient(HttpClients.Image, (sp, httpClient) =>
+                {
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/png"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/jpeg"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/gif"));
+                    httpClient.DefaultRequestHeaders.Accept.Add(new("image/webp"));
+
+                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>();
+                    if (options.Value.UserAgent is not null)
+                    {
+                        httpClient.DefaultRequestHeaders.UserAgent.Clear();
+                        httpClient.DefaultRequestHeaders.Add("User-Agent", options.Value.UserAgent);
+                    }
+                });
+
                 services.AddSingleton<UserAgent>();
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();

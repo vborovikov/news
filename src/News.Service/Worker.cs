@@ -256,7 +256,7 @@ sealed class Worker : BackgroundService
             this.log.LogInformation("Updating feeds at: {time}", DateTimeOffset.Now);
 
             var feeds = await GetFeedsToUpdateAsync(cancellationToken);
-            var client = this.web.CreateClient("Feed");
+            var client = this.web.CreateClient(HttpClients.Feed);
             var total = feeds.Count();
             var count = 0;
             await Parallel.ForEachAsync(feeds, cancellationToken, async (feed, cancellationToken) =>
