@@ -13,11 +13,11 @@ using News.App.Data;
 [Authorize]
 public class ImportOpmlModel : PageModel
 {
-    private readonly ServiceOptions options;
+    private readonly AppOptions options;
     private readonly UserManager<AppUser> userManager;
     private readonly ILogger<ImportOpmlModel> log;
 
-    public ImportOpmlModel(UserManager<AppUser> userManager, IOptions<ServiceOptions> options, ILogger<ImportOpmlModel> log)
+    public ImportOpmlModel(UserManager<AppUser> userManager, IOptions<AppOptions> options, ILogger<ImportOpmlModel> log)
     {
         this.userManager = userManager;
         this.options = options.Value;

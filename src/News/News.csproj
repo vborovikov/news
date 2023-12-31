@@ -8,4 +8,10 @@
     <Description>News Core Library</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="RelayTk" Version="2.4.2" />
+    <PackageReference Include="Dodkin" Version="0.5.2" />
+    <PackageReference Include="Dodkin.Dispatch" Version="0.5.2" />
+  </ItemGroup>
+
 </Project>

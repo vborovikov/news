@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
 using System.Threading;
 using Dapper;
+using Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using News.App.Data;
 
 [Authorize]
 public class ImportUrlModel : EditPageModel
@@ -23,9 +23,7 @@ public class ImportUrlModel : EditPageModel
     [BindProperty]
     public InputModel Input { get; init; }
 
-    public void OnGet()
-    {
-    }
+    public void OnGet() { }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken = default)
     {
@@ -131,6 +129,7 @@ public class ImportUrlModel : EditPageModel
         [RequiredIf(nameof(ChannelId), null), Display(Name = "New channel name")]
         public string? ChannelName { get; init; }
         [RequiredIf(nameof(ChannelId), null), RegularExpression("^[a-z][a-z0-9-]*$"), MaxLength(50), Display(Name = "New channel slug")]
+        //todo: [DeniedValues("daily", "feed", "import", "index", "news", "img")]
         public string? ChannelSlug { get; init; }
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute);

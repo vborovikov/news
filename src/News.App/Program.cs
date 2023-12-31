@@ -6,16 +6,6 @@ using Microsoft.Data.SqlClient;
 using Services;
 using Spryer;
 
-public record ServiceOptions
-{
-    public const string ServiceName = "Newsreader";
-
-    private DirectoryInfo? opmlDirectory;
-
-    public string OpmlPath { get; init; } = @"C:\Tools\News\opml";
-    public DirectoryInfo OpmlDirectory => this.opmlDirectory ??= new(this.OpmlPath);
-}
-
 public static class Program
 {
     static Program()
@@ -31,7 +21,7 @@ public static class Program
         builder.Services.AddSingleton<IApp, AppService>();
 
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-        builder.Services.Configure<ServiceOptions>(builder.Configuration.GetSection(ServiceOptions.ServiceName));
+        builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.AppName));
         builder.Services.AddScoped(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
 
         builder.Services.AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
