@@ -6,9 +6,13 @@ go
 begin transaction;
 go
 
+-- Column added to store safeguard instructions
+
 alter table rss.Feeds add
 	Safeguards varchar(150) not null constraint DF_Feeds_Safeguards default 'OK';
 go    
+
+-- Columns added to store content prepared for safe display
 
 alter table rss.Posts add
 	SafeDescription nvarchar(max) null,

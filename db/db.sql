@@ -16,15 +16,12 @@ go
 use News;
 go
 
--- Create schemas --
+-- Create schema --
 
 create schema asp authorization dbo;
 go
-create schema rss authorization dbo;
-go
 
-
--- Create tables
+-- Create tables --
 
 begin transaction;
 go

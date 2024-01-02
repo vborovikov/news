@@ -1,7 +1,12 @@
 use News;
 go
 
--- create RSS tables
+-- RSS schema
+
+create schema rss authorization dbo;
+go
+
+-- RSS tables
 
 begin transaction;
 go
