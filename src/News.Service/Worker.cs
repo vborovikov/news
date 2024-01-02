@@ -2,14 +2,12 @@ namespace News.Service;
 
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Xml;
 using Brackets;
-using Brackets.Html;
-using Brackets.Xml;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Parser;
 using Dapper;
@@ -21,6 +19,10 @@ using Spryer;
 
 sealed class Worker : BackgroundService
 {
+    private const int MaxLocalizingPostCount = 10;
+    private const int MaxLocalizingJobCount = 10;
+    private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(1);
+
     private readonly ServiceOptions options;
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
@@ -74,6 +76,48 @@ sealed class Worker : BackgroundService
 
     private async Task SafeguardFeedAsync(DbFeed feed, CancellationToken cancellationToken)
     {
+        if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor | FeedSafeguard.ImageLinkFixer | FeedSafeguard.PostLinkFixer))
+        {
+            await LocalizeFeedAsync(feed, cancellationToken);
+        }
+
+        await SanitizeFeedAsync(feed, cancellationToken);
+    }
+
+    private async Task LocalizeFeedAsync(DbFeed feed, CancellationToken cancellationToken)
+    {
+        var jobCount = 0;
+        var stopwatch = new Stopwatch();
+        do
+        {
+            stopwatch.Restart();
+            try
+            {
+                await LocalizeRecentPostsAsync(feed, cancellationToken);
+            }
+            catch (Exception x) when (x is not OperationCanceledException)
+            {
+                this.log.LogError(x, "Error localizing feed {feedSource}", feed.Source);
+                throw;
+            }
+            finally
+            {
+                stopwatch.Stop();
+            }
+        }
+        while (jobCount++ < MaxLocalizingJobCount && stopwatch.Elapsed < LocalizingJobTimeout);
+    }
+
+    private async Task LocalizeRecentPostsAsync(DbFeed feed, CancellationToken cancellationToken)
+    {
+        // get 10 most recent non-localized posts
+        // download post sources
+        // download images
+        // fix other post links
+    }
+
+    private async Task SanitizeFeedAsync(DbFeed feed, CancellationToken cancellationToken)
+    {
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
@@ -91,7 +135,7 @@ sealed class Worker : BackgroundService
             {
                 this.log.LogDebug("Safeguarding post '{postTitle}' ({count}/{total}) {feedSource}",
                     post.Title, Interlocked.Increment(ref count), total, feed.Source);
-                await SafeguardPostAsync(post, feed, tx, cancellationToken);
+                await SanitizePostAsync(post, feed, tx, cancellationToken);
             });
 
             await tx.CommitAsync(cancellationToken);
@@ -109,12 +153,8 @@ sealed class Worker : BackgroundService
         }
     }
 
-    private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
+    private static async Task SanitizePostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
     {
-        if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
-        {
-            //todo: download content and save it (note the transaction!)
-        }
         var safeContent = SanitizeContent(post.Content, feed.Safeguards);
 
         var safeDescription = feed.Safeguards.HasFlag(FeedSafeguard.DescriptionReplacer) ? post.Content : post.Description;
