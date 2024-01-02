@@ -3,6 +3,8 @@ namespace News.App;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using Services;
 using Spryer;
 
@@ -47,7 +49,15 @@ public static class Program
         }
 
         app.UseHttpsRedirection();
+
         app.UseStaticFiles();
+        var appOptions = app.Services.GetRequiredService<IOptions<AppOptions>>();
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(appOptions.Value.ImagePath),
+            RequestPath = "/img",
+        });
+
         app.UseRouting();
         app.UseAuthorization();
         app.MapRazorPages();
