@@ -157,10 +157,10 @@ public class FeedModel : EditPageModel
         [Display(Name = "Safety measures")]
         public DbEnum<FeedSafeguard> Safeguards { get; set; }
 
-        public bool SafeguardCodeBlockEncoder
+        public bool SafeguardContentExtractor
         {
-            get => this.Safeguards.HasFlag(FeedSafeguard.CodeBlockEncoder);
-            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.CodeBlockEncoder : this.Safeguards & ~FeedSafeguard.CodeBlockEncoder;
+            get => this.Safeguards.HasFlag(FeedSafeguard.ContentExtractor);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.ContentExtractor : this.Safeguards & ~FeedSafeguard.ContentExtractor;
         }
 
         public bool SafeguardDescriptionReplacer

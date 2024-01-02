@@ -48,27 +48,11 @@
 
         <fieldset class="row g-3 mt-2">
             <legend>Content</legend>
-            <div class="col-6 mt-0">
+            <div class="col-12 col-sm-6 mt-0">
                 <div class="form-check form-switch">
-                    <input asp-for="Input.SafeguardCodeBlockEncoder" type="checkbox" class="form-check-input" />
-                    <label asp-for="Input.SafeguardCodeBlockEncoder" class="form-check-label">Encode code blocks</label>
+                    <input asp-for="Input.SafeguardContentExtractor" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardContentExtractor" class="form-check-label">Download content</label>
                 </div>
-                <div class="form-check form-switch">
-                    <input asp-for="Input.SafeguardLastParaTrimmer" type="checkbox" class="form-check-input" />
-                    <label asp-for="Input.SafeguardLastParaTrimmer" class="form-check-label">Trim last paragraph</label>
-                </div>
-            </div>
-            <div class="col-6 mt-0">
-                <div class="form-check form-switch">
-                    <input asp-for="Input.SafeguardDescriptionReplacer" type="checkbox" class="form-check-input" />
-                    <label asp-for="Input.SafeguardDescriptionReplacer" class="form-check-label">Replace description</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input asp-for="Input.SafeguardDescriptionImageRemover" type="checkbox" class="form-check-input" />
-                    <label asp-for="Input.SafeguardDescriptionImageRemover" class="form-check-label">Remove description image</label>
-                </div>
-            </div>
-            <div class="col-6 mt-0">
                 <div class="form-check form-switch">
                     <input asp-for="Input.SafeguardImageLinkFixer" type="checkbox" class="form-check-input" />
                     <label asp-for="Input.SafeguardImageLinkFixer" class="form-check-label">Download images</label>
@@ -77,6 +61,21 @@
                     <input asp-for="Input.SafeguardPostLinkFixer" type="checkbox" class="form-check-input" />
                     <label asp-for="Input.SafeguardPostLinkFixer" class="form-check-label">Fix links to other posts</label>
                 </div>
+            </div>
+            <div class="col-12 col-sm-6 mt-0">
+                <div class="form-check form-switch">
+                    <input asp-for="Input.SafeguardDescriptionReplacer" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardDescriptionReplacer" class="form-check-label">Replace description</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input asp-for="Input.SafeguardDescriptionImageRemover" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardDescriptionImageRemover" class="form-check-label">Remove description image</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input asp-for="Input.SafeguardLastParaTrimmer" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardLastParaTrimmer" class="form-check-label">Trim last paragraph</label>
+                </div>
+            </div>
         </fieldset>
 
         <div class="mt-4">

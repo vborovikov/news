@@ -111,6 +111,10 @@ sealed class Worker : BackgroundService
 
     private static async Task SafeguardPostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
     {
+        if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
+        {
+            //todo: download content and save it (note the transaction!)
+        }
         var safeContent = SanitizeContent(post.Content, feed.Safeguards);
 
         var safeDescription = feed.Safeguards.HasFlag(FeedSafeguard.DescriptionReplacer) ? post.Content : post.Description;
@@ -149,20 +153,6 @@ sealed class Worker : BackgroundService
     private static string SanitizeContent(string text, FeedSafeguard safeguards)
     {
         var html = Document.Html.Parse(text);
-
-        if (safeguards.HasFlag(FeedSafeguard.CodeBlockEncoder))
-        {
-            var codeElements = html.Find("//code").ToArray();
-            foreach (var codeElement in codeElements)
-            {
-                if (codeElement is ParentTag codeTag && codeTag.SingleOrDefault() is Content rawContent)
-                {
-                    var encodedContent = new EncodedContent(rawContent.ToString());
-                    codeTag.Remove(rawContent);
-                    codeTag.Add(encodedContent);
-                }
-            }
-        }
 
         SanitizeCommon(html, safeguards);
 

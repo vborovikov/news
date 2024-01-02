@@ -7,9 +7,9 @@
         None = 0 << 0,
         OK = None,
 
-        // Encodes HTML tags in code blocks
-        CodeBlockEncoder = 1 << 0,
-        CODE = CodeBlockEncoder,
+        // Downloads content from the post link
+        ContentExtractor = 1 << 0,
+        CODE = ContentExtractor,
 
         // Trims last paragraph or inline content in the description and the content
         LastParaTrimmer = 1 << 1,
