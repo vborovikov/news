@@ -2,43 +2,43 @@
 
 use master;
 go
-create login [NT AUTHORITY\LOCAL SERVICE] from windows with default_database=[master];
+create login [NT SERVICE\NewsmakerSvc] from windows with default_database=[master];
 go
 
 use News;
 go
 
-create user [NT AUTHORITY\LOCAL SERVICE] for login [NT AUTHORITY\LOCAL SERVICE];
+create user [NT SERVICE\NewsmakerSvc] for login [NT SERVICE\NewsmakerSvc];
 go
-alter user [NT AUTHORITY\LOCAL SERVICE] with default_schema=[rss];
+alter user [NT SERVICE\NewsmakerSvc] with default_schema=[rss];
 go
 
 -- read/write roles
-alter role [db_datareader] add member [NT AUTHORITY\LOCAL SERVICE];
+alter role [db_datareader] add member [NT SERVICE\NewsmakerSvc];
 go
-alter role [db_datawriter] add member [NT AUTHORITY\LOCAL SERVICE];
+alter role [db_datawriter] add member [NT SERVICE\NewsmakerSvc];
 go
 
 -- [rss] operations
-grant insert on schema::[rss] to [NT AUTHORITY\LOCAL SERVICE];
+grant insert on schema::[rss] to [NT SERVICE\NewsmakerSvc];
 go
-grant select on schema::[rss] to [NT AUTHORITY\LOCAL SERVICE];
+grant select on schema::[rss] to [NT SERVICE\NewsmakerSvc];
 go
-grant update on schema::[rss] to [NT AUTHORITY\LOCAL SERVICE];
+grant update on schema::[rss] to [NT SERVICE\NewsmakerSvc];
 go
-grant delete on schema::[rss] to [NT AUTHORITY\LOCAL SERVICE];
+grant delete on schema::[rss] to [NT SERVICE\NewsmakerSvc];
 go
-grant execute on schema::[rss] to [NT AUTHORITY\LOCAL SERVICE];
+grant execute on schema::[rss] to [NT SERVICE\NewsmakerSvc];
 go
 
 -- [dbo] operations
-grant insert on schema::[dbo] to [NT AUTHORITY\LOCAL SERVICE];
+grant insert on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
 go
-grant select on schema::[dbo] to [NT AUTHORITY\LOCAL SERVICE];
+grant select on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
 go
-grant update on schema::[dbo] to [NT AUTHORITY\LOCAL SERVICE];
+grant update on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
 go
-grant delete on schema::[dbo] to [NT AUTHORITY\LOCAL SERVICE];
+grant delete on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
 go
-grant execute on schema::[dbo] to [NT AUTHORITY\LOCAL SERVICE];
+grant execute on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
 go
