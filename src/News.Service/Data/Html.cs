@@ -3,7 +3,6 @@ namespace News.Service.Data;
 using System.Net;
 using System.Text;
 using Brackets;
-using Attribute = Brackets.Attribute;
 
 sealed class EncodedContent : Content
 {
@@ -105,7 +104,7 @@ internal static class HtmlExtensions
         }
     }
 
-    private static StringBuilder AppendAttributes(this StringBuilder text, Attribute.Enumerator attributes)
+    private static StringBuilder AppendAttributes(this StringBuilder text, Attr.Enumerator attributes)
     {
         foreach (var attribute in attributes)
         {

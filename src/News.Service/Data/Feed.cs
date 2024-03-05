@@ -39,10 +39,15 @@ record DbFeed
     public DbEnum<FeedSafeguard> Safeguards { get; init; }
 }
 
-record DbPost
+record DbPostInfo
 {
     public Guid Id { get; init; }
+    public required string Link { get; init; }
     public required string Title { get; init; }
+}
+
+record DbPost : DbPostInfo
+{
     public string? Description { get; init; }
     public required string Content {get; init; }
 }
