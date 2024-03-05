@@ -111,9 +111,68 @@ sealed class Worker : BackgroundService
     private async Task LocalizeRecentPostsAsync(DbFeed feed, CancellationToken cancellationToken)
     {
         // get 10 most recent non-localized posts
-        // download post sources
-        // download images
-        // fix other post links
+        var posts = await GetRecentNonLocalizedPostsAsync(feed, 10, cancellationToken);
+        foreach (var post in posts)
+        {
+            try
+            {
+                if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
+                {
+                    // download post contents
+                    await DownloadPostContentAsync(post, cancellationToken);
+                }
+
+                if (feed.Safeguards.HasFlag(FeedSafeguard.ImageLinkFixer))
+                {
+                    // download images
+                    await DownloadPostImagesAsync(post, cancellationToken);
+                }
+
+                if (feed.Safeguards.HasFlag(FeedSafeguard.PostLinkFixer))
+                {
+                    // fix links to other posts
+                    await FixPostLinksAsync(post, cancellationToken);
+                }
+            }
+            catch (Exception x) when (x is not OperationCanceledException)
+            {
+                this.log.LogError(x, "Error localizing post '{postLink}' from feed {feedSource}", post.Link, feed.Source);
+            }
+        }
+    }
+
+    private async Task FixPostLinksAsync(DbPost post, CancellationToken cancellationToken)
+    {
+    }
+
+    private async Task DownloadPostImagesAsync(DbPost post, CancellationToken cancellationToken)
+    {
+    }
+
+    private async Task DownloadPostContentAsync(DbPost post, CancellationToken cancellationToken)
+    {
+    }
+
+    private async Task<IEnumerable<DbPost>> GetRecentNonLocalizedPostsAsync(DbFeed feed, int postCount, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        try
+        {
+            var posts = await cnn.QueryAsync<DbPost>(
+                """
+                select top @PostCount p.Id, p.Link, p.Title, p.Description, p.Content
+                from rss.Posts p
+                where p.FeedId = @FeedId and p.LocalContentSource is null
+                order by p.Published desc;
+                """, new { FeedId = feed.Id, PostCount = postCount });
+
+            return posts;
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            this.log.LogError(x, "Error getting recent non-localized posts for feed {feedSource}", feed.Source);
+            throw;
+        }
     }
 
     private async Task SanitizeFeedAsync(DbFeed feed, CancellationToken cancellationToken)
@@ -124,7 +183,7 @@ sealed class Worker : BackgroundService
         {
             var posts = await cnn.QueryAsync<DbPost>(
                 """
-                select p.Id, p.Title, p.Description, p.Content
+                select p.Id, p.Link, p.Title, p.Description, p.Content
                 from rss.Posts p
                 where p.FeedId = @FeedId and p.SafeContent is null;
                 """, new { FeedId = feed.Id }, tx);
