@@ -8,8 +8,8 @@ using System.Net;
 using System.Threading;
 using System.Xml;
 using Brackets;
-using CodeHollow.FeedReader;
-using CodeHollow.FeedReader.Parser;
+using Syndication;
+using Syndication.Parser;
 using Dapper;
 using Data;
 using FastMember;
@@ -263,12 +263,12 @@ sealed class Worker : BackgroundService
         if (safeguards.HasFlag(FeedSafeguard.LastParaTrimmer))
         {
             // remove any inline content at the end
-            if (html.LastOrDefault() is Element { Level: ElementLevel.Inline } lastElement)
+            if (html.LastOrDefault() is Element { Layout: FlowLayout.Inline } lastElement)
             {
                 var firstElement = html.First();
                 while (lastElement != firstElement)
                 {
-                    if (lastElement is Tag { Level: ElementLevel.Block } tag && tag.Name != "hr")
+                    if (lastElement is Tag { Layout: FlowLayout.Block } tag && tag.Name != "hr")
                     {
                         break;
                     }

@@ -2,8 +2,8 @@
 
 using System;
 using System.Diagnostics;
-using CodeHollow.FeedReader;
-using CodeHollow.FeedReader.Feeds;
+using Syndication;
+using Syndication.Feeds;
 using Spryer;
 
 [Flags]
