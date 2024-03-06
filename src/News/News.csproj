@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Title>News</Title>
@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="RelayTk" Version="2.4.2" />
-    <PackageReference Include="Dodkin" Version="0.5.2" />
-    <PackageReference Include="Dodkin.Dispatch" Version="0.5.2" />
+    <PackageReference Include="Dodkin" Version="0.5.3-beta.2" />
+    <PackageReference Include="Dodkin.Dispatch" Version="0.5.3-beta.3" />
   </ItemGroup>
 
 </Project>
