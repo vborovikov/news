@@ -114,7 +114,7 @@ sealed class Worker : BackgroundService
     private async Task LocalizeRecentPostsAsync(DbFeed feed, CancellationToken cancellationToken)
     {
         // get 10 most recent non-localized posts
-        var posts = await GetRecentNonLocalizedPostsAsync(feed, 10, cancellationToken);
+        var posts = await GetRecentNonLocalizedPostsAsync(feed, MaxLocalizingPostCount, cancellationToken);
         using var postClient = this.web.CreateClient(HttpClients.Post);
         using var imageClient = this.web.CreateClient(HttpClients.Image);
         foreach (var post in posts)
