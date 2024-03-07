@@ -16,6 +16,7 @@ using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using Spryer;
+using Readability;
 
 sealed class Worker : BackgroundService
 {
@@ -76,7 +77,9 @@ sealed class Worker : BackgroundService
 
     private async Task SafeguardFeedAsync(DbFeed feed, CancellationToken cancellationToken)
     {
-        if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor | FeedSafeguard.ImageLinkFixer | FeedSafeguard.PostLinkFixer))
+        if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor) ||
+            feed.Safeguards.HasFlag(FeedSafeguard.ImageLinkFixer) ||
+            feed.Safeguards.HasFlag(FeedSafeguard.PostLinkFixer))
         {
             await LocalizeFeedAsync(feed, cancellationToken);
         }
@@ -112,6 +115,8 @@ sealed class Worker : BackgroundService
     {
         // get 10 most recent non-localized posts
         var posts = await GetRecentNonLocalizedPostsAsync(feed, 10, cancellationToken);
+        using var postClient = this.web.CreateClient(HttpClients.Post);
+        using var imageClient = this.web.CreateClient(HttpClients.Image);
         foreach (var post in posts)
         {
             try
@@ -119,13 +124,13 @@ sealed class Worker : BackgroundService
                 if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
                 {
                     // download post contents
-                    await DownloadPostContentAsync(post, cancellationToken);
+                    await DownloadPostContentAsync(post, postClient, cancellationToken);
                 }
 
                 if (feed.Safeguards.HasFlag(FeedSafeguard.ImageLinkFixer))
                 {
                     // download images
-                    await DownloadPostImagesAsync(post, cancellationToken);
+                    await DownloadPostImagesAsync(post, imageClient, cancellationToken);
                 }
 
                 if (feed.Safeguards.HasFlag(FeedSafeguard.PostLinkFixer))
@@ -145,12 +150,49 @@ sealed class Worker : BackgroundService
     {
     }
 
-    private async Task DownloadPostImagesAsync(DbPost post, CancellationToken cancellationToken)
+    private async Task DownloadPostImagesAsync(DbPost post, HttpClient client, CancellationToken cancellationToken)
     {
     }
 
-    private async Task DownloadPostContentAsync(DbPost post, CancellationToken cancellationToken)
+    private async Task DownloadPostContentAsync(DbPost post, HttpClient client, CancellationToken cancellationToken)
     {
+        try
+        {   
+            var postResponse = await client.GetAsync(post.Link, cancellationToken);
+            var postSource = await postResponse.Content.ReadAsStringAsync(cancellationToken);
+            var postArticle = DocumentReader.ParseArticle(postSource, new Uri(post.Link));
+
+            await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+            await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await cnn.ExecuteAsync(
+                    """
+                    update rss.Posts
+                    set LocalContentSource = @LocalContentSource, LocalContent = @LocalContent, LocalDescription = @LocalDescription
+                    where Id = @Id;
+                    """, new
+                    { 
+                        post.Id, 
+                        LocalContentSource = postSource, 
+                        LocalContent = postArticle.Content.ToText(),
+                        LocalDescription = postArticle.Excerpt
+                    }, tx);
+
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch (Exception x)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                this.log.LogError(x, "Error storing post content for '{postLink}'", post.Link);
+                throw;
+            }
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            this.log.LogError(x, "Error downloading post content '{postLink}'", post.Link);
+            throw;
+        }
     }
 
     private async Task<IEnumerable<DbPost>> GetRecentNonLocalizedPostsAsync(DbFeed feed, int postCount, CancellationToken cancellationToken)
@@ -160,7 +202,7 @@ sealed class Worker : BackgroundService
         {
             var posts = await cnn.QueryAsync<DbPost>(
                 """
-                select top @PostCount p.Id, p.Link, p.Title, p.Description, p.Content
+                select top (@PostCount) p.Id, p.Link, p.Title, p.Description, p.Content
                 from rss.Posts p
                 where p.FeedId = @FeedId and p.LocalContentSource is null
                 order by p.Published desc;
@@ -183,7 +225,9 @@ sealed class Worker : BackgroundService
         {
             var posts = await cnn.QueryAsync<DbPost>(
                 """
-                select p.Id, p.Link, p.Title, p.Description, p.Content
+                select p.Id, p.Link, p.Title, 
+                    isnull(p.LocalDescription, p.Description) as Description,
+                    isnull(p.LocalContent, p.Content) as Content
                 from rss.Posts p
                 where p.FeedId = @FeedId and p.SafeContent is null;
                 """, new { FeedId = feed.Id }, tx);

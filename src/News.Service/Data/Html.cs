@@ -45,7 +45,19 @@ internal static class HtmlExtensions
     {
         var text = new StringBuilder(document.Length);
 
-        foreach (var element in document.GetEnumerator())
+        foreach (var element in document)
+        {
+            text.AppendElement(element);
+        }
+
+        return text.ToString();
+    }
+
+    public static string ToText(this ParentTag root)
+    {
+        var text = new StringBuilder(root.Length);
+
+        foreach (var element in root)
         {
             text.AppendElement(element);
         }

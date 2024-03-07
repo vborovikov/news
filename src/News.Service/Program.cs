@@ -10,6 +10,7 @@ using Spryer;
 static class HttpClients
 {
     public const string Feed = "Feed";
+    public const string Post = "Post";
     public const string Image = "Image";
 }
 
@@ -54,6 +55,17 @@ static class Program
                     httpClient.DefaultRequestHeaders.Accept.Add(new("application/xml"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("text/xml"));
 
+                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>();
+                    if (options.Value.UserAgent is not null)
+                    {
+                        httpClient.DefaultRequestHeaders.UserAgent.Clear();
+                        httpClient.DefaultRequestHeaders.Add("User-Agent", options.Value.UserAgent);
+                    }
+                });
+
+                // post http client
+                services.AddHttpClient(HttpClients.Post, (sp, httpClient) =>
+                {
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>();
                     if (options.Value.UserAgent is not null)
                     {
