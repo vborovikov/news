@@ -1,7 +1,7 @@
 $params = @{
   Name = 'Newsmaker'
   BinaryPathName = 'C:\Tools\News\Newsmaker.exe'
-  Credential = New-Object System.Management.Automation.PSCredential ('NT SERVICE\NewsmakerSvc', (New-Object System.Security.SecureString))
+  Credential = New-Object System.Management.Automation.PSCredential ('NT SERVICE\Newsmaker', (New-Object System.Security.SecureString))
   DependsOn = @('MSMQ', 'MSSQLSERVER')
   DisplayName = 'News Aggregator'
   StartupType = 'Automatic'
