@@ -2,7 +2,7 @@
 use master;
 go
 
-create login [IIS APPPOOL\news] from windows with default_database=master;
+create login [IIS APPPOOL\news] from windows with default_database=[News];
 go
 
 use News;
@@ -43,16 +43,4 @@ go
 grant delete on schema::[rss] to [IIS AppPool\news]
 go
 grant execute on schema::[rss] to [IIS AppPool\news]
-go
-
--- [dbo] operations
-grant insert on schema::[dbo] to [IIS AppPool\news]
-go
-grant select on schema::[dbo] to [IIS AppPool\news]
-go
-grant update on schema::[dbo] to [IIS AppPool\news]
-go
-grant delete on schema::[dbo] to [IIS AppPool\news]
-go
-grant execute on schema::[dbo] to [IIS AppPool\news]
 go

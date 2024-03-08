@@ -1,8 +1,8 @@
--- grant access from News db to Local Service account which is used by Newsmaker
+-- grant access from News db to virtual service account which is used by Newsmaker
 
 use master;
 go
-create login [NT SERVICE\NewsmakerSvc] from windows with default_database=[master];
+create login [NT SERVICE\NewsmakerSvc] from windows with default_database=[News];
 go
 
 use News;
@@ -29,16 +29,4 @@ go
 grant delete on schema::[rss] to [NT SERVICE\NewsmakerSvc];
 go
 grant execute on schema::[rss] to [NT SERVICE\NewsmakerSvc];
-go
-
--- [dbo] operations
-grant insert on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
-go
-grant select on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
-go
-grant update on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
-go
-grant delete on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
-go
-grant execute on schema::[dbo] to [NT SERVICE\NewsmakerSvc];
 go
