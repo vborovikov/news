@@ -8,15 +8,15 @@ using System.Net;
 using System.Threading;
 using System.Xml;
 using Brackets;
-using Syndication;
-using Syndication.Parser;
 using Dapper;
 using Data;
 using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
-using Spryer;
 using Readability;
+using Spryer;
+using Syndication;
+using Syndication.Parser;
 
 sealed class Worker : BackgroundService
 {
@@ -124,6 +124,7 @@ sealed class Worker : BackgroundService
                 if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
                 {
                     // download post contents
+                    await Task.Delay(Random.Shared.Next(1000, 5000), cancellationToken);
                     await DownloadPostContentAsync(post, postClient, cancellationToken);
                 }
 
