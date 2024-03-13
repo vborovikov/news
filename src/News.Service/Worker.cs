@@ -10,6 +10,7 @@ using System.Xml;
 using Brackets;
 using Dapper;
 using Data;
+using Dodkin.Dispatch;
 using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
@@ -27,10 +28,10 @@ sealed class Worker : BackgroundService
     private readonly ServiceOptions options;
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
-    private readonly UserAgent usr;
+    private readonly IQueueRequestDispatcher usr;
     private readonly ILogger<Worker> log;
 
-    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, UserAgent usr, ILogger<Worker> log)
+    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr, ILogger<Worker> log)
     {
         this.options = options.Value;
         this.db = db;

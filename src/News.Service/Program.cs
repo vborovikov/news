@@ -1,6 +1,7 @@
 namespace News.Service;
 
 using System.Text;
+using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
@@ -95,7 +96,13 @@ static class Program
                     }
                 });
 
-                services.AddSingleton<UserAgent>();
+                services.AddSingleton<IQueueRequestDispatcher>(sp =>
+                {
+                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
+                    var logging = sp.GetRequiredService<ILoggerFactory>();
+                    return new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
+                        logging.CreateLogger("News.Service.Data.UserAgentDispatcher"));
+                });
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();
             })

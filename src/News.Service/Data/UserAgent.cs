@@ -3,43 +3,16 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
-using Dodkin;
 using Dodkin.Dispatch;
-using Microsoft.Extensions.Options;
+using Storefront.UserAgent;
 
-sealed class UserAgent
+static class UserAgent
 {
-    private static readonly MessageEndpoint serviceEndpoint = MessageEndpoint.FromName(ServiceOptions.ServiceName.ToLowerInvariant());
     private static readonly TimeSpan timeout = TimeSpan.FromMinutes(5);
 
-    private readonly ServiceOptions options;
-    private readonly IQueueRequestDispatcher dispatcher;
-    private readonly ILogger<UserAgent> log;
-
-    static UserAgent()
+    public static async Task<string?> GetStringAsync(this IQueueRequestDispatcher dispatcher, string url, CancellationToken cancellationToken)
     {
-        serviceEndpoint.CreateIfNotExists(ServiceOptions.ServiceName);
-    }
-
-    public UserAgent(IOptions<ServiceOptions> options, ILogger<UserAgent> log)
-    {
-        this.options = options.Value;
-        this.log = log;
-        try
-        {
-            this.dispatcher = new QueueRequestDispatcher(this.options.UserAgentQueue, serviceEndpoint, this.log);
-        }
-        catch (Exception x)
-        {
-            this.log.LogError(x, "Error creating request dispatcher for message queue {queueName}", this.options.UserAgentQueue);
-            throw;
-        }
-    }
-
-    public async Task<string?> GetStringAsync(string url, CancellationToken cancellationToken)
-    {
-        var pageInfo = await this.dispatcher.RunAsync(new PageInfoQuery(new(url)) { CancellationToken = cancellationToken }, timeout);
-        await this.dispatcher.ExecuteAsync(new GoBlankCommand());
+        var pageInfo = await dispatcher.RunAsync(new PageInfoQuery(new Uri(url)) { CancellationToken = cancellationToken }, timeout);
 
         if (pageInfo is { StatusCode: >= 300 })
         {
@@ -51,32 +24,4 @@ sealed class UserAgent
 
         return pageInfo?.Source;
     }
-}
-
-public record PageInfo
-{
-    public PageInfo(Uri uri)
-    {
-        this.Uri = uri;
-    }
-
-    public Uri Uri { get; init; }
-    public string? Source { get; init; }
-    public int StatusCode { get; init; }
-}
-
-public record PageInfoQuery : Query<PageInfo>
-{
-    public PageInfoQuery(Uri pageUri)
-    {
-        this.PageUri = pageUri;
-    }
-
-    public Uri PageUri { get; }
-    public string? Script { get; init; }
-    public bool UseContent => true;
-}
-
-public record GoBlankCommand : Command
-{
 }

@@ -14,6 +14,8 @@ public record AppOptions
 
     public required string ImagePath { get; init; } = @"C:\Tools\News\img";
     public DirectoryInfo ImageDirectory => this.imageDirectory ??= new(this.ImagePath);
+
+    public required MessageEndpoint Endpoint { get; init; }
 }
 
 public record ServiceOptions : AppOptions
