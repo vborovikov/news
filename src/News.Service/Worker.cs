@@ -126,6 +126,7 @@ sealed class Worker : BackgroundService
                     // download post contents
                     await Task.Delay(Random.Shared.Next(1000, 5000), cancellationToken);
                     await DownloadPostContentAsync(post, postClient, cancellationToken);
+                    await LocalizePostAsync(post, cancellationToken);
                 }
 
                 if (feed.Safeguards.HasFlag(FeedSafeguard.ImageLinkFixer))
@@ -158,10 +159,9 @@ sealed class Worker : BackgroundService
     private async Task DownloadPostContentAsync(DbPost post, HttpClient client, CancellationToken cancellationToken)
     {
         try
-        {   
+        {
             var postResponse = await client.GetAsync(post.Link, cancellationToken);
             var postSource = await postResponse.Content.ReadAsStringAsync(cancellationToken);
-            var postArticle = DocumentReader.ParseArticle(postSource, new Uri(post.Link));
 
             await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
             await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
@@ -170,19 +170,17 @@ sealed class Worker : BackgroundService
                 await cnn.ExecuteAsync(
                     """
                     update rss.Posts
-                    set LocalContentSource = @LocalContentSource, LocalContent = @LocalContent, LocalDescription = @LocalDescription
+                    set LocalContentSource = @LocalContentSource
                     where Id = @Id;
                     """, new
-                    { 
-                        post.Id, 
-                        LocalContentSource = postSource, 
-                        LocalContent = postArticle.Content.ToText(),
-                        LocalDescription = postArticle.Excerpt
+                    {
+                        post.Id,
+                        LocalContentSource = postSource,
                     }, tx);
 
                 await tx.CommitAsync(cancellationToken);
             }
-            catch (Exception x)
+            catch (Exception x) when (x is not OperationCanceledException)
             {
                 await tx.RollbackAsync(cancellationToken);
                 this.log.LogError(x, "Error storing post content for '{postLink}'", post.Link);
@@ -192,6 +190,44 @@ sealed class Worker : BackgroundService
         catch (Exception x) when (x is not OperationCanceledException)
         {
             this.log.LogError(x, "Error downloading post content '{postLink}'", post.Link);
+            throw;
+        }
+    }
+
+    private async Task LocalizePostAsync(DbPost post, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        var postSource = await cnn.QueryFirstOrDefaultAsync<string>(
+            """
+            select LocalContentSource
+            from rss.Posts
+            where Id = @Id
+            """, new { post.Id });
+        if (string.IsNullOrWhiteSpace(postSource))
+            return;
+
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var postArticle = DocumentReader.ParseArticle(postSource, new Uri(post.Link));
+            await cnn.ExecuteAsync(
+                """
+                update rss.Posts
+                set LocalContent = @LocalContent, LocalDescription = @LocalDescription
+                where Id = @Id;
+                """, new
+                {
+                    post.Id,
+                    LocalContent = postArticle.Content.ToText(),
+                    LocalDescription = postArticle.Excerpt
+                }, tx);
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            this.log.LogError(x, "Error localizing post content for '{postLink}'", post.Link);
             throw;
         }
     }
