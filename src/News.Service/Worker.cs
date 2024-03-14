@@ -106,7 +106,7 @@ sealed class Worker : BackgroundService
                 var localized = await TryLocalizeRecentPostsAsync(feed, cancellationToken);
                 if (localized is false)
                 {
-                    this.log.LogWarning("No posts localized for feed {feedSource}", feed.Source);
+                    this.log.LogDebug("No more posts localized for feed {feedSource}", feed.Source);
                     break;
                 }
             }
