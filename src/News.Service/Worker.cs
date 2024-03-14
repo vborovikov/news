@@ -103,7 +103,12 @@ sealed class Worker : BackgroundService
             try
             {
                 this.log.LogInformation("Take #{jobCount} localizing feed {feedSource}", jobCount + 1, feed.Source);
-                await LocalizeRecentPostsAsync(feed, cancellationToken);
+                var localized = await TryLocalizeRecentPostsAsync(feed, cancellationToken);
+                if (localized is false)
+                {
+                    this.log.LogWarning("No posts localized for feed {feedSource}", feed.Source);
+                    break;
+                }
             }
             catch (Exception x) when (x is not OperationCanceledException)
             {
@@ -116,13 +121,16 @@ sealed class Worker : BackgroundService
                 this.log.LogInformation("Localizing feed {feedSource} took {time}", feed.Source, stopwatch.Elapsed);
             }
         }
-        while (jobCount++ < MaxLocalizingJobCount && stopwatch.Elapsed < LocalizingJobTimeout);
+        while (jobCount++ <= MaxLocalizingJobCount && stopwatch.Elapsed < LocalizingJobTimeout);
     }
 
-    private async Task LocalizeRecentPostsAsync(DbFeed feed, CancellationToken cancellationToken)
+    private async Task<bool> TryLocalizeRecentPostsAsync(DbFeed feed, CancellationToken cancellationToken)
     {
         // get 10 most recent non-localized posts
         var posts = await GetRecentNonLocalizedPostsAsync(feed, MaxLocalizingPostCount, cancellationToken);
+        if (!posts.Any())
+            return false;
+
         using var postClient = this.web.CreateClient(HttpClients.Post);
         using var imageClient = this.web.CreateClient(HttpClients.Image);
         var windowShopper = new WindowShopper(postClient, this.usr, this.wslog);
@@ -154,6 +162,8 @@ sealed class Worker : BackgroundService
                 this.log.LogError(x, "Error localizing post '{postLink}' from feed {feedSource}", post.Link, feed.Source);
             }
         }
+
+        return true;
     }
 
     private async Task FixPostLinksAsync(DbPost post, CancellationToken cancellationToken)
