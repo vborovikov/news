@@ -16,6 +16,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using Readability;
 using Spryer;
+using Storefront.UserAgent;
 using Syndication;
 using Syndication.Parser;
 
@@ -118,6 +119,7 @@ sealed class Worker : BackgroundService
         var posts = await GetRecentNonLocalizedPostsAsync(feed, MaxLocalizingPostCount, cancellationToken);
         using var postClient = this.web.CreateClient(HttpClients.Post);
         using var imageClient = this.web.CreateClient(HttpClients.Image);
+        var windowShopper = new WindowShopper(postClient, this.usr, this.log);
         foreach (var post in posts)
         {
             try
@@ -125,8 +127,7 @@ sealed class Worker : BackgroundService
                 if (feed.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
                 {
                     // download post contents
-                    await Task.Delay(Random.Shared.Next(1000, 5000), cancellationToken);
-                    await DownloadPostContentAsync(post, postClient, cancellationToken);
+                    await DownloadPostContentAsync(post, windowShopper, cancellationToken);
                     await LocalizePostAsync(post, cancellationToken);
                 }
 
@@ -157,12 +158,11 @@ sealed class Worker : BackgroundService
     {
     }
 
-    private async Task DownloadPostContentAsync(DbPost post, HttpClient client, CancellationToken cancellationToken)
+    private async Task DownloadPostContentAsync(DbPost post, WindowShopper client, CancellationToken cancellationToken)
     {
         try
         {
-            var postResponse = await client.GetAsync(post.Link, cancellationToken);
-            var postSource = await postResponse.Content.ReadAsStringAsync(cancellationToken);
+            var postSource = await client.GetSourceAsync(new(post.Link), ResourceAccess.WebRequest, cancellationToken);
 
             await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
             await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
