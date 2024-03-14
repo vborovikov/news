@@ -39,11 +39,21 @@ record DbFeed
     public DbEnum<FeedSafeguard> Safeguards { get; init; }
 }
 
+[Flags]
+enum PostStatus
+{
+    None        = 0 << 0,
+    OK          = None,
+    SkipUpdate  = 1 << 0,
+    SKIP        = SkipUpdate,
+}
+
 record DbPostInfo
 {
     public Guid Id { get; init; }
     public required string Link { get; init; }
     public required string Title { get; init; }
+    public DbEnum<PostStatus> Status { get; init; }
 }
 
 record DbPost : DbPostInfo

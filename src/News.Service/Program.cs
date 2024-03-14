@@ -56,23 +56,13 @@ static class Program
                     httpClient.DefaultRequestHeaders.Accept.Add(new("application/xml"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("text/xml"));
 
-                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>();
-                    if (options.Value.UserAgent is not null)
-                    {
-                        httpClient.DefaultRequestHeaders.UserAgent.Clear();
-                        httpClient.DefaultRequestHeaders.Add("User-Agent", options.Value.UserAgent);
-                    }
+                    Configure(sp, httpClient);
                 });
 
                 // post http client
                 services.AddHttpClient(HttpClients.Post, (sp, httpClient) =>
                 {
-                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>();
-                    if (options.Value.UserAgent is not null)
-                    {
-                        httpClient.DefaultRequestHeaders.UserAgent.Clear();
-                        httpClient.DefaultRequestHeaders.Add("User-Agent", options.Value.UserAgent);
-                    }
+                    Configure(sp, httpClient);
                 });
 
                 // image download http client
@@ -88,12 +78,7 @@ static class Program
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/tiff"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/webp"));
 
-                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>();
-                    if (options.Value.UserAgent is not null)
-                    {
-                        httpClient.DefaultRequestHeaders.UserAgent.Clear();
-                        httpClient.DefaultRequestHeaders.Add("User-Agent", options.Value.UserAgent);
-                    }
+                    Configure(sp, httpClient);
                 });
 
                 services.AddSingleton<IQueueRequestDispatcher>(sp =>
@@ -101,7 +86,14 @@ static class Program
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
                     var logging = sp.GetRequiredService<ILoggerFactory>();
                     return new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
-                        logging.CreateLogger("News.Service.Data.UserAgentDispatcher"));
+                        logging.CreateLogger("News.Service.UserAgent"));
+                });
+                services.AddSingleton<IQueueRequestScheduler>(sp =>
+                {
+                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
+                    var logging = sp.GetRequiredService<ILoggerFactory>();
+                    return new QueueRequestDispatcher(options.SchedulerQueue, options.Endpoint,
+                        logging.CreateLogger("News.Service.Scheduler"));
                 });
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();
@@ -113,5 +105,15 @@ static class Program
             .Build();
 
         return host.RunAsync();
+    }
+
+    private static void Configure(IServiceProvider sp, HttpClient httpClient)
+    {
+        var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
+        if (options.UserAgent is not null)
+        {
+            httpClient.DefaultRequestHeaders.UserAgent.Clear();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", options.UserAgent);
+        }
     }
 }

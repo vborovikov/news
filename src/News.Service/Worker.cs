@@ -15,12 +15,14 @@ using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using Readability;
+using Relay.RequestModel;
 using Spryer;
 using Storefront.UserAgent;
 using Syndication;
 using Syndication.Parser;
 
-sealed class Worker : BackgroundService
+sealed class Worker : BackgroundService,
+    IAsyncCommandHandler<LocalizeFeedsCommand>
 {
     private const int MaxLocalizingPostCount = 10;
     private const int MaxLocalizingJobCount = 10;
@@ -30,22 +32,36 @@ sealed class Worker : BackgroundService
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
     private readonly IQueueRequestDispatcher usr;
+    private readonly Handler handler;
     private readonly ILogger log;
     private readonly ILogger wslog;
 
     public Worker(IOptions<ServiceOptions> options,
         DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr,
-        ILogger<Worker> log, ILogger<WindowShopper> wslog)
+        ILogger<Worker> log, ILogger<WindowShopper> wslog, ILogger<Handler> rhlog)
     {
         this.options = options.Value;
         this.db = db;
         this.web = web;
         this.usr = usr;
+        this.handler = new(this, this.options.Endpoint, rhlog);
         this.log = log;
         this.wslog = wslog;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    Task IAsyncCommandHandler<LocalizeFeedsCommand>.ExecuteAsync(LocalizeFeedsCommand command)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        return Task.WhenAll(
+            MakeNewsAsync(stoppingToken), 
+            this.handler.ProcessAsync(stoppingToken));
+    }
+
+    private async Task MakeNewsAsync(CancellationToken stoppingToken)
     {
         var timer = new PeriodicTimer(this.options.UpdateInterval);
         do
@@ -87,13 +103,13 @@ sealed class Worker : BackgroundService
             feed.Safeguards.HasFlag(FeedSafeguard.ImageLinkFixer) ||
             feed.Safeguards.HasFlag(FeedSafeguard.PostLinkFixer))
         {
-            await LocalizeFeedAsync(feed, cancellationToken);
+            await LocalizeFeedAsync(feed, LocalizingJobTimeout, cancellationToken);
         }
 
         await SanitizeFeedAsync(feed, cancellationToken);
     }
 
-    private async Task LocalizeFeedAsync(DbFeed feed, CancellationToken cancellationToken)
+    private async Task LocalizeFeedAsync(DbFeed feed, TimeSpan desiredDuration, CancellationToken cancellationToken)
     {
         var jobCount = 0;
         var stopwatch = new Stopwatch();
@@ -121,7 +137,7 @@ sealed class Worker : BackgroundService
                 this.log.LogInformation("Localizing feed {feedSource} took {time}", feed.Source, stopwatch.Elapsed);
             }
         }
-        while (jobCount++ <= MaxLocalizingJobCount && stopwatch.Elapsed < LocalizingJobTimeout);
+        while (jobCount++ <= MaxLocalizingJobCount && stopwatch.Elapsed < desiredDuration);
     }
 
     private async Task<bool> TryLocalizeRecentPostsAsync(DbFeed feed, CancellationToken cancellationToken)

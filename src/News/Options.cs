@@ -26,6 +26,7 @@ public record ServiceOptions : AppOptions
 
     public string? UserAgent { get; init; }
 
-    public required MessageQueueName UserAgentQueue {  get; init; }
+    public required MessageQueueName UserAgentQueue { get; init; } = MessageQueueName.FromName("useragent");
+    public required MessageQueueName SchedulerQueue { get; init; } = MessageQueueName.FromName("dodkin");
 }
 
