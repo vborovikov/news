@@ -24,21 +24,25 @@ sealed class Worker : BackgroundService
 {
     private const int MaxLocalizingPostCount = 10;
     private const int MaxLocalizingJobCount = 10;
-    private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(3);
 
     private readonly ServiceOptions options;
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
     private readonly IQueueRequestDispatcher usr;
-    private readonly ILogger<Worker> log;
+    private readonly ILogger log;
+    private readonly ILogger wslog;
 
-    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr, ILogger<Worker> log)
+    public Worker(IOptions<ServiceOptions> options,
+        DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr,
+        ILogger<Worker> log, ILogger<WindowShopper> wslog)
     {
         this.options = options.Value;
         this.db = db;
         this.web = web;
         this.usr = usr;
         this.log = log;
+        this.wslog = wslog;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -98,6 +102,7 @@ sealed class Worker : BackgroundService
             stopwatch.Restart();
             try
             {
+                this.log.LogInformation("Take #{jobCount} localizing feed {feedSource}", jobCount + 1, feed.Source);
                 await LocalizeRecentPostsAsync(feed, cancellationToken);
             }
             catch (Exception x) when (x is not OperationCanceledException)
@@ -108,6 +113,7 @@ sealed class Worker : BackgroundService
             finally
             {
                 stopwatch.Stop();
+                this.log.LogInformation("Localizing feed {feedSource} took {time}", feed.Source, stopwatch.Elapsed);
             }
         }
         while (jobCount++ < MaxLocalizingJobCount && stopwatch.Elapsed < LocalizingJobTimeout);
@@ -119,7 +125,7 @@ sealed class Worker : BackgroundService
         var posts = await GetRecentNonLocalizedPostsAsync(feed, MaxLocalizingPostCount, cancellationToken);
         using var postClient = this.web.CreateClient(HttpClients.Post);
         using var imageClient = this.web.CreateClient(HttpClients.Image);
-        var windowShopper = new WindowShopper(postClient, this.usr, this.log);
+        var windowShopper = new WindowShopper(postClient, this.usr, this.wslog);
         foreach (var post in posts)
         {
             try
