@@ -35,6 +35,7 @@ sealed class Worker : BackgroundService,
     private readonly RequestHandler handler;
     private readonly ILogger log;
     private readonly ILogger wslog;
+    private readonly Stopwatch busyMonitor;
 
     public Worker(IOptions<ServiceOptions> options,
         DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr,
@@ -47,6 +48,7 @@ sealed class Worker : BackgroundService,
         this.handler = new(this, this.options.Endpoint, rhlog);
         this.log = log;
         this.wslog = wslog;
+        this.busyMonitor = new Stopwatch();
     }
 
     Task IAsyncCommandHandler<LocalizeFeedsCommand>.ExecuteAsync(LocalizeFeedsCommand command)
@@ -57,18 +59,33 @@ sealed class Worker : BackgroundService,
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         return Task.WhenAll(
-            MakeNewsAsync(stoppingToken), 
+            AggregateNewsAsync(stoppingToken),
             this.handler.ProcessAsync(stoppingToken));
     }
 
-    private async Task MakeNewsAsync(CancellationToken stoppingToken)
+    private async Task AggregateNewsAsync(CancellationToken stoppingToken)
     {
         var timer = new PeriodicTimer(this.options.UpdateInterval);
         do
         {
-            await ImportFeedsAsync(stoppingToken);
-            await UpdateFeedsAsync(stoppingToken);
-            await SafeguardFeedsAsync(stoppingToken);
+            try
+            {
+                this.log.LogInformation("Aggregating news at: {time}", DateTimeOffset.Now);
+                this.busyMonitor.Restart();
+
+                await ImportFeedsAsync(stoppingToken);
+                await UpdateFeedsAsync(stoppingToken);
+                await SafeguardFeedsAsync(stoppingToken);
+            }
+            finally
+            {
+                this.busyMonitor.Stop();
+                this.log.LogInformation("Finished aggregating news at: {time} ({busy})", DateTimeOffset.Now, this.busyMonitor.Elapsed);
+                if (this.busyMonitor.Elapsed > this.options.UpdateInterval)
+                {
+                    this.log.LogWarning("News aggregation took too long: {busy}", this.busyMonitor.Elapsed);
+                }
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
@@ -115,10 +132,11 @@ sealed class Worker : BackgroundService,
         var stopwatch = new Stopwatch();
         do
         {
-            stopwatch.Restart();
             try
             {
                 this.log.LogInformation("Take #{jobCount} localizing feed {feedSource}", jobCount + 1, feed.Source);
+                stopwatch.Restart();
+
                 var localized = await TryLocalizeRecentPostsAsync(feed, cancellationToken);
                 if (localized is false)
                 {
@@ -257,7 +275,7 @@ sealed class Worker : BackgroundService,
         }
     }
 
-    private static PostStatus GetPostStatus(Exception error, PostStatus status)
+    private static DbEnum<PostStatus> GetPostStatus(Exception error, PostStatus status)
     {
         return status | PostStatus.SkipUpdate;
     }
