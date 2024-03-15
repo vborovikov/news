@@ -92,7 +92,7 @@ record FeedWrapper : WrapperBase
     public string Description => GetNonEmpty(
         this.feed.Description,
         (this.feed.SpecificFeed as AtomFeed)?.Subtitle,
-        "<no description>");
+        "&lt;no description&gt;");
     public string Link => this.link ??= GetLink();
 
     internal bool ItemsRequireUniqueIds => this.db.Status.HasFlag(FeedUpdateStatus.UniqueId);
