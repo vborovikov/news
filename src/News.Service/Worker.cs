@@ -212,38 +212,37 @@ sealed class Worker : BackgroundService,
 
     private async Task DownloadPostContentAsync(DbPost post, WindowShopper client, CancellationToken cancellationToken)
     {
+        string postContent;
         try
         {
-            var postSource = await client.GetSourceAsync(new(post.Link), ResourceAccess.WebRequest, cancellationToken);
-
-            await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-            await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                await cnn.ExecuteAsync(
-                    """
-                    update rss.Posts
-                    set LocalContentSource = @LocalContentSource
-                    where Id = @Id;
-                    """, new
-                    {
-                        post.Id,
-                        LocalContentSource = postSource,
-                    }, tx);
-
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch (Exception x) when (x is not OperationCanceledException)
-            {
-                await tx.RollbackAsync(cancellationToken);
-                this.log.LogError(x, "Error storing post content for '{postLink}'", post.Link);
-                throw;
-            }
+            postContent = await client.GetSourceAsync(new(post.Link), ResourceAccess.WebRequest, cancellationToken);
         }
         catch (Exception x) when (x is not OperationCanceledException)
         {
-            this.log.LogError(x, "Error downloading post content '{postLink}'", post.Link);
             await StorePostUpdateErrorAsync(post, x, cancellationToken);
+            throw;
+        }
+        
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await cnn.ExecuteAsync(
+                """
+                update rss.Posts
+                set LocalContentSource = @LocalContentSource
+                where Id = @Id;
+                """, new
+                {
+                    post.Id,
+                    LocalContentSource = postContent.AsNVarChar(),
+                }, tx);
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            await tx.RollbackAsync(cancellationToken);
             throw;
         }
     }
