@@ -9,7 +9,8 @@ go
 alter table rss.Posts drop
     constraint DF_Posts_Status,
     --index IX_Posts_Status,
-    column Status;
+    column Status,
+    column Error;
 go
 
 commit transaction;
