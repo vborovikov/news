@@ -962,6 +962,13 @@ sealed class Worker : BackgroundService,
             return prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
                 FeedUpdateStatus.HtmlResponse | prevStatus;
         }
+        if (error is TimeoutException)
+        {
+            if (prevStatus.HasFlag(FeedUpdateStatus.UserAgent))
+            {
+                return FeedUpdateStatus.SkipUpdate;
+            }
+        }
 
         return prevStatus;
     }
