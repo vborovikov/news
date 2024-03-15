@@ -6,10 +6,10 @@
     using Microsoft.Extensions.Logging;
     using Relay.RequestModel.Default;
 
-    sealed class Handler : QueueRequestHandler
+    sealed class RequestHandler : QueueRequestHandler
     {
-        public Handler(Worker worker, MessageEndpoint endpoint, ILogger logger)
-            : base(new RequestHandler(worker), endpoint, logger)
+        public RequestHandler(Worker worker, MessageEndpoint endpoint, ILogger logger)
+            : base(new RequestDispatcher(worker), endpoint, logger)
         {
             this.PeekProperties = MessageProperty.CorrelationId;
         }
@@ -19,11 +19,11 @@
         // do nothing, the message will be picked up by the UserAgent dispatcher
         protected override bool TryDispatchRequest(in Message message) => true;
 
-        private sealed class RequestHandler : DefaultRequestDispatcherBase
+        private sealed class RequestDispatcher : DefaultRequestDispatcherBase
         {
             private readonly Worker worker;
 
-            public RequestHandler(Worker worker)
+            public RequestDispatcher(Worker worker)
             {
                 this.worker = worker;
             }

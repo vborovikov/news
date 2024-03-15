@@ -21,6 +21,7 @@ static class Program
     {
         DbEnum<FeedUpdateStatus>.Initialize();
         DbEnum<FeedSafeguard>.Initialize();
+        DbEnum<PostStatus>.Initialize();
     }
 
     public static Task Main(string[] args)

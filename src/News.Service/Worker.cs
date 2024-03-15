@@ -32,13 +32,13 @@ sealed class Worker : BackgroundService,
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
     private readonly IQueueRequestDispatcher usr;
-    private readonly Handler handler;
+    private readonly RequestHandler handler;
     private readonly ILogger log;
     private readonly ILogger wslog;
 
     public Worker(IOptions<ServiceOptions> options,
         DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr,
-        ILogger<Worker> log, ILogger<WindowShopper> wslog, ILogger<Handler> rhlog)
+        ILogger<Worker> log, ILogger<WindowShopper> wslog, ILogger<RequestHandler> rhlog)
     {
         this.options = options.Value;
         this.db = db;
@@ -182,12 +182,14 @@ sealed class Worker : BackgroundService,
         return true;
     }
 
-    private async Task FixPostLinksAsync(DbPost post, CancellationToken cancellationToken)
+    private Task FixPostLinksAsync(DbPost post, CancellationToken cancellationToken)
     {
+        return Task.CompletedTask;
     }
 
-    private async Task DownloadPostImagesAsync(DbPost post, HttpClient client, CancellationToken cancellationToken)
+    private Task DownloadPostImagesAsync(DbPost post, HttpClient client, CancellationToken cancellationToken)
     {
+        return Task.CompletedTask;
     }
 
     private async Task DownloadPostContentAsync(DbPost post, WindowShopper client, CancellationToken cancellationToken)
@@ -223,8 +225,41 @@ sealed class Worker : BackgroundService,
         catch (Exception x) when (x is not OperationCanceledException)
         {
             this.log.LogError(x, "Error downloading post content '{postLink}'", post.Link);
+            await StorePostUpdateErrorAsync(post, x, cancellationToken);
             throw;
         }
+    }
+
+    private async Task StorePostUpdateErrorAsync(DbPost post, Exception error, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await cnn.ExecuteAsync(
+                """
+                update rss.Posts
+                set Status = @Status, Error = @Error
+                where Id = @PostId;
+                """, new
+                {
+                    PostId = post.Id,
+                    Status = GetPostStatus(error, post.Status),
+                    Error = error.Message.AsNVarChar(2000),
+                }, tx);
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            this.log.LogError(x, "Error storing update status for post '{postLink}'", post.Link);
+        }
+    }
+
+    private static PostStatus GetPostStatus(Exception error, PostStatus status)
+    {
+        return status | PostStatus.SkipUpdate;
     }
 
     private async Task LocalizePostAsync(DbPost post, CancellationToken cancellationToken)
@@ -272,9 +307,9 @@ sealed class Worker : BackgroundService,
         {
             var posts = await cnn.QueryAsync<DbPost>(
                 """
-                select top (@PostCount) p.Id, p.Link, p.Title, p.Description, p.Content
+                select top (@PostCount) p.Id, p.Link, p.Title, p.Status, p.Description, p.Content
                 from rss.Posts p
-                where p.FeedId = @FeedId and p.LocalContentSource is null
+                where p.FeedId = @FeedId and p.LocalContentSource is null and p.Status not like '%SKIP%' 
                 order by p.Published desc;
                 """, new { FeedId = feed.Id, PostCount = postCount });
 
@@ -295,7 +330,7 @@ sealed class Worker : BackgroundService,
         {
             var posts = await cnn.QueryAsync<DbPost>(
                 """
-                select p.Id, p.Link, p.Title, 
+                select p.Id, p.Link, p.Title, p.Status,
                     isnull(p.LocalDescription, p.Description) as Description,
                     isnull(p.LocalContent, p.Content) as Content
                 from rss.Posts p
@@ -889,10 +924,10 @@ sealed class Worker : BackgroundService,
                 """, new
                 {
                     FeedId = feed.Id,
-                    Source = feed.Source,
+                    Source = feed.Source.AsNVarChar(850),
                     Updated = DateTimeOffset.Now,
-                    Status = GetStatus(error, feed.Status),
-                    Error = error.Message
+                    Status = GetFeedStatus(error, feed.Status),
+                    Error = error.Message.AsNVarChar(2000)
                 }, tx);
 
             await tx.CommitAsync(cancellationToken);
@@ -904,7 +939,7 @@ sealed class Worker : BackgroundService,
         }
     }
 
-    private static DbEnum<FeedUpdateStatus> GetStatus(Exception error, FeedUpdateStatus prevStatus)
+    private static DbEnum<FeedUpdateStatus> GetFeedStatus(Exception error, FeedUpdateStatus prevStatus)
     {
         if (error is SqlException { Number: 2627 })
         {
