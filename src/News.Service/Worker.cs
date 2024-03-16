@@ -65,7 +65,7 @@ sealed class Worker : BackgroundService,
 
     private async Task AggregateNewsAsync(CancellationToken stoppingToken)
     {
-        var timer = new PeriodicTimer(this.options.UpdateInterval);
+        using var timer = new PeriodicTimer(this.options.UpdateInterval);
         do
         {
             try
