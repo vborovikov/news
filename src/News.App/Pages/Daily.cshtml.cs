@@ -7,14 +7,14 @@ using Microsoft.AspNetCore.Mvc;
 using News.App.Data;
 
 [Authorize]
-public class NewsModel : AppPageModel
+public class DailyModel : AppPageModel
 {
     public const string DateFormat = "yyyy-MM-dd";
 
     private readonly DbDataSource db;
-    private readonly ILogger<NewsModel> log;
+    private readonly ILogger<DailyModel> log;
 
-    public NewsModel(DbDataSource db, ILogger<NewsModel> log)
+    public DailyModel(DbDataSource db, ILogger<DailyModel> log)
     {
         this.db = db;
         this.log = log;
@@ -24,7 +24,7 @@ public class NewsModel : AppPageModel
 
     public IEnumerable<ChannelSummary> Channels { get; private set; } = Array.Empty<ChannelSummary>();
 
-    public async Task OnGet([FromQuery] string? day = null, CancellationToken cancellationToken = default)
+    public async Task OnGet([FromQuery] string? day = null, string? channel = null, CancellationToken cancellationToken = default)
     {
         var maxPublished = DateTimeOffset.Now;
         var minPublished = maxPublished.AddDays(-1);

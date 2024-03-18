@@ -1,6 +1,6 @@
-﻿@page
+﻿@page "{channel?}"
 @using System.Globalization;
-@model News.App.Pages.NewsModel
+@model News.App.Pages.DailyModel
 @{
     ViewData["Title"] = Model.Date.ToString("D");
     var oldNews = Model.Date < DateTime.Today;
@@ -14,10 +14,10 @@
                 @Model.Date.ToString("D")
             </h3>
             <div class="btn-group btn-group-sm align-self-center" role="group" aria-label="news commands">
-                <a asp-route-day="@Model.Date.AddDays(-1).ToString(NewsModel.DateFormat, CultureInfo.InvariantCulture)" class="btn btn-outline-info">
+                <a asp-route-day="@Model.Date.AddDays(-1).ToString(DailyModel.DateFormat, CultureInfo.InvariantCulture)" class="btn btn-outline-info">
                     <i class="bi bi-arrow-left"></i>
                 </a>
-                <a asp-route-day="@Model.Date.AddDays(1).ToString(NewsModel.DateFormat, CultureInfo.InvariantCulture)"
+                <a asp-route-day="@Model.Date.AddDays(1).ToString(DailyModel.DateFormat, CultureInfo.InvariantCulture)"
                    class="btn @(oldNews ? "btn-outline-info" : "btn-outline-secondary disabled")">
                     <i class="bi bi-arrow-right"></i>
                 </a>
