@@ -73,7 +73,7 @@
                 {
                     var pubDate = feed.LastPublishedLocal.Value;
                     var pubDateLast = pubDate.AddYears(-1);
-                    <div class="p-4">
+                    <nav class="p-4">
                         <h4 class="">Archives</h4>
                         <ol class="list-unstyled mb-0">
                             @while (pubDate > pubDateLast)
@@ -89,7 +89,7 @@
                                 pubDate = pubDate.AddMonths(-1);
                             }
                         </ol>
-                    </div>
+                    </nav>
                 }
                 <div class="p-4">
                     <h4 class="">Elsewhere</h4>
