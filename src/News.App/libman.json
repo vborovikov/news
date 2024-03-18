@@ -12,7 +12,7 @@
       ]
     },
     {
-      "library": "bootstrap-icons@1.10.5",
+      "library": "bootstrap-icons@1.11.3",
       "destination": "wwwroot/lib/bootstrap/",
       "files": [
         "font/fonts/bootstrap-icons.woff",
