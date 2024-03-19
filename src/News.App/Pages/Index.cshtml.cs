@@ -160,7 +160,14 @@ public class IndexModel : AppPageModel
                             uf.Link, uf.Updated, uf.Error,
                             (select max(p.Published) 
                              from rss.Posts p 
-                             where p.FeedId = uf.FeedId) as LastPublished
+                             where p.FeedId = uf.FeedId) as LastPublished,
+                             json_query((
+                                select top 3 p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug, p.IsRead, p.Author
+                                from rss.AppPosts p
+                                where p.FeedId = uf.FeedId
+                                order by p.Published desc
+                                for json path
+                            )) as Posts
                         from rss.AppFeeds uf
                         where uf.UserId = @UserId and uf.ChannelId = uc.Id
                         order by uf.Title
@@ -208,7 +215,7 @@ public class IndexModel : AppPageModel
                 MaxDate = maxDate,
                 ((IPage)page).SkipCount,
                 ((IPage)page).TakeCount
-            }) ?? Enumerable.Empty<RssChannel>();
+            }) ?? [];
     }
 
     public enum GranularityLevel
@@ -220,7 +227,7 @@ public class IndexModel : AppPageModel
         Posts,
         // all posts in the feed, no content
         Feed,
-        // all feeds in the channel
+        // all feeds in the channel with some posts
         Channel,
         // all channels and feeds in them
         Channels,

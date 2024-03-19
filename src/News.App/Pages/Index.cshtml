@@ -43,7 +43,7 @@ else if (Model.Granularity == IndexModel.GranularityLevel.Channel)
     var channel = Model.Channels.First();
     ViewData["Title"] = channel.Name;
 
-    <partial name="Index/_Channel" model="Model.Channels" />
+    <partial name="Index/_Channel" model="channel" />
 }
 else if (Model.Granularity >= IndexModel.GranularityLevel.Channels)
 {

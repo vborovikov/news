@@ -1,42 +1,62 @@
-﻿@model IEnumerable<RssChannel>
+﻿@model RssChannel
 
 <div class="row g-5">
     <div class="col-md-8 order-md-1 order-2">
-        @foreach (var channel in Model)
-        {
-            <h3 id="@channel.Slug" class="pb-2 border-bottom">
-                <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="" class="link-dark text-decoration-none">
-                    @channel.Name
-                </a>
-            </h3>
+        <h3 id="@Model.Slug" class="pb-2 border-bottom">
+            <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="" class="link-dark text-decoration-none">
+                @Model.Name
+            </a>
+        </h3>
 
-            @foreach (var feed in channel.Feeds)
+        <article class="feed-post">
+            @foreach (var feed in Model.Feeds)
             {
-                <p>
-                    <i class="be bi-rss-fill @FeedTextClass(feed)"></i>
-                    <strong>
-                        <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug" asp-route-year=""
-                           class="link-dark text-decoration-none">
-                            @feed.Title
-                        </a>
-                    </strong>
-                    @if (feed.Description is not null)
-                    {
-                        <br />
-                        <small class="text-muted">@Html.Raw(feed.Description)</small>
-                    }
-                </p>
+                if (!feed.Posts.Any())
+                {
+                    continue;
+                }
+
+                <section>
+                    <h6>
+                        <i class="be bi-rss-fill @FeedTextClass(feed)"></i>
+                        <strong>
+                            <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug" asp-route-year=""
+                               class="link-dark text-decoration-none">
+                                @feed.Title
+                            </a>
+                        </strong>
+                    </h6>
+                    <ul>
+                        @foreach (var post in feed.Posts)
+                        {
+                            <li>
+                                <a asp-page="/Index"
+                                   asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+                                   asp-route-year="@post.PublishedLocal.Year.ToString("D4")"
+                                   asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
+                                   asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
+                                   asp-route-post="@post.Slug" class="link-dark text-decoration-none">@Html.Raw(post.Title)</a>
+                                <small class="text-muted">| @post.PublishedLocal.ToString("f")</small>
+                            </li>
+                        }
+                    </ul>
+                </section>
             }
-        }
+        </article>
     </div>
     <div class="col-md-4 order-md-2 order-1">
         <div class="position-sticky" style="top: 1rem;">
             <nav class="p-2">
-                <h4>Channels</h4>
+                <h4>Feeds</h4>
                 <ul class="list-unstyled mb-0">
-                    @foreach (var channel in Model)
+                    @foreach (var feed in Model.Feeds)
                     {
-                        <li><a href="#@channel.Slug">@channel.Name</a></li>
+                        if (!feed.Posts.Any())
+                        {
+                            continue;
+                        }
+
+                        <li><a href="#@feed.Slug">@feed.Title</a></li>
                     }
                 </ul>
             </nav>
