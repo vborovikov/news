@@ -1,0 +1,66 @@
+﻿@model IEnumerable<RssChannel>
+
+<div class="row g-5">
+    <div class="col-md-8 order-md-1 order-2">
+        @foreach (var channel in Model)
+        {
+            <h3 id="@channel.Slug" class="pb-2 border-bottom">
+                <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="" class="link-dark text-decoration-none">
+                    @channel.Name
+                </a>
+            </h3>
+
+            @foreach (var feed in channel.Feeds)
+            {
+                <p>
+                    <i class="be bi-rss-fill @FeedTextClass(feed)"></i>
+                    <strong>
+                        <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug" asp-route-year=""
+                           class="link-dark text-decoration-none">
+                            @feed.Title
+                        </a>
+                    </strong>
+                    @if (feed.Description is not null)
+                    {
+                        <br />
+                        <small class="text-muted">@Html.Raw(feed.Description)</small>
+                    }
+                </p>
+            }
+        }
+    </div>
+    <div class="col-md-4 order-md-2 order-1">
+        <div class="position-sticky" style="top: 1rem;">
+            <nav class="p-2">
+                <h4>Channels</h4>
+                <ul class="list-unstyled mb-0">
+                    @foreach (var channel in Model)
+                    {
+                        <li><a href="#@channel.Slug">@channel.Name</a></li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string FeedLinkClass(RssFeedInfo feed)
+    {
+        return "link-" + FeedStatusName(feed);
+    }
+
+    private string FeedTextClass(RssFeedInfo feed)
+    {
+        return "text-" + FeedStatusName(feed);
+    }
+
+    private string FeedStatusName(RssFeedInfo feed)
+    {
+        return
+            feed.HasError ? "danger" :
+            feed.IsOutdated ? "secondary" :
+            feed.HasPosts ? "primary" :
+            "warning";
+    }
+}
