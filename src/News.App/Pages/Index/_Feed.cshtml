@@ -35,7 +35,7 @@
                                asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
                                asp-route-post="@post.Slug"
                                class="link-dark text-decoration-none">
-                                @post.Title
+                                @Html.Raw(post.Title)
                             </a>
                         </strong>
                     </p>
