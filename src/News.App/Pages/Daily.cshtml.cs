@@ -22,7 +22,7 @@ public class DailyModel : AppPageModel
 
     public DateTime Date { get; private set; } = DateTime.Today;
 
-    public IEnumerable<ChannelSummary> Channels { get; private set; } = Array.Empty<ChannelSummary>();
+    public IEnumerable<ChannelSummary> Channels { get; private set; } = [];
 
     public async Task OnGet([FromQuery] string? day = null, string? channel = null, CancellationToken cancellationToken = default)
     {
@@ -38,8 +38,10 @@ public class DailyModel : AppPageModel
         this.Date = maxPublished.Date;
 
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-        this.Channels = await cnn.QueryJsonAsync<IEnumerable<ChannelSummary>>(
-            """
+        if (string.IsNullOrWhiteSpace(channel))
+        {
+            this.Channels = await cnn.QueryJsonAsync<IEnumerable<ChannelSummary>>(
+                """
             select uc.Id as ChannelId, uc.Name, uc.Slug,
                 json_query((
                     select rp.*
@@ -62,12 +64,17 @@ public class DailyModel : AppPageModel
             order by uc.Name
             for json path;
             """,
-            new
-            {
-                this.UserId,
-                MinPublished = minPublished,
-                MaxPublished = maxPublished,
-            }) ?? Array.Empty<ChannelSummary>();
+                new
+                {
+                    this.UserId,
+                    MinPublished = minPublished,
+                    MaxPublished = maxPublished,
+                }) ?? [];
+        }
+        else
+        {
+
+        }
     }
 
     public record PostSummary : PostBase
