@@ -5,7 +5,7 @@
         @foreach (var channel in Model)
         {
             <h3 id="@channel.Slug" class="pb-2 border-bottom">
-                <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="" class="link-dark text-decoration-none">
+                <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="" class="link-dark">
                     @channel.Name
                 </a>
             </h3>
@@ -16,7 +16,7 @@
                     <i class="be bi-rss-fill @FeedTextClass(feed)"></i>
                     <strong>
                         <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug" asp-route-year=""
-                           class="link-dark text-decoration-none">
+                           class="link-dark">
                             @feed.Title
                         </a>
                     </strong>

@@ -11,7 +11,7 @@
                 <article @{ if (!post.IsRead) { <text>is="post-reader"</text> } }
                          data-action="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "read" })" class="feed-post">
                     <h3 class="feed-post-title">
-                        <a href="@post.Link" target="_blank" class="@PostLinkClass(post) text-decoration-none">@Html.Raw(post.Title)</a>
+                        <a href="@post.Link" target="_blank" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
                     </h3>
                     <section class="d-flex justify-content-between">
                         <p class="feed-post-meta">
@@ -25,7 +25,7 @@
                             <text>|&nbsp;</text>
                             <i class="be bi-rss-fill flex-shrink-0 @FeedTextClass(feed)"></i>
                             <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
-                               asp-route-year="" class="link-dark text-decoration-none">
+                               asp-route-year="" class="link-dark">
                                 @feed.Title
                             </a>
                         </p>

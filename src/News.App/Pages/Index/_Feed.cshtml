@@ -8,7 +8,7 @@
             <div class="d-flex justify-content-between pb-2 border-bottom">
                 <h3>
                     <i class="be bi-rss-fill flex-shrink-0 me-1 @FeedTextClass(feed)"></i>
-                    <a href="@Html.Raw(feed.Link)" class="link-dark text-decoration-none">
+                    <a href="@Html.Raw(feed.Link)" class="link-dark">
                         @feed.Title
                     </a>
                 </h3>
@@ -35,7 +35,7 @@
                                asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
                                asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
                                asp-route-post="@post.Slug"
-                               class="@PostLinkClass(post) text-decoration-none">
+                               class="@PostLinkClass(post)">
                                 @Html.Raw(post.Title)
                             </a>
                         </strong>

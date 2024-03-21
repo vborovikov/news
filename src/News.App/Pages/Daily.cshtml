@@ -39,7 +39,7 @@
                 <section>
                     <h4>
                         <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed=""
-                           class="link-dark text-decoration-none" id="@channel.Slug">
+                           class="link-dark" id="@channel.Slug">
                             @channel.Name
                         </a>
                     </h4>
@@ -84,6 +84,6 @@
 @functions {
     private static string PostLinkClass(DailyModel.PostSummary post)
     {
-        return post.IsRead ? "link-secondary" : "link-primary";
+        return post.IsRead ? "link-secondary" : "link-dark";
     }
 }
