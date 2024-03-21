@@ -82,8 +82,8 @@
 </div>
 
 @functions {
-    private string PostLinkClass(DailyModel.PostSummary post)
+    private static string PostLinkClass(DailyModel.PostSummary post)
     {
-        return post.IsRead ? "link-light" : "link-dark";
+        return post.IsRead ? "link-secondary" : "link-primary";
     }
 }

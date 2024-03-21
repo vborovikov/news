@@ -1,4 +1,5 @@
 ﻿@model RssChannel
+@inject LinkGenerator lg
 
 <div class="row g-5">
     @foreach (var feed in Model.Feeds)
@@ -7,7 +8,8 @@
 
             @foreach (var post in feed.Posts)
             {
-                <article class="feed-post">
+                <article @{ if (!post.IsRead) { <text>is="post-reader"</text> } }
+                         data-action="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "read" })" class="feed-post">
                     <h3 class="feed-post-title">
                         <a href="@post.Link" target="_blank" class="@PostLinkClass(post) text-decoration-none">@Html.Raw(post.Title)</a>
                     </h3>
@@ -97,22 +99,22 @@
 </div>
 
 @functions {
-    private string PostLinkClass(RssPostInfo post)
+    private static string PostLinkClass(RssPostInfo post)
     {
-        return post.IsRead ? "link-light" : "link-dark";
+        return post.IsRead ? "link-secondary" : "link-dark";
     }
 
-    private string FeedLinkClass(RssFeedInfo feed)
+    private static string FeedLinkClass(RssFeedInfo feed)
     {
         return "link-" + FeedStatusName(feed);
     }
 
-    private string FeedTextClass(RssFeedInfo feed)
+    private static string FeedTextClass(RssFeedInfo feed)
     {
         return "text-" + FeedStatusName(feed);
     }
 
-    private string FeedStatusName(RssFeedInfo feed)
+    private static string FeedStatusName(RssFeedInfo feed)
     {
         return
             feed.HasError ? "danger" :

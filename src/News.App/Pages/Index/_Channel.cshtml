@@ -65,17 +65,17 @@
 </div>
 
 @functions {
-    private string FeedLinkClass(RssFeedInfo feed)
+    private static string FeedLinkClass(RssFeedInfo feed)
     {
         return "link-" + FeedStatusName(feed);
     }
 
-    private string FeedTextClass(RssFeedInfo feed)
+    private static string FeedTextClass(RssFeedInfo feed)
     {
         return "text-" + FeedStatusName(feed);
     }
 
-    private string FeedStatusName(RssFeedInfo feed)
+    private static string FeedStatusName(RssFeedInfo feed)
     {
         return
             feed.HasError ? "danger" :

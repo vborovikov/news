@@ -105,27 +105,27 @@
 </div>
 
 @functions {
-    private string PostLinkClass(RssPostInfo post)
+    private static string PostLinkClass(RssPostInfo post)
     {
-        return post.IsRead ? "link-light" : "link-dark";
+        return post.IsRead ? "link-secondary" : "link-dark";
     }
 
-    private string PostIconClass(RssPostInfo post)
+    private static string PostIconClass(RssPostInfo post)
     {
         return post.IsFavorite ? "bi-star-fill" : "bi-file-text";
     }
 
-    private string FeedLinkClass(RssFeedInfo feed)
+    private static string FeedLinkClass(RssFeedInfo feed)
     {
         return "link-" + FeedStatusName(feed);
     }
 
-    private string FeedTextClass(RssFeedInfo feed)
+    private static string FeedTextClass(RssFeedInfo feed)
     {
         return "text-" + FeedStatusName(feed);
     }
 
-    private string FeedStatusName(RssFeedInfo feed)
+    private static string FeedStatusName(RssFeedInfo feed)
     {
         return
             feed.HasError ? "danger" :

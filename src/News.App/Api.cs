@@ -77,8 +77,13 @@ static class Api
 
                     if (@@RowCount = 0)
                     begin
-                        insert into rss.UserPosts (UserId, PostId, IsRead, IsFavorite)
-                        values (@UserId, @PostId, 1, 0);
+                        declare @FeedId uniqueidentifier;
+                        select @FeedId = p.FeedId
+                        from rss.Posts p
+                        where p.Id = @PostId;
+
+                        insert into rss.UserPosts (UserId, FeedId, PostId, IsRead, IsFavorite)
+                        values (@UserId, @FeedId, @PostId, 1, 0);
                     end;
                     """, new { UserId = user.GetUserId(), PostId = id }, tx);
             }
@@ -101,8 +106,13 @@ static class Api
 
                     if (@@RowCount = 0)
                     begin
-                        insert into rss.UserPosts (UserId, PostId, IsRead, IsFavorite)
-                        values (@UserId, @PostId, 1, 1);
+                        declare @FeedId uniqueidentifier;
+                        select @FeedId = p.FeedId
+                        from rss.Posts p
+                        where p.Id = @PostId;
+
+                        insert into rss.UserPosts (UserId, FeedId, PostId, IsRead, IsFavorite)
+                        values (@UserId, @FeedId, @PostId, 1, 1);
                     end;
                     """, new { UserId = user.GetUserId(), PostId = id }, tx);
             }
