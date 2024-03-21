@@ -28,14 +28,14 @@
             {
                 <section class="mt-2">
                     <p class="mb-0">
-                        <i class="bi bi-file-text text-muted"></i>
+                        <i class="bi @PostIconClass(post) text-muted"></i>
                         <strong>
                             <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
                                asp-route-year="@post.PublishedLocal.Year.ToString("D4")"
                                asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
                                asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
                                asp-route-post="@post.Slug"
-                               class="link-dark text-decoration-none">
+                               class="@PostLinkClass(post) text-decoration-none">
                                 @Html.Raw(post.Title)
                             </a>
                         </strong>
@@ -105,6 +105,16 @@
 </div>
 
 @functions {
+    private string PostLinkClass(RssPostInfo post)
+    {
+        return post.IsRead ? "link-light" : "link-dark";
+    }
+
+    private string PostIconClass(RssPostInfo post)
+    {
+        return post.IsFavorite ? "bi-star-fill" : "bi-file-text";
+    }
+
     private string FeedLinkClass(RssFeedInfo feed)
     {
         return "link-" + FeedStatusName(feed);

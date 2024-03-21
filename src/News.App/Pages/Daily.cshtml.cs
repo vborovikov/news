@@ -48,7 +48,7 @@ public class DailyModel : AppPageModel
                     from (
                         select 
                             ap.PostId, ap.Title, ap.Published, ap.Description, 
-                            ap.Link, ap.Slug, ap.Author, ap.IsRead,
+                            ap.Link, ap.Slug, ap.Author, ap.IsRead, ap.IsFavorite,
                             af.Slug as FeedSlug, af.Title as FeedTitle,
                             row_number() over (partition by af.FeedId order by ap.Published desc) as PostNumber
                         from rss.AppFeeds af

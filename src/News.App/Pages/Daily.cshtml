@@ -52,7 +52,7 @@
                                    asp-route-year="@post.PublishedLocal.Year.ToString("D4")"
                                    asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
                                    asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
-                                   asp-route-post="@post.Slug" class="link-dark">@Html.Raw(post.Title)</a>
+                                   asp-route-post="@post.Slug" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
                                 <small class="text-muted">| @post.FeedTitle</small>
                             </li>
                         }
@@ -80,3 +80,10 @@
         </div>
     </div>
 </div>
+
+@functions {
+    private string PostLinkClass(DailyModel.PostSummary post)
+    {
+        return post.IsRead ? "link-light" : "link-dark";
+    }
+}

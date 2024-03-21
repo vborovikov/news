@@ -9,9 +9,9 @@
             {
                 <article class="feed-post">
                     <h3 class="feed-post-title">
-                        <a href="@post.Link" target="_blank" class="link-dark text-decoration-none">@Html.Raw(post.Title)</a>
+                        <a href="@post.Link" target="_blank" class="@PostLinkClass(post) text-decoration-none">@Html.Raw(post.Title)</a>
                     </h3>
-                    <section>
+                    <section class="d-flex justify-content-between">
                         <p class="feed-post-meta">
                             @post.PublishedLocal.ToString("f")
                             @if (!string.IsNullOrWhiteSpace(post.Author))
@@ -27,8 +27,16 @@
                                 @feed.Title
                             </a>
                         </p>
-                        <hr />
+                        @if (post.IsFavorite)
+                        {
+                            <span class="badge rounded-pill bg-light text-dark"><i class="bi bi-star-fill"></i></span>
+                        }
+                        else
+                        {
+                            <span class="badge rounded-pill bg-light text-dark"><i class="bi bi-star"></i></span>
+                        }
                     </section>
+                    <hr />
                     <section>
                         @Html.Raw(post.Content)
                     </section>
@@ -89,6 +97,11 @@
 </div>
 
 @functions {
+    private string PostLinkClass(RssPostInfo post)
+    {
+        return post.IsRead ? "link-light" : "link-dark";
+    }
+
     private string FeedLinkClass(RssFeedInfo feed)
     {
         return "link-" + FeedStatusName(feed);
