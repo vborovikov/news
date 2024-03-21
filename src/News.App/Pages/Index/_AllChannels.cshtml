@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<RssChannel>
 
 <div class="row">
-    <div class="col-md-8 order-md-1 order-2">
+    <div class="col-md-9 order-md-1 order-2">
         @foreach (var channel in Model)
         {
             <h3 id="@channel.Slug" class="pb-2 border-bottom">
@@ -29,7 +29,7 @@
             }
         }
     </div>
-    <div class="col-md-4 order-md-2 order-1">
+    <div class="col-md-3 order-md-2 order-1">
         <aside class="position-sticky" style="top: 1rem;">
             <nav class="p-2">
                 <h4>Channels</h4>
