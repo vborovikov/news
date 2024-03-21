@@ -1,7 +1,6 @@
 ﻿namespace News.App.Pages;
 
 using System.Data.Common;
-using System.Security.Claims;
 using Dapper;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,8 +11,7 @@ public abstract class AppPageModel : PageModel
 {
     private Guid? userId;
 
-    protected Guid UserId => this.userId ??=
-        Guid.TryParse(this.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
+    protected Guid UserId => this.userId ??= this.User.GetUserId();
 }
 
 public abstract class EditPageModel : AppPageModel

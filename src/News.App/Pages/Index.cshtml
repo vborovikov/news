@@ -9,10 +9,10 @@
     <link rel="stylesheet" href="~/lib/highlight.js/styles/default.min.css" />
 }
 
-@if (Model.Granularity == IndexModel.GranularityLevel.None || !Model.Channels.Any())
+@if (Model.Granularity == IndexModel.GranularityLevel.None || !Model.Channels.Any(ch => ch.Feeds.Any()))
 {
-    @* nothing to show since no user logged in *@
-    <h1 class="text-center display-1">Nothing to show, please log in to see the news.</h1>
+    @* nothing to show since no user logged in or channels are empty *@
+    <h1 class="text-center display-1">Nothing to show, please go back to see the news.</h1>
 }
 else if (Model.Granularity <= IndexModel.GranularityLevel.Posts)
 {

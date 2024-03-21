@@ -60,8 +60,11 @@ public static class Program
 
         app.UseRouting();
         app.UseAuthorization();
+        app.UseAntiforgery();
         app.MapRazorPages();
         app.MapFallbackToPage("/Index");
+
+        Api.Register(app);
 
         app.Run();
     }
