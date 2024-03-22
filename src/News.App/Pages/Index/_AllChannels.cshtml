@@ -13,7 +13,7 @@
             @foreach (var feed in channel.Feeds)
             {
                 <p>
-                    <i class="be bi-rss-fill @FeedTextClass(feed)"></i>
+                    <i class="bi bi-rss-fill @FeedTextClass(feed)"></i>
                     <strong>
                         <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug" asp-route-year=""
                            class="link-dark">

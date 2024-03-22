@@ -12,31 +12,23 @@
                     <h3 class="feed-post-title">
                         <a href="@post.Link" target="_blank" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
                     </h3>
-                    <section class="d-flex justify-content-between">
-                        <p class="feed-post-meta">
-                            @post.PublishedLocal.ToString("f")
-                            @if (!string.IsNullOrWhiteSpace(post.Author))
-                            {
-                                <text>|&nbsp;</text>
-                                @Html.Raw(post.Author)
-                            }
-
+                    <p class="feed-post-meta">
+                        @post.PublishedLocal.ToString("f")
+                        @if (!string.IsNullOrWhiteSpace(post.Author))
+                        {
                             <text>|&nbsp;</text>
-                            <i class="be bi-rss-fill flex-shrink-0 @FeedTextClass(feed)"></i>
-                            <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
-                               asp-route-year="" class="link-dark">
-                                @feed.Title
-                            </a>
-                        </p>
-                        @if (post.IsFavorite)
-                        {
-                            <span class="badge rounded-pill bg-light text-dark"><i class="bi bi-star-fill"></i></span>
+                            @Html.Raw(post.Author)
                         }
-                        else
-                        {
-                            <span class="badge rounded-pill bg-light text-dark"><i class="bi bi-star"></i></span>
-                        }
-                    </section>
+
+                        <text>|&nbsp;</text>
+                        <i class="bi bi-rss-fill @FeedTextClass(feed)"></i>
+                        <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+                            asp-route-year="" class="link-dark">
+                            @feed.Title
+                        </a>
+                        <text>|&nbsp;</text>
+                        <a class="text-warning"><i class="bi bi-star"></i></a>
+                    </p>
                     <hr />
                     <section>
                         @Html.Raw(post.Content)
