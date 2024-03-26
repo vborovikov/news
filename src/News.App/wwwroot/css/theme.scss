@@ -24,7 +24,7 @@ $link-hover-decoration: underline;
 }
 
 // Fix for img tags in posts
-img {
+img, figure {
     @extend .img-fluid;
 }
 

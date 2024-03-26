@@ -588,7 +588,7 @@ progress {
   content: "— ";
 }
 
-.img-fluid, img {
+.img-fluid, img, figure {
   max-width: 100%;
   height: auto;
 }
