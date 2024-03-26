@@ -57,5 +57,11 @@ else if (Model.Granularity >= IndexModel.GranularityLevel.Channels)
     <script src="~/js/post-reader.js" type="module"></script>
     <script src="~/js/post-star.js" type="module"></script>
     <script src="~/lib/highlight.js/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
+    <script src="~/lib/highlight.js/languages/powershell.min.js"></script>
+    <script>
+        hljs.configure({
+            cssSelector: "pre code, pre.EnlighterJSRAW"
+        });
+        hljs.highlightAll();
+    </script>
 }
