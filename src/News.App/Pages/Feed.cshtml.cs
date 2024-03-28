@@ -49,20 +49,25 @@ public class FeedModel : EditPageModel
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
         {
-            var prevSafeguards = await cnn.ExecuteScalarAsync<DbEnum<FeedSafeguard>>(
-                """select f.Safeguards from rss.Feeds f where f.Id = @FeedId;""",
+            var feedInfo = await cnn.QueryFirstAsync<FeedInfo>(
+                """
+                select f.Id, f.Status, f.Safeguards
+                from rss.Feeds f
+                where f.Id = @FeedId;
+                """,
                 new { this.Input.FeedId }, tx);
 
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
-                set Source = @FeedUrl, Status = 'OK', Error = null, Safeguards = @Safeguards
+                set Source = @FeedUrl, Status = @FeedStatus, Error = null, Safeguards = @Safeguards
                 where Id = @FeedId;
 
                 update rss.UserFeeds
                 set ChannelId = @ChannelId, Slug = @FeedSlug, Title = @FeedTitle
                 where UserId = @UserId and FeedId = @FeedId;
-                """, new
+                """,
+                new
                 {
                     this.UserId,
                     this.Input.FeedId,
@@ -70,10 +75,11 @@ public class FeedModel : EditPageModel
                     this.Input.FeedUrl,
                     this.Input.FeedSlug,
                     this.Input.FeedTitle,
-                    this.Input.Safeguards
+                    this.Input.Safeguards,
+                    FeedStatus = (feedInfo.Status & ~FeedStatus.SkipUpdate & ~FeedStatus.HttpError).AsDbEnum(),
                 }, tx);
 
-            if (this.Input.Safeguards != (FeedSafeguard)prevSafeguards)
+            if (this.Input.Safeguards != (FeedSafeguard)feedInfo.Safeguards)
             {
                 await cnn.ExecuteAsync(
                     """

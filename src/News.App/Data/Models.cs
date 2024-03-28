@@ -1,10 +1,19 @@
 namespace News.App.Data;
 
+using Spryer;
+
 public abstract record ChannelBase
 {
     public required Guid ChannelId { get; init; }
     public required string Name { get; init; }
     public required string Slug { get; init; }
+}
+
+record FeedInfo
+{
+    public Guid Id { get; init; }
+    public DbEnum<FeedStatus> Status { get; init; }
+    public DbEnum<FeedSafeguard> Safeguards { get; init; }
 }
 
 record FeedPath
