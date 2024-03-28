@@ -19,7 +19,7 @@ static class Program
 {
     static Program()
     {
-        DbEnum<FeedUpdateStatus>.Initialize();
+        DbEnum<FeedStatus>.Initialize();
         DbEnum<FeedSafeguard>.Initialize();
         DbEnum<PostStatus>.Initialize();
     }

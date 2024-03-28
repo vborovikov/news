@@ -734,7 +734,7 @@ sealed class Worker : BackgroundService,
         try
         {
             Feed? update = null;
-            if (feed.Status.HasFlag(FeedUpdateStatus.UserAgent))
+            if (feed.Status.HasFlag(FeedStatus.UserAgent))
             {
                 var feedData = await this.usr.GetStringAsync(feed.Source, cancellationToken);
                 if (!string.IsNullOrWhiteSpace(feedData))
@@ -841,7 +841,7 @@ sealed class Worker : BackgroundService,
             })
             {
                 var feedItems = update.Items.Select(item => new FeedItemWrapper(item, feedUpdate));
-                if (feed.Status.HasFlag(FeedUpdateStatus.DistinctId))
+                if (feed.Status.HasFlag(FeedStatus.DistinctId))
                 {
                     feedItems = feedItems.DistinctBy(fi => fi.Id);
                 }
@@ -956,34 +956,34 @@ sealed class Worker : BackgroundService,
         }
     }
 
-    private static DbEnum<FeedUpdateStatus> GetFeedStatus(Exception error, FeedUpdateStatus prevStatus)
+    private static DbEnum<FeedStatus> GetFeedStatus(Exception error, FeedStatus prevStatus)
     {
         if (error is SqlException { Number: 2627 })
         {
             return
-                prevStatus.HasFlag(FeedUpdateStatus.DistinctId) ? FeedUpdateStatus.SkipUpdate :
-                prevStatus.HasFlag(FeedUpdateStatus.UniqueId) ? FeedUpdateStatus.DistinctId | prevStatus :
-                FeedUpdateStatus.UniqueId | prevStatus;
+                prevStatus.HasFlag(FeedStatus.DistinctId) ? FeedStatus.SkipUpdate :
+                prevStatus.HasFlag(FeedStatus.UniqueId) ? FeedStatus.DistinctId | prevStatus :
+                FeedStatus.UniqueId | prevStatus;
         }
         if (error is HttpRequestException httpEx)
         {
             return
-                prevStatus.HasFlag(FeedUpdateStatus.HttpError) ? FeedUpdateStatus.SkipUpdate :
+                prevStatus.HasFlag(FeedStatus.HttpError) ? FeedStatus.SkipUpdate :
                 httpEx.StatusCode == HttpStatusCode.Unauthorized || httpEx.StatusCode == HttpStatusCode.Forbidden ?
-                prevStatus.HasFlag(FeedUpdateStatus.UserAgent) ? FeedUpdateStatus.SkipUpdate :
-                FeedUpdateStatus.UserAgent | prevStatus :
-                FeedUpdateStatus.HttpError | prevStatus;
+                prevStatus.HasFlag(FeedStatus.UserAgent) ? FeedStatus.SkipUpdate :
+                FeedStatus.UserAgent | prevStatus :
+                FeedStatus.HttpError | prevStatus;
         }
         if (error is FeedTypeNotSupportedException or HtmlContentDetectedException)
         {
-            return prevStatus.HasFlag(FeedUpdateStatus.HtmlResponse) ? FeedUpdateStatus.SkipUpdate :
-                FeedUpdateStatus.HtmlResponse | prevStatus;
+            return prevStatus.HasFlag(FeedStatus.HtmlResponse) ? FeedStatus.SkipUpdate :
+                FeedStatus.HtmlResponse | prevStatus;
         }
         if (error is TimeoutException)
         {
-            if (prevStatus.HasFlag(FeedUpdateStatus.UserAgent))
+            if (prevStatus.HasFlag(FeedStatus.UserAgent))
             {
-                return FeedUpdateStatus.SkipUpdate;
+                return FeedStatus.SkipUpdate;
             }
         }
 

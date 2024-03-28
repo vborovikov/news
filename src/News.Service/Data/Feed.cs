@@ -6,36 +6,11 @@ using Syndication;
 using Syndication.Feeds;
 using Spryer;
 
-[Flags]
-enum FeedUpdateStatus
-{
-    None = 0 << 0,
-    OK = None,
-
-    UniqueId = 1 << 0,
-    UQID = UniqueId,
-
-    DistinctId = 1 << 1,
-    DSID = DistinctId,
-
-    HtmlResponse = 1 << 2,
-    HTML = HtmlResponse,
-
-    HttpError = 1 << 3,
-    HTTP = HttpError,
-
-    UserAgent = 1 << 4,
-    USER = UserAgent,
-
-    SkipUpdate = 1 << 5,
-    SKIP = SkipUpdate,
-}
-
 record DbFeed
 {
     public Guid Id { get; init; }
     public required string Source { get; init; }
-    public DbEnum<FeedUpdateStatus> Status { get; init; }
+    public DbEnum<FeedStatus> Status { get; init; }
     public DbEnum<FeedSafeguard> Safeguards { get; init; }
 }
 
@@ -95,7 +70,7 @@ record FeedWrapper : WrapperBase
         "&lt;no description&gt;");
     public string Link => this.link ??= GetLink();
 
-    internal bool ItemsRequireUniqueIds => this.db.Status.HasFlag(FeedUpdateStatus.UniqueId);
+    internal bool ItemsRequireUniqueIds => this.db.Status.HasFlag(FeedStatus.UniqueId);
 
     private string GetLink()
     {
