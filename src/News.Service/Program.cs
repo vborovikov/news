@@ -53,12 +53,14 @@ static class Program
                 {
                     http.AddStandardResilienceHandler(options => 
                     {
-                        var attemptTimeout = TimeSpan.FromMinutes(3);
+                        var attemptTimeout = TimeSpan.FromMinutes(5);
                         var retryNumberKey = new ResiliencePropertyKey<int>("retry-number");
+                        
                         options.AttemptTimeout.Timeout = attemptTimeout;
                         options.CircuitBreaker.SamplingDuration = attemptTimeout * 2;
                         options.TotalRequestTimeout.Timeout = attemptTimeout * options.Retry.MaxRetryAttempts;
-                        options.TotalRequestTimeout.TimeoutGenerator = timeoutArgs =>
+
+                        options.AttemptTimeout.TimeoutGenerator = timeoutArgs =>
                         {
                             if (!timeoutArgs.Context.Properties.TryGetValue(retryNumberKey, out var retryNumber))
                             {
@@ -141,6 +143,6 @@ static class Program
         }
 
         // Overall timeout across all tries
-        httpClient.Timeout = TimeSpan.FromMinutes(30);
+        httpClient.Timeout = TimeSpan.FromHours(1);
     }
-}
+}   
