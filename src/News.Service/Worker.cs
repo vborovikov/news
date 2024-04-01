@@ -14,6 +14,7 @@ using Dodkin.Dispatch;
 using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
+using Polly.Timeout;
 using Readability;
 using Relay.RequestModel;
 using Spryer;
@@ -973,6 +974,10 @@ sealed class Worker : BackgroundService,
                 prevStatus.HasFlag(FeedStatus.UserAgent) ? FeedStatus.SkipUpdate :
                 FeedStatus.UserAgent | prevStatus :
                 FeedStatus.HttpError | prevStatus;
+        }
+        if (error is TimeoutRejectedException)
+        {
+            return FeedStatus.UserAgent | prevStatus;
         }
         if (error is FeedTypeNotSupportedException or HtmlContentDetectedException)
         {
