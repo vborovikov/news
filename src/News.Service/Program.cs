@@ -53,7 +53,7 @@ static class Program
                 {
                     http.AddStandardResilienceHandler(options => 
                     {
-                        var attemptTimeout = TimeSpan.FromMinutes(5);
+                        var attemptTimeout = TimeSpan.FromMinutes(3);
                         var retryNumberKey = new ResiliencePropertyKey<int>("retry-number");
                         
                         options.AttemptTimeout.Timeout = attemptTimeout;
@@ -143,6 +143,6 @@ static class Program
         }
 
         // Overall timeout across all tries
-        httpClient.Timeout = TimeSpan.FromHours(1);
+        httpClient.Timeout = TimeSpan.FromMinutes(30);
     }
 }   
