@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
 using News.Service.Data;
+using Polly;
 using Spryer;
 
 static class HttpClients
@@ -47,6 +48,28 @@ static class Program
                     settings.LogName = "Application";
                 });
 #pragma warning restore CA1416 // Validate platform compatibility
+
+                services.ConfigureHttpClientDefaults(http =>
+                {
+                    http.AddStandardResilienceHandler(options => 
+                    {
+                        var attemptTimeout = TimeSpan.FromMinutes(3);
+                        var retryNumberKey = new ResiliencePropertyKey<int>("retry-number");
+                        options.AttemptTimeout.Timeout = attemptTimeout;
+                        options.CircuitBreaker.SamplingDuration = attemptTimeout * 2;
+                        options.TotalRequestTimeout.Timeout = attemptTimeout * options.Retry.MaxRetryAttempts;
+                        options.TotalRequestTimeout.TimeoutGenerator = timeoutArgs =>
+                        {
+                            if (!timeoutArgs.Context.Properties.TryGetValue(retryNumberKey, out var retryNumber))
+                            {
+                                retryNumber = 0;
+                            }
+                            timeoutArgs.Context.Properties.Set(retryNumberKey, retryNumber + 1);
+
+                            return ValueTask.FromResult(attemptTimeout + TimeSpan.FromMinutes(retryNumber));
+                        };
+                    });
+                });
 
                 // feed http client
                 services.AddHttpClient(HttpClients.Feed, (sp, httpClient) =>
