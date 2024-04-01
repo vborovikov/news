@@ -139,5 +139,8 @@ static class Program
             httpClient.DefaultRequestHeaders.UserAgent.Clear();
             httpClient.DefaultRequestHeaders.Add("User-Agent", options.UserAgent);
         }
+
+        // Overall timeout across all tries
+        httpClient.Timeout = TimeSpan.FromMinutes(30);
     }
 }
