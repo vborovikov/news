@@ -1,8 +1,6 @@
 ﻿namespace News.App.Data;
 
-using System.Data.Common;
 using Microsoft.AspNetCore.Identity;
-using Identity;
 
 public sealed class AppUser : IdentityUser<Guid>
 {
@@ -20,19 +18,5 @@ public sealed class AppRole : IdentityRole<Guid>
     {
         // default Identity UI uses this ctor when creating new roles
         this.Id = Guid.NewGuid();
-    }
-}
-
-sealed class AppUserStore : UserStore<AppUser, AppRole, Guid>
-{
-    public AppUserStore(DbDataSource db, IdentityErrorDescriber describer) : base(db, describer)
-    {
-    }
-}
-
-sealed class AppRoleStore : RoleStore<AppRole, Guid>
-{
-    public AppRoleStore(DbDataSource db, IdentityErrorDescriber describer) : base(db, describer)
-    {
     }
 }

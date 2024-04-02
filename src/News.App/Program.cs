@@ -7,6 +7,8 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Services;
 using Spryer;
+using Spryer.AspNetCore.Identity;
+using Spryer.AspNetCore.Identity.SqlServer;
 
 public static class Program
 {
@@ -28,8 +30,10 @@ public static class Program
         builder.Services.AddScoped(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
 
         builder.Services.AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
-            .AddUserStore<AppUserStore>()
-            .AddRoleStore<AppRoleStore>()
+            .AddDapperStores(options =>
+            {
+                options.UseSqlServer();
+            })
             .AddDefaultUI()
             .AddDefaultTokenProviders();
 

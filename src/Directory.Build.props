@@ -1,7 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
  <PropertyGroup>
     <VersionPrefix>0.4.13</VersionPrefix>
-    <VersionSuffix>beta.16</VersionSuffix>
+    <VersionSuffix>beta.17</VersionSuffix>
     <PackageVersion>$(Version)</PackageVersion>
  </PropertyGroup>
 </Project>
