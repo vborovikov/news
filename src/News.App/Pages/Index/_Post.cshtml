@@ -21,10 +21,16 @@
                         }
 
                         <text>|&nbsp;</text>
-                        <i class="bi bi-rss-fill @FeedTextClass(feed)"></i>
+                        <i class="bi bi-rss @FeedTextClass(feed)"></i>
                         <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
                             asp-route-year="" class="link-dark">
                             @feed.Title
+                        </a>
+                        <text>|&nbsp;</text>
+                        <i class="bi bi-bookmark text-info"></i>
+                        <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed=""
+                            asp-route-year="" class="link-dark">
+                            @Model.Name
                         </a>
                         <text>|&nbsp;</text>
                         <a is="post-star" class="text-warning" data-favorite="@post.IsFavorite" 
