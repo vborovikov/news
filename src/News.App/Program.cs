@@ -27,12 +27,12 @@ public static class Program
 
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.AppName));
-        builder.Services.AddScoped(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
+        builder.Services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
 
         builder.Services.AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
             .AddDapperStores(options =>
             {
-                options.UseSqlServer();
+                options.UseSqlServer(dbSchema: "asp");
             })
             .AddDefaultUI()
             .AddDefaultTokenProviders();
