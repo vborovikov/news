@@ -23,6 +23,9 @@ public enum FeedStatus
 
     SkipUpdate = 1 << 5,
     SKIP = SkipUpdate,
+
+    UseProxy = 1 << 6,
+    PRXY = UseProxy,
 }
 
 [Flags]

@@ -1,5 +1,6 @@
 namespace News.Service;
 
+using System.Net;
 using System.Text;
 using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
@@ -12,6 +13,7 @@ using Spryer;
 static class HttpClients
 {
     public const string Feed = "Feed";
+    public const string FeedProxy = "FeedProxy";
     public const string Post = "Post";
     public const string Image = "Image";
 }
@@ -51,11 +53,24 @@ static class Program
 
                 services.ConfigureHttpClientDefaults(http =>
                 {
-                    http.AddStandardResilienceHandler(options => 
+                    http.ConfigureHttpClient((sp, httpClient) =>
+                    {
+                        var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
+                        if (options.UserAgent is not null)
+                        {
+                            httpClient.DefaultRequestHeaders.UserAgent.Clear();
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", options.UserAgent);
+                        }
+
+                        // Overall timeout across all tries
+                        httpClient.Timeout = TimeSpan.FromMinutes(30);
+                    });
+
+                    http.AddStandardResilienceHandler(options =>
                     {
                         var attemptTimeout = TimeSpan.FromMinutes(3);
                         var retryNumberKey = new ResiliencePropertyKey<int>("retry-number");
-                        
+
                         options.AttemptTimeout.Timeout = attemptTimeout;
                         options.CircuitBreaker.SamplingDuration = attemptTimeout * 2;
                         options.TotalRequestTimeout.Timeout = attemptTimeout * options.Retry.MaxRetryAttempts;
@@ -74,22 +89,25 @@ static class Program
                 });
 
                 // feed http client
-                services.AddHttpClient(HttpClients.Feed, (sp, httpClient) =>
-                {
-                    httpClient.DefaultRequestHeaders.Accept.Clear();
-                    httpClient.DefaultRequestHeaders.Accept.Add(new("application/rss+xml"));
-                    httpClient.DefaultRequestHeaders.Accept.Add(new("application/atom+xml"));
-                    httpClient.DefaultRequestHeaders.Accept.Add(new("application/xml"));
-                    httpClient.DefaultRequestHeaders.Accept.Add(new("text/xml"));
-
-                    Configure(sp, httpClient);
-                });
+                services.AddHttpClient(HttpClients.Feed, ConfigureFeedHttpClient);
+                services
+                    .AddHttpClient(HttpClients.FeedProxy, ConfigureFeedHttpClient)
+                    .ConfigurePrimaryHttpMessageHandler((handler, sp) =>
+                    {
+                        var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
+                        if (handler is HttpClientHandler clientHandler && options.ProxyAddress is not null)
+                        {
+                            var proxy = new WebProxy(options.ProxyAddress, BypassOnLocal: true)
+                            {
+                                UseDefaultCredentials = false,
+                            };
+                            clientHandler.Proxy = proxy;
+                            clientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                        }
+                    });
 
                 // post http client
-                services.AddHttpClient(HttpClients.Post, (sp, httpClient) =>
-                {
-                    Configure(sp, httpClient);
-                });
+                services.AddHttpClient(HttpClients.Post);
 
                 // image download http client
                 services.AddHttpClient(HttpClients.Image, (sp, httpClient) =>
@@ -103,8 +121,6 @@ static class Program
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/svg+xml"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/tiff"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/webp"));
-
-                    Configure(sp, httpClient);
                 });
 
                 services.AddSingleton<IQueueRequestDispatcher>(sp =>
@@ -133,16 +149,12 @@ static class Program
         return host.RunAsync();
     }
 
-    private static void Configure(IServiceProvider sp, HttpClient httpClient)
+    private static void ConfigureFeedHttpClient(IServiceProvider sp, HttpClient httpClient)
     {
-        var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
-        if (options.UserAgent is not null)
-        {
-            httpClient.DefaultRequestHeaders.UserAgent.Clear();
-            httpClient.DefaultRequestHeaders.Add("User-Agent", options.UserAgent);
-        }
-
-        // Overall timeout across all tries
-        httpClient.Timeout = TimeSpan.FromMinutes(30);
+        httpClient.DefaultRequestHeaders.Accept.Clear();
+        httpClient.DefaultRequestHeaders.Accept.Add(new("application/rss+xml"));
+        httpClient.DefaultRequestHeaders.Accept.Add(new("application/atom+xml"));
+        httpClient.DefaultRequestHeaders.Accept.Add(new("application/xml"));
+        httpClient.DefaultRequestHeaders.Accept.Add(new("text/xml"));
     }
-}   
+}

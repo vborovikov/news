@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Xml;
 using Brackets;
@@ -513,12 +514,13 @@ sealed class Worker : BackgroundService,
 
             var feeds = await GetFeedsToUpdateAsync(cancellationToken);
             var client = this.web.CreateClient(HttpClients.Feed);
+            var proxyClient = this.web.CreateClient(HttpClients.FeedProxy);
             var total = feeds.Count();
             var count = 0;
             await Parallel.ForEachAsync(feeds, cancellationToken, async (feed, cancellationToken) =>
             {
                 this.log.LogDebug("Updating feed ({count}/{total}) {feedUrl}", Interlocked.Increment(ref count), total, feed.Source);
-                await UpdateFeedAsync(feed, client, cancellationToken);
+                await UpdateFeedAsync(feed, feed.Status.HasFlag(FeedStatus.UseProxy) ? proxyClient : client, cancellationToken);
             });
         }
         catch (Exception x) when (x is not OperationCanceledException)
@@ -968,6 +970,11 @@ sealed class Worker : BackgroundService,
         }
         if (error is HttpRequestException httpEx)
         {
+            if (httpEx.GetBaseException() is SocketException { SocketErrorCode: SocketError.ConnectionReset })
+            {
+                return FeedStatus.UseProxy | prevStatus;
+            }
+
             return
                 prevStatus.HasFlag(FeedStatus.HttpError) ? FeedStatus.SkipUpdate :
                 httpEx.StatusCode == HttpStatusCode.Unauthorized || httpEx.StatusCode == HttpStatusCode.Forbidden ?
