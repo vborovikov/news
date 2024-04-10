@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Threading;
 using System.Xml;
 using Brackets;
@@ -973,6 +974,12 @@ sealed class Worker : BackgroundService,
             if (httpEx.GetBaseException() is SocketException { SocketErrorCode: SocketError.ConnectionReset })
             {
                 return FeedStatus.UseProxy | prevStatus;
+            }
+
+            if (httpEx.InnerException is AuthenticationException)
+            {
+                // probably TLS 1.3 not supported
+                return FeedStatus.UserAgent | prevStatus;
             }
 
             return
