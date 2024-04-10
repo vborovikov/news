@@ -5,13 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>NewsApp</UserSecretsId>
-    <Title>News Reader</Title>
-    <Description>News website</Description>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Title>News Reader</Title>
-    <Description>News website</Description>
+    <Title>News@Home</Title>
+    <Description>News Reader</Description>
     <ApplicationIcon>Properties\icon.ico</ApplicationIcon>
   </PropertyGroup>
 

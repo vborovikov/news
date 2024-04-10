@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Title>News Reader</Title>
-    <Description>News aggregator service</Description>
+    <Title>News@Home</Title>
+    <Description>News Aggregator</Description>
     <ApplicationIcon>Properties\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
