@@ -12,7 +12,12 @@ static class UserAgent
 
     public static async Task<string?> GetStringAsync(this IQueueRequestDispatcher dispatcher, string url, CancellationToken cancellationToken)
     {
-        var pageInfo = await dispatcher.RunAsync(new PageInfoQuery(new Uri(url)) { CancellationToken = cancellationToken }, timeout);
+        var pageInfo = await dispatcher.RunAsync(
+            new PageInfoQuery(new Uri(url))
+            {
+                UseContent = true,
+                CancellationToken = cancellationToken
+            }, timeout);
 
         if (pageInfo is { StatusCode: >= 300 })
         {
