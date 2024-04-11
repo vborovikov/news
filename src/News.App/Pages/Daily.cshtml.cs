@@ -42,28 +42,29 @@ public class DailyModel : AppPageModel
         {
             this.Channels = await cnn.QueryJsonAsync<IEnumerable<ChannelSummary>>(
                 """
-            select uc.Id as ChannelId, uc.Name, uc.Slug,
-                json_query((
-                    select rp.*
-                    from (
-                        select 
-                            ap.PostId, ap.Title, ap.Published, ap.Description, 
-                            ap.Link, ap.Slug, ap.Author, ap.IsRead, ap.IsFavorite,
-                            af.Slug as FeedSlug, af.Title as FeedTitle,
-                            row_number() over (partition by af.FeedId order by ap.Published desc) as PostNumber
-                        from rss.AppFeeds af
-                        inner join rss.AppPosts ap on af.FeedId = ap.FeedId
-                        where af.UserId = @UserId and af.ChannelId = uc.Id and
-                            ap.Published >= @MinPublished and ap.Published <= @MaxPublished
-                    ) rp
-                    where rp.PostNumber <= 3
-                    for json path
-                )) as Posts
-            from rss.UserChannels uc
-            where uc.UserId = @UserId
-            order by uc.Name
-            for json path;
-            """,
+                select uc.Id as ChannelId, uc.Name, uc.Slug,
+                    json_query((
+                        select rp.*
+                        from (
+                            select
+                                ap.PostId, ap.Title, ap.Published, ap.Description, 
+                                ap.Link, ap.Slug, ap.Author, ap.IsRead, ap.IsFavorite,
+                                af.Slug as FeedSlug, af.Title as FeedTitle,
+                                row_number() over (partition by af.FeedId order by ap.Published desc) as PostNumber
+                            from rss.AppFeeds af
+                            inner join rss.AppPosts ap on af.FeedId = ap.FeedId
+                            where af.UserId = @UserId and af.ChannelId = uc.Id and
+                                ap.Published >= @MinPublished and ap.Published <= @MaxPublished
+                        ) rp
+                        where rp.PostNumber <= 3
+                        order by rp.FeedTitle, rp.Published desc
+                        for json path
+                    )) as Posts
+                from rss.UserChannels uc
+                where uc.UserId = @UserId
+                order by uc.Name
+                for json path;
+                """,
                 new
                 {
                     this.UserId,
