@@ -1,9 +1,27 @@
 namespace News.Service.Data;
 
 using System;
+using System.Buffers;
+using System.Text;
 
 static class SlugExtractor
 {
+    private const int MaxSlugLength = 100;
+    private static readonly SearchValues<char> reservedChars = SearchValues.Create(";/?:@&=+$,");
+    private static readonly Dictionary<string, string> reservedCharReplacements = new()
+    {
+        {";", "-semicolon"},
+        {"/", "-slash"},
+        {"?", "-question"},
+        {":", "-colon"},
+        {"@", "-at"},
+        {"&", "-amp"},
+        {"=", "-eq"},
+        {"+", "-plus"},
+        {"$", "-dollar"},
+        {",", "-comma"},
+    };
+
     public static string SlugifyPost(this string url) => url.AsSpan().SlugifyPost();
 
     public static string SlugifyPost(this ReadOnlySpan<char> url)
@@ -81,7 +99,7 @@ static class SlugExtractor
             break;
         }
 
-        return (slug.Length > 100 ? slug[..100] : slug).ToString();
+        return SanitizeSlug(slug);
     }
 
     public static string SlugifyFeed(this string url)
@@ -150,6 +168,32 @@ static class SlugExtractor
         return parts[^1];
     }
 
+    private static string SanitizeSlug(ReadOnlySpan<char> slug)
+    {
+        if (slug.Length > MaxSlugLength)
+        {
+            slug = slug[..MaxSlugLength];
+        }
+
+        if (slug.ContainsAny(reservedChars))
+        {
+            var slugBuilder = new StringBuilder(MaxSlugLength);
+            slugBuilder.Append(slug);
+            foreach (var (reservedChar, replacement) in reservedCharReplacements)
+            {
+                slugBuilder.Replace(reservedChar, replacement);
+            }
+            if (slugBuilder.Length > MaxSlugLength)
+            {
+                slugBuilder.Length = MaxSlugLength;
+            }
+
+            return slugBuilder.ToString();
+        }
+
+        return slug.ToString();
+    }
+
     private static ReadOnlySpan<char> MaybeRemoveExtension(this ReadOnlySpan<char> path)
     {
         foreach (var ext in commonExtensions)
@@ -184,7 +228,7 @@ static class SlugExtractor
     }
 
     private static readonly string[] commonWords =
-    {
+    [
         "about",
         "archive",
         "article",
@@ -206,10 +250,10 @@ static class SlugExtractor
         "rss",
         "sitemap",
         "terms",
-    };
+    ];
 
     private static readonly string[] commonExtensions =
-    {
+    [
         ".aspx",
         ".axd",
         ".email",
@@ -228,7 +272,7 @@ static class SlugExtractor
         ".webm",
         ".xml",
         ".yml",
-    };
+    ];
 
     private ref struct UrlPathEnumerator
     {

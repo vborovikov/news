@@ -39,6 +39,7 @@ public class SlugTests
     [DataRow("https://example.com/journal/2023/newsletter-rule-in-quiet/", "newsletter-rule-in-quiet")]
     [DataRow("https://example.com/journal/2023/comments-rule-in-quiet/", "comments-rule-in-quiet")]
     [DataRow("https://example.com/blogging/posts/blogtober-2016-1-2/", "blogtober-2016-1-2")]
+    [DataRow("https://example.com/MutexProtected-A-C++-Pattern-for-Easier-Concurrency/", "MutexProtected-A-C-plus-plus-Pattern-for-Easier-Concurrency")]
     public void SlugifyPost_WeirdLinks_LastGoodPathAsSlug(string link, string expected)
     {
         var slug = link.SlugifyPost();
