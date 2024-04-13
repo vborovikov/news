@@ -1,9 +1,10 @@
 ﻿namespace News.App.Pages;
 
 using System.Data.Common;
+using Data;
 using Microsoft.AspNetCore.Mvc;
-using News.App.Data;
 using Relay.InteractionModel;
+using Spryer;
 
 public class IndexModel : AppPageModel
 {
@@ -75,6 +76,7 @@ public class IndexModel : AppPageModel
                                         p.IsRead, p.IsFavorite, p.Author, p.Content
                                     from rss.AppPosts p
                                     where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
+                                        /**where**/
                                     order by p.Published desc
                                     offset @SkipCount rows fetch next @TakeCount rows only
                                     for json path
@@ -138,6 +140,7 @@ public class IndexModel : AppPageModel
                                     p.IsRead, p.IsFavorite, p.Author
                                 from rss.AppPosts p
                                 where p.FeedId = uf.FeedId
+                                    /**where**/
                                 order by p.Published desc
                                 offset @SkipCount rows fetch next @TakeCount rows only
                                 for json path
@@ -169,6 +172,7 @@ public class IndexModel : AppPageModel
                                     p.IsRead, p.IsFavorite, p.Author
                                 from rss.AppPosts p
                                 where p.FeedId = uf.FeedId
+                                    /**where**/
                                 order by p.Published desc
                                 for json path
                             )) as Posts
@@ -207,6 +211,14 @@ public class IndexModel : AppPageModel
                 """;
         }
 
+        if (!string.IsNullOrWhiteSpace(page.Q))
+        {
+            sql = sql.Replace("/**where**/",
+                $"""
+                and (p.Title like '%' + @Search + '%' or p.Description like '%' + @Search + '%' or p.Content like '%' + @Search + '%')
+                """);
+        }
+
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         this.Channels = await cnn.QueryJsonAsync<IEnumerable<RssChannel>>(sql,
             new
@@ -218,13 +230,16 @@ public class IndexModel : AppPageModel
                 MinDate = minDate,
                 MaxDate = maxDate,
                 ((IPage)page).SkipCount,
-                ((IPage)page).TakeCount
+                ((IPage)page).TakeCount,
+                Search = page.Q.AsNVarChar(250),
             }) ?? [];
     }
 
     public enum GranularityLevel
     {
         None,
+        // posts found in the search, no content
+        Search,
         // the single post
         Post,
         // some posts in the feed with content
