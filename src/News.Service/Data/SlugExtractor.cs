@@ -8,6 +8,7 @@ using System.Text;
 static class SlugExtractor
 {
     private const int MaxSlugLength = 100;
+    private const string irrelevantChars = "!()+-@[]_{}~";
     private static readonly SearchValues<char> reservedChars = SearchValues.Create(";/?:@&=+$,");
     private static readonly Dictionary<string, string> reservedCharReplacements = new()
     {
@@ -89,7 +90,7 @@ static class SlugExtractor
             // check for file extension then remove it
             slug = slug.MaybeRemoveExtension();
             // trim irrelevant characters
-            slug = slug.Trim("!()+-@[]_{}~");
+            slug = slug.Trim(irrelevantChars);
 
             // check for common words then discard
             if (slug.IsEmpty || slug.IsCommonWord())
@@ -115,7 +116,7 @@ static class SlugExtractor
 
             if (part.Type == UrlPathComponentType.Path)
             {
-                if (part.Span.Length < 3 || HasCommonExtension(part) || IsCommonWord(part))
+                if (part.Span.Length < 3 || part.Span.HasCommonExtension() || part.Span.IsCommonWord())
                 {
                     continue;
                 }
@@ -146,7 +147,7 @@ static class SlugExtractor
                         continue;
                     }
 
-                    if (hostDomain.Level == UrlHostDomainLevel.SecondLevel && IsKnownSldName(hostDomain))
+                    if (hostDomain.Level == UrlHostDomainLevel.SecondLevel && hostDomain.Name.IsKnownSldName())
                     {
                         continue;
                     }
@@ -284,7 +285,7 @@ static class SlugExtractor
         ".yml",
     ];
 
-    private static bool IsKnownSldName(ReadOnlySpan<char> name)
+    private static bool IsKnownSldName(this ReadOnlySpan<char> name)
     {
         foreach (var knownSldName in knownSldNames)
         {
