@@ -30,11 +30,11 @@ static class SlugExtractor
     {
         var slug = ReadOnlySpan<char>.Empty;
 
-        var parts = new UrlPathEnumerator(url);
-        while (parts.MoveNext())
+        var components = new UrlComponentEnumerator(url);
+        while (components.MoveNext())
         {
             // get last part of the url
-            slug = parts.Current;
+            slug = components.Current;
 
             // check for ? then get the first parameter value or skip the part entirely
             var queryIdx = slug.IndexOf('?');
@@ -109,23 +109,23 @@ static class SlugExtractor
     public static string SlugifyFeed(this ReadOnlySpan<char> url)
     {
         var slug = ReadOnlySpan<char>.Empty;
-        var parts = new UrlPathEnumerator(url);
-        while (parts.MoveNext())
+        var components = new UrlComponentEnumerator(url);
+        while (components.MoveNext())
         {
-            var part = parts.Current;
+            var component = components.Current;
 
-            if (part.Type == UrlPathComponentType.Path)
+            if (component.Type == UrlComponentType.PathSegment)
             {
-                if (part.Span.Length < 3 || part.Span.HasCommonExtension() || part.Span.IsCommonWord())
+                if (component.Name.Length < 3 || component.Name.HasCommonExtension() || component.Name.IsCommonWord())
                 {
                     continue;
                 }
             }
 
-            slug = part;
-            if (part.Type == UrlPathComponentType.Host && part.Span.Contains('.'))
+            slug = component;
+            if (component.Type == UrlComponentType.Authority && component.Name.Contains('.'))
             {
-                var hostDomains = new UrlHostEnumerator(part);
+                var hostDomains = new UrlHostDomainEnumerator(component);
                 while (hostDomains.MoveNext())
                 {
                 SkipAdvancement:
@@ -300,49 +300,52 @@ static class SlugExtractor
 
     private static readonly string[] knownSldNames = ["github", "hashnode"];
 
-    private enum UrlPathComponentType
+    private enum UrlComponentType
     {
         Unknown,
-        Path,
-        Host,
+        Fragment,
+        Query,
+        Slug,
+        PathSegment,
+        Authority,
         Scheme,
     }
 
     [DebuggerDisplay("{Type,nq}: {Span}")]
-    private readonly ref struct UrlPathComponent
+    private readonly ref struct UrlComponent
     {
-        public UrlPathComponent(ReadOnlySpan<char> span, UrlPathComponentType type)
+        public UrlComponent(ReadOnlySpan<char> name, UrlComponentType type)
         {
-            this.Span = span;
+            this.Name = name;
             this.Type = type;
         }
 
-        public ReadOnlySpan<char> Span { get; }
-        public UrlPathComponentType Type { get; }
+        public ReadOnlySpan<char> Name { get; }
+        public UrlComponentType Type { get; }
 
-        public void Deconstruct(out ReadOnlySpan<char> span, out UrlPathComponentType type)
+        public void Deconstruct(out ReadOnlySpan<char> name, out UrlComponentType type)
         {
-            span = this.Span;
+            name = this.Name;
             type = this.Type;
         }
 
-        public static implicit operator ReadOnlySpan<char>(UrlPathComponent component) => component.Span;
+        public static implicit operator ReadOnlySpan<char>(UrlComponent component) => component.Name;
     }
 
-    private ref struct UrlPathEnumerator
+    private ref struct UrlComponentEnumerator
     {
         private ReadOnlySpan<char> span;
-        private UrlPathComponent current;
+        private UrlComponent current;
 
-        public UrlPathEnumerator(ReadOnlySpan<char> span)
+        public UrlComponentEnumerator(ReadOnlySpan<char> span)
         {
             this.span = span;
             this.current = default;
         }
 
-        public readonly UrlPathComponent Current => this.current;
+        public readonly UrlComponent Current => this.current;
 
-        public readonly UrlPathEnumerator GetEnumerator() => this;
+        public readonly UrlComponentEnumerator GetEnumerator() => this;
 
         public bool MoveNext()
         {
@@ -366,24 +369,24 @@ static class SlugExtractor
             return true;
         }
 
-        private static UrlPathComponentType SpecifyType(ReadOnlySpan<char> component, ReadOnlySpan<char> rest)
+        private static UrlComponentType SpecifyType(ReadOnlySpan<char> component, ReadOnlySpan<char> rest)
         {
             if (rest.IsEmpty)
             {
                 if (component[^1] == ':')
                 {
-                    return UrlPathComponentType.Scheme;
+                    return UrlComponentType.Scheme;
                 }
 
-                return UrlPathComponentType.Host;
+                return UrlComponentType.Authority;
             }
 
             if (rest[^1] == ':')
             {
-                return UrlPathComponentType.Host;
+                return UrlComponentType.Authority;
             }
 
-            return UrlPathComponentType.Path;
+            return UrlComponentType.PathSegment;
         }
     }
 
@@ -416,20 +419,20 @@ static class SlugExtractor
         public static implicit operator ReadOnlySpan<char>(UrlHostDomain domain) => domain.Name;
     }
 
-    private ref struct UrlHostEnumerator
+    private ref struct UrlHostDomainEnumerator
     {
         private ReadOnlySpan<char> span;
         private UrlHostDomain current;
         private UrlHostDomainLevel level;
 
-        public UrlHostEnumerator(ReadOnlySpan<char> span)
+        public UrlHostDomainEnumerator(ReadOnlySpan<char> span)
         {
             this.span = span;
             this.current = default;
         }
 
         public readonly UrlHostDomain Current => this.current;
-        public readonly UrlHostEnumerator GetEnumerator() => this;
+        public readonly UrlHostDomainEnumerator GetEnumerator() => this;
 
         public bool MoveNext()
         {
