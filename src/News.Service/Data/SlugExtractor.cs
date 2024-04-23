@@ -2,6 +2,7 @@ namespace News.Service.Data;
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Text;
 
 static class SlugExtractor
@@ -102,70 +103,63 @@ static class SlugExtractor
         return SanitizeSlug(slug);
     }
 
-    public static string SlugifyFeed(this string url)
+    public static string SlugifyFeed(this string url) => url.AsSpan().SlugifyFeed();
+
+    public static string SlugifyFeed(this ReadOnlySpan<char> url)
     {
-        var parts = url.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        for (var i = parts.Length - 1; i >= 0; --i)
+        var slug = ReadOnlySpan<char>.Empty;
+        var parts = new UrlPathEnumerator(url);
+        while (parts.MoveNext())
         {
-            var part = parts[i];
+            var part = parts.Current;
 
-            if (i > 1 || (i == 1 && parts.Length == 2))
+            if (part.Type == UrlPathComponentType.Path)
             {
-                if (part.Length < 3 ||
-                    part.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
-                    part.EndsWith(".rss", StringComparison.OrdinalIgnoreCase) ||
-                    part.EndsWith(".axd", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("index.", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("rss", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("atom", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("author", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("blog", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("feed", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("post", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("page", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("default", StringComparison.OrdinalIgnoreCase) ||
-                    part.StartsWith("syndication", StringComparison.OrdinalIgnoreCase))
+                if (part.Span.Length < 3 || HasCommonExtension(part) || IsCommonWord(part))
                 {
                     continue;
                 }
             }
 
-            if (i <= 1 && part.Contains('.', StringComparison.OrdinalIgnoreCase))
+            slug = part;
+            if (part.Type == UrlPathComponentType.Host && part.Span.Contains('.'))
             {
-                var hostParts = part.Split('.', StringSplitOptions.RemoveEmptyEntries);
-                var j = hostParts.Length - 1;
-                while (j >= 0)
+                var hostDomains = new UrlHostEnumerator(part);
+                while (hostDomains.MoveNext())
                 {
-                    if (hostParts[j].Length <= 3 || j == (hostParts.Length - 1))
+                SkipAdvancement:
+                    var hostDomain = hostDomains.Current;
+                    if (hostDomain.Name.Length <= 3 || hostDomain.Level == UrlHostDomainLevel.TopLevel)
                     {
-                        if (j == 0)
+                        // check for www
+                        if (hostDomains.MoveNext())
                         {
-                            if (hostParts[0] == "www")
+                            if (hostDomains.Current.Name.Equals("www", StringComparison.OrdinalIgnoreCase))
                             {
-                                ++j;
+                                slug = hostDomain;
+                                break;
                             }
-                            break;
+
+                            goto SkipAdvancement;
                         }
 
-                        --j;
                         continue;
                     }
 
-                    break;
-                }
+                    if (hostDomain.Level == UrlHostDomainLevel.SecondLevel && IsKnownSldName(hostDomain))
+                    {
+                        continue;
+                    }
 
-                part = hostParts[j];
-                if (part == "github" || part == "hashnode")
-                {
-                    part = hostParts[j - 1];
+                    slug = hostDomain.Name;
+                    break;
                 }
             }
 
-            return part;
+            break;
         }
 
-        return parts[^1];
+        return SanitizeSlug(slug);
     }
 
     private static string SanitizeSlug(ReadOnlySpan<char> slug)
@@ -227,12 +221,26 @@ static class SlugExtractor
         return false;
     }
 
+    private static bool HasCommonExtension(this ReadOnlySpan<char> path)
+    {
+        foreach (var ext in commonExtensions)
+        {
+            if (path.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static readonly string[] commonWords =
     [
         "about",
         "archive",
         "article",
         "atom",
+        "author",
         "blog",
         "comment",
         "contact",
@@ -244,11 +252,13 @@ static class SlugExtractor
         "link",
         "news",
         "note",
+        "page",
         "post",
         "privacy",
         "replies",
         "rss",
         "sitemap",
+        "syndication",
         "terms",
     ];
 
@@ -274,10 +284,54 @@ static class SlugExtractor
         ".yml",
     ];
 
+    private static bool IsKnownSldName(ReadOnlySpan<char> name)
+    {
+        foreach (var knownSldName in knownSldNames)
+        {
+            if (name.Equals(knownSldName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static readonly string[] knownSldNames = ["github", "hashnode"];
+
+    private enum UrlPathComponentType
+    {
+        Unknown,
+        Path,
+        Host,
+        Scheme,
+    }
+
+    [DebuggerDisplay("{Type,nq}: {Span}")]
+    private readonly ref struct UrlPathComponent
+    {
+        public UrlPathComponent(ReadOnlySpan<char> span, UrlPathComponentType type)
+        {
+            this.Span = span;
+            this.Type = type;
+        }
+
+        public ReadOnlySpan<char> Span { get; }
+        public UrlPathComponentType Type { get; }
+
+        public void Deconstruct(out ReadOnlySpan<char> span, out UrlPathComponentType type)
+        {
+            span = this.Span;
+            type = this.Type;
+        }
+
+        public static implicit operator ReadOnlySpan<char>(UrlPathComponent component) => component.Span;
+    }
+
     private ref struct UrlPathEnumerator
     {
         private ReadOnlySpan<char> span;
-        private ReadOnlySpan<char> current;
+        private UrlPathComponent current;
 
         public UrlPathEnumerator(ReadOnlySpan<char> span)
         {
@@ -285,30 +339,121 @@ static class SlugExtractor
             this.current = default;
         }
 
-        public readonly ReadOnlySpan<char> Current => this.current;
+        public readonly UrlPathComponent Current => this.current;
 
         public readonly UrlPathEnumerator GetEnumerator() => this;
 
         public bool MoveNext()
         {
             var remaining = this.span;
-            while (remaining.Length > 0 && remaining[^1] == '/')
-            {
-                remaining = remaining[..^1];
-            }
             if (remaining.IsEmpty)
                 return false;
 
+            var component = remaining;
             var pos = remaining.LastIndexOf('/');
-            if (pos >= 0)
+            if (pos < 0)
             {
-                this.current = remaining[(pos + 1)..];
-                this.span = remaining[..pos];
-                return true;
+                this.span = default;
+            }
+            else
+            {
+                component = remaining[(pos + 1)..];
+                this.span = remaining[..pos].TrimEnd('/');
             }
 
-            this.current = remaining;
-            this.span = default;
+            this.current = new(component, SpecifyType(component, this.span));
+            return true;
+        }
+
+        private static UrlPathComponentType SpecifyType(ReadOnlySpan<char> component, ReadOnlySpan<char> rest)
+        {
+            if (rest.IsEmpty)
+            {
+                if (component[^1] == ':')
+                {
+                    return UrlPathComponentType.Scheme;
+                }
+
+                return UrlPathComponentType.Host;
+            }
+
+            if (rest[^1] == ':')
+            {
+                return UrlPathComponentType.Host;
+            }
+
+            return UrlPathComponentType.Path;
+        }
+    }
+
+    private enum UrlHostDomainLevel
+    {
+        Unknown,
+        TopLevel,
+        SecondLevel,
+        Subdomain,
+    }
+
+    [DebuggerDisplay("{Type,nq}: {Span}")]
+    private readonly ref struct UrlHostDomain
+    {
+        public UrlHostDomain(ReadOnlySpan<char> name, UrlHostDomainLevel level)
+        {
+            this.Name = name;
+            this.Level = level;
+        }
+
+        public ReadOnlySpan<char> Name { get; }
+        public UrlHostDomainLevel Level { get; }
+
+        public void Deconstruct(out ReadOnlySpan<char> name, out UrlHostDomainLevel level)
+        {
+            name = this.Name;
+            level = this.Level;
+        }
+
+        public static implicit operator ReadOnlySpan<char>(UrlHostDomain domain) => domain.Name;
+    }
+
+    private ref struct UrlHostEnumerator
+    {
+        private ReadOnlySpan<char> span;
+        private UrlHostDomain current;
+        private UrlHostDomainLevel level;
+
+        public UrlHostEnumerator(ReadOnlySpan<char> span)
+        {
+            this.span = span;
+            this.current = default;
+        }
+
+        public readonly UrlHostDomain Current => this.current;
+        public readonly UrlHostEnumerator GetEnumerator() => this;
+
+        public bool MoveNext()
+        {
+            var remaining = this.span;
+            if (remaining.IsEmpty)
+                return false;
+
+            var domain = remaining;
+            var pos = remaining.LastIndexOf('.');
+            if (pos < 0)
+            {
+                this.span = default;
+            }
+            else
+            {
+                domain = remaining[(pos + 1)..];
+                this.span = remaining[..pos];
+            }
+
+            if (this.level < UrlHostDomainLevel.Subdomain)
+            {
+                ++this.level;
+            }
+
+            this.current = new(domain, this.level);
             return true;
         }
     }
