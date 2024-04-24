@@ -311,7 +311,7 @@ static class SlugExtractor
         Scheme,
     }
 
-    [DebuggerDisplay("{Type,nq}: {Span}")]
+    [DebuggerDisplay("{Type,nq}: {Name}")]
     private readonly ref struct UrlComponent
     {
         public UrlComponent(ReadOnlySpan<char> name, UrlComponentType type)
@@ -349,7 +349,7 @@ static class SlugExtractor
 
         public bool MoveNext()
         {
-            var remaining = this.span;
+            var remaining = this.span.TrimEnd('/');
             if (remaining.IsEmpty)
                 return false;
 
@@ -398,7 +398,7 @@ static class SlugExtractor
         Subdomain,
     }
 
-    [DebuggerDisplay("{Type,nq}: {Span}")]
+    [DebuggerDisplay("{Level,nq}: {Name}")]
     private readonly ref struct UrlHostDomain
     {
         public UrlHostDomain(ReadOnlySpan<char> name, UrlHostDomainLevel level)
