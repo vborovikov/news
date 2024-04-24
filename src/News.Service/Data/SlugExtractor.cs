@@ -339,7 +339,7 @@ static class SlugExtractor
 
         public UrlComponentEnumerator(ReadOnlySpan<char> span)
         {
-            this.span = span;
+            this.span = span.TrimEnd('/');
             this.current = default;
         }
 
@@ -349,7 +349,7 @@ static class SlugExtractor
 
         public bool MoveNext()
         {
-            var remaining = this.span.TrimEnd('/');
+            var remaining = this.span;
             if (remaining.IsEmpty)
                 return false;
 
@@ -427,7 +427,7 @@ static class SlugExtractor
 
         public UrlHostDomainEnumerator(ReadOnlySpan<char> span)
         {
-            this.span = span;
+            this.span = GetHostname(span);
             this.current = default;
         }
 
@@ -459,6 +459,21 @@ static class SlugExtractor
 
             this.current = new(domain, this.level);
             return true;
+        }
+
+        private static ReadOnlySpan<char> GetHostname(ReadOnlySpan<char> span)
+        {
+            var start = span.IndexOf('@');
+            var end = span.LastIndexOf(':');
+
+            if (start < 0 && end < 0)
+                return span;
+            if (end < 0)
+                return span[(start + 1)..];
+            if (start < 0)
+                return span[..end];
+
+            return span[(start + 1)..end];
         }
     }
 }
