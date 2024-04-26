@@ -10,8 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="RelayTk" Version="2.4.2" />
-    <PackageReference Include="Dodkin" Version="0.5.3" />
-    <PackageReference Include="Dodkin.Dispatch" Version="0.5.4" />
+    <PackageReference Include="Dodkin.Dispatch" Version="0.6.0" />
   </ItemGroup>
 
 </Project>
