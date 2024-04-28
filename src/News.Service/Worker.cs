@@ -859,6 +859,14 @@ sealed class Worker : BackgroundService,
                     {
                         nextUpdate = nearestNextUpdate;
                     }
+                    else
+                    {
+                        var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);
+                        if (nextUpdate > farthestNextUpdate)
+                        {
+                            nextUpdate = farthestNextUpdate;
+                        }
+                    }
 
                     if (feed.Scheduled is null || nextUpdate > feed.Scheduled)
                     {

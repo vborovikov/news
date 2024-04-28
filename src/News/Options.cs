@@ -24,6 +24,7 @@ public record ServiceOptions : AppOptions
 
     public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(3);
     public TimeSpan MinUpdateInterval { get; init;} = TimeSpan.FromMinutes(15);
+    public TimeSpan MaxUpdateInterval { get; init; }= TimeSpan.FromDays(30);
 
     public string? UserAgent { get; init; }
 
