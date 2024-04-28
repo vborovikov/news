@@ -23,6 +23,7 @@ public record ServiceOptions : AppOptions
     public const string ServiceName = "Newsmaker";
 
     public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(3);
+    public TimeSpan MinUpdateInterval { get; init;} = TimeSpan.FromMinutes(15);
 
     public string? UserAgent { get; init; }
 

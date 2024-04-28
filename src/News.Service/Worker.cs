@@ -25,6 +25,7 @@ using Syndication;
 using Syndication.Parser;
 
 sealed class Worker : BackgroundService,
+    IAsyncCommandHandler<UpdateFeedCommand>,
     IAsyncCommandHandler<LocalizeFeedsCommand>
 {
     private const int MaxLocalizingPostCount = 10;
@@ -35,23 +36,69 @@ sealed class Worker : BackgroundService,
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
     private readonly IQueueRequestDispatcher usr;
+    private readonly IQueueRequestScheduler scheduler;
     private readonly RequestHandler handler;
     private readonly ILogger log;
     private readonly ILogger wslog;
     private readonly Stopwatch busyMonitor;
 
     public Worker(IOptions<ServiceOptions> options,
-        DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr,
+        DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr, IQueueRequestScheduler scheduler,
         ILogger<Worker> log, ILogger<WindowShopper> wslog, ILogger<RequestHandler> rhlog)
     {
         this.options = options.Value;
         this.db = db;
         this.web = web;
         this.usr = usr;
+        this.scheduler = scheduler;
         this.handler = new(this, this.options.Endpoint, rhlog);
         this.log = log;
         this.wslog = wslog;
         this.busyMonitor = new Stopwatch();
+    }
+
+    async Task IAsyncCommandHandler<UpdateFeedCommand>.ExecuteAsync(UpdateFeedCommand command)
+    {
+        try
+        {
+            this.log.LogInformation(EventIds.FeedUpdateStarted, "Updating feed '{feedId}' at: {time}",
+                command.FeedId, DateTimeOffset.Now);
+
+            var feed = await GetFeedToUpdateAsync(command.FeedId, command.CancellationToken);
+            if (feed is null)
+            {
+                this.log.LogWarning(EventIds.FeedUpdateSkipped, "Updating feed '{feedId}' skipped", command.FeedId);
+                return;
+            }
+
+            var httpClient = this.web.CreateClient(feed.Status.HasFlag(FeedStatus.UseProxy) ? HttpClients.FeedProxy : HttpClients.Feed);
+            await UpdateFeedAsync(feed, httpClient, command.CancellationToken);
+            await SafeguardFeedAsync(feed, command.CancellationToken);
+        }
+        catch (Exception x)
+        {
+            this.log.LogError(x, "Error while updating feed '{feedId}'", command.FeedId);
+        }
+        finally
+        {
+            this.log.LogInformation(EventIds.FeedUpdateCompleted, "Finished updating feed '{feedId}' at: {time}",
+                command.FeedId, DateTimeOffset.Now);
+        }
+    }
+
+    private async Task<DbFeed?> GetFeedToUpdateAsync(Guid feedId, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+
+        var feed = await cnn.QueryFirstOrDefaultAsync<DbFeed>(
+            """
+            select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled
+            from rss.Feeds f
+            where f.Id = @FeedId and f.Status not like '%SKIP%' --and f.Status not like '%HTTP%'
+            order by f.Updated;
+            """, new { FeedId = feedId });
+
+        return feed;
     }
 
     Task IAsyncCommandHandler<LocalizeFeedsCommand>.ExecuteAsync(LocalizeFeedsCommand command)
@@ -225,7 +272,7 @@ sealed class Worker : BackgroundService,
             await StorePostUpdateErrorAsync(post, x, cancellationToken);
             throw;
         }
-        
+
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
@@ -461,7 +508,7 @@ sealed class Worker : BackgroundService,
         await using var cnn = await this.db.OpenConnectionAsync(stoppingToken);
         var feeds = await cnn.QueryAsync<DbFeed>(
             """
-            select f.Id, f.Source, f.Status, f.Safeguards
+            select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled
             from rss.Feeds f
             where f.Status not like '%SKIP%' and f.Safeguards not like 'OK'
             order by f.Updated;
@@ -724,9 +771,12 @@ sealed class Worker : BackgroundService,
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         var feeds = await cnn.QueryAsync<DbFeed>(
             """
-            select f.Id, f.Source, f.Status
+            declare @Now datetimeoffset = sysdatetimeoffset();
+
+            select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled
             from rss.Feeds f
-            where f.Status not like '%SKIP%' --and f.Status not like '%HTTP%'
+            where f.Status not like '%SKIP%' and 
+                (f.Status not like '%WAIT%' or f.Scheduled < @Now)
             order by f.Updated;
             """);
 
@@ -783,6 +833,7 @@ sealed class Worker : BackgroundService,
             }
 
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
+            await TryScheduleFeedUpdateAsync(feed, update, cancellationToken);
         }
         // HttpClient throws a TimeoutException wrapped in TaskCanceledException so we must check that CancellationToken is not ours
         catch (Exception x) when (x is not OperationCanceledException oce || oce.CancellationToken != cancellationToken)
@@ -792,9 +843,70 @@ sealed class Worker : BackgroundService,
         }
     }
 
+    private async Task<bool> TryScheduleFeedUpdateAsync(DbFeed feed, Feed update, CancellationToken cancellationToken)
+    {
+        var pubDates = update.Items.Select(i => i.PublishingDate).OrderByDescending(d => d);
+        if (pubDates.Any())
+        {
+            var avgPeriodInSeconds = pubDates.Zip(pubDates.Skip(1), (newer, older) => newer - older).Average(t => t?.TotalSeconds);
+            if (avgPeriodInSeconds.HasValue)
+            {
+                var nextUpdate = DateTimeOffset.Now.AddSeconds(avgPeriodInSeconds.Value);
+                if (nextUpdate > DateTimeOffset.Now)
+                {
+                    var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
+                    if (nextUpdate < nearestNextUpdate)
+                    {
+                        nextUpdate = nearestNextUpdate;
+                    }
+
+                    if (feed.Scheduled is null || nextUpdate > feed.Scheduled)
+                    {
+                        await this.scheduler.ExecuteAsync(
+                            new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
+                            nextUpdate);
+
+                        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+                        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+                        try
+                        {
+                            await cnn.ExecuteAsync(
+                                """
+                                update rss.Feeds
+                                set Status = @Status, Scheduled = @Scheduled
+                                where Id = @FeedId;
+                                """,
+                                new
+                                {
+                                    FeedId = feed.Id,
+                                    Status = (feed.Status | FeedStatus.UseSchedule).AsDbEnum(),
+                                    Scheduled = nextUpdate
+                                }, tx);
+
+                            await tx.CommitAsync(cancellationToken);
+
+                            this.log.LogInformation(EventIds.FeedUpdateScheduled, "Scheduled feed update for '{feedUrl}' at {nextUpdate}",
+                                feed.Source, nextUpdate);
+                            return true;
+                        }
+                        catch (Exception x) when (x is not OperationCanceledException)
+                        {
+                            await tx.RollbackAsync(cancellationToken);
+                            throw;
+                        }
+                    }
+                }
+            }
+        }
+
+        this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Cannot schedule feed update for '{feedUrl}'", feed.Source);
+        return false;
+    }
+
     private DbFeed MaybeUpdateFeedSource(DbFeed feed, string feedData)
     {
-        var feedLinks = FeedReader.ParseFeedUrlsFromHtml(feedData);
+        var html = Document.Html.Parse(feedData);
+        var feedLinks = Feed.FindAll(html);
         return MaybeUpdateFeedSource(feed, feedLinks);
     }
 
@@ -803,14 +915,11 @@ sealed class Worker : BackgroundService,
         var feedLink =
             feedLinks.FirstOrDefault(fl => fl.FeedType != FeedType.Unknown) ??
             feedLinks.FirstOrDefault();
-        if (feedLink is not null)
+
+        if (feedLink is not null && DocumentReader.TryMakeAbsoluteUrl(feed.Source, feedLink.Url, out var newFeedSource))
         {
-            feedLink = FeedReader.GetAbsoluteFeedUrl(feed.Source, feedLink);
-            if (Uri.IsWellFormedUriString(feedLink.Url, UriKind.Absolute))
-            {
-                this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, feedLink.Url);
-                feed = feed with { Source = feedLink.Url };
-            }
+            this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, newFeedSource);
+            feed = feed with { Source = newFeedSource };
         }
 
         return feed;

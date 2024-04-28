@@ -12,6 +12,8 @@ record DbFeed
     public required string Source { get; init; }
     public DbEnum<FeedStatus> Status { get; init; }
     public DbEnum<FeedSafeguard> Safeguards { get; init; }
+    public DateTimeOffset Updated { get; init; }
+    public DateTimeOffset? Scheduled { get; init; }
 }
 
 [Flags]
@@ -131,10 +133,10 @@ record FeedItemWrapper : WrapperBase
     //todo: handle this.item.SpecificItem.Element directly
     public string? PublishedDateString => GetNonEmpty(
         this.item.PublishingDateString,
-        (this.item.SpecificItem as AtomFeedItem)?.PublishedDateString,
-        (this.item.SpecificItem as AtomFeedItem)?.UpdatedDateString,
-        (this.item.SpecificItem as Rss091FeedItem)?.PublishingDateString,
-        (this.item.SpecificItem as Rss20FeedItem)?.PublishingDateString);
+        (this.item.SpecificItem as AtomFeedItem)?.UpdatedAsString,
+        (this.item.SpecificItem as AtomFeedItem)?.PublishedAsString,
+        (this.item.SpecificItem as Rss091FeedItem)?.PubDateAsString,
+        (this.item.SpecificItem as Rss20FeedItem)?.PubDateAsString);
 
     public string Link => EnsureAbsoluteUrl(GetNonEmpty(this.item.Link, this.item.Id).Trim());
 

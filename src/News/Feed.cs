@@ -6,26 +6,37 @@ public enum FeedStatus
     None = 0 << 0,
     OK = None,
 
+    // Unique ID for each post required
     UniqueId = 1 << 0,
     UQID = UniqueId,
 
+    // Filtering out duplicate posts required
     DistinctId = 1 << 1,
     DSID = DistinctId,
 
+    // Marks the feed source as HTML
     HtmlResponse = 1 << 2,
     HTML = HtmlResponse,
 
+    // The feed source returned an HTTP error
     HttpError = 1 << 3,
     HTTP = HttpError,
 
+    // Accessing the feed source via user agent required
     UserAgent = 1 << 4,
     USER = UserAgent,
 
+    // No update required
     SkipUpdate = 1 << 5,
     SKIP = SkipUpdate,
 
+    // Accessing the feed source via proxy required
     UseProxy = 1 << 6,
     PRXY = UseProxy,
+
+    // Feed updates scheduled, no periodic updates required
+    UseSchedule = 1 << 7,
+    WAIT = UseSchedule,
 }
 
 [Flags]
