@@ -776,7 +776,7 @@ sealed class Worker : BackgroundService,
             select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled
             from rss.Feeds f
             where f.Status not like '%SKIP%' and 
-                (f.Status not like '%WAIT%' or f.Scheduled < @Now)
+                (f.Status not like '%WAIT%' or f.Scheduled is null or f.Scheduled < @Now)
             order by f.Updated;
             """);
 
