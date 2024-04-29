@@ -865,36 +865,50 @@ sealed class Worker : BackgroundService,
 
                 if (feed.Scheduled is null || nextUpdate > feed.Scheduled || feed.Scheduled > farthestNextUpdate)
                 {
-                    await this.scheduler.ExecuteAsync(
-                        new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
-                        nextUpdate);
-
-                    await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-                    await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
                     try
                     {
-                        await cnn.ExecuteAsync(
-                            """
+                        await this.scheduler.ExecuteAsync(
+                            new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
+                            nextUpdate);
+
+                        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+                        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+                        try
+                        {
+                            var currentStatus = await cnn.ExecuteScalarAsync<DbEnum<FeedStatus>>(
+                                """
+                                select f.Status
+                                from rss.Feeds f
+                                where f.Id = @FeedId;
+                                """, new { FeedId = feed.Id }, tx);
+
+                            await cnn.ExecuteAsync(
+                                """
                                 update rss.Feeds
                                 set Status = @Status, Scheduled = @Scheduled
                                 where Id = @FeedId;
                                 """,
-                            new
-                            {
-                                FeedId = feed.Id,
-                                Status = (feed.Status | FeedStatus.UseSchedule).AsDbEnum(),
-                                Scheduled = nextUpdate
-                            }, tx);
+                                new
+                                {
+                                    FeedId = feed.Id,
+                                    Status = (currentStatus | FeedStatus.UseSchedule).AsDbEnum(),
+                                    Scheduled = nextUpdate
+                                }, tx);
 
-                        await tx.CommitAsync(cancellationToken);
+                            await tx.CommitAsync(cancellationToken);
 
-                        this.log.LogInformation(EventIds.FeedUpdateScheduled, "Scheduled feed update for '{feedUrl}' at {nextUpdate}",
-                            feed.Source, nextUpdate);
-                        return true;
+                            this.log.LogInformation(EventIds.FeedUpdateScheduled, "Scheduled feed update for '{feedUrl}' at {nextUpdate}",
+                                feed.Source, nextUpdate);
+                            return true;
+                        }
+                        catch (Exception x) when (x is not OperationCanceledException)
+                        {
+                            await tx.RollbackAsync(cancellationToken);
+                            throw;
+                        }
                     }
                     catch (Exception x) when (x is not OperationCanceledException)
                     {
-                        await tx.RollbackAsync(cancellationToken);
                         this.log.LogError(x, "Error scheduling feed update for '{feedUrl}'", feed.Source);
                         throw;
                     }
