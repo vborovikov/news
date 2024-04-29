@@ -67,7 +67,7 @@ public class IndexModel : AppPageModel
                     select uc.Id as ChannelId, uc.Name, uc.Slug,
                         json_query((
                             select uf.FeedId, uf.Title, uf.Slug, uf.Description,
-                                uf.Link, uf.Updated, uf.Error,
+                                uf.Link, uf.Updated, uf.Scheduled, uf.Error,
                                 (select max(p.Published) 
                                  from rss.Posts p 
                                  where p.FeedId = uf.FeedId) as LastPublished,
@@ -97,7 +97,7 @@ public class IndexModel : AppPageModel
                     select uc.Id as ChannelId, uc.Name, uc.Slug,
                         json_query((
                             select uf.FeedId, uf.Title, uf.Slug, uf.Description,
-                                uf.Link, uf.Updated, uf.Error,
+                                uf.Link, uf.Updated, uf.Scheduled, uf.Error,
                                 (select max(p.Published) 
                                  from rss.Posts p 
                                  where p.FeedId = uf.FeedId) as LastPublished,
@@ -131,7 +131,7 @@ public class IndexModel : AppPageModel
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug, uf.Description,
-                            uf.Link, uf.Updated, uf.Error,
+                            uf.Link, uf.Updated, uf.Scheduled, uf.Error,
                             (select max(p.Published) 
                              from rss.Posts p 
                              where p.FeedId = uf.FeedId) as LastPublished,
@@ -163,7 +163,7 @@ public class IndexModel : AppPageModel
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug, uf.Description,
-                            uf.Link, uf.Updated, uf.Error,
+                            uf.Link, uf.Updated, uf.Scheduled, uf.Error,
                             (select max(p.Published) 
                              from rss.Posts p 
                              where p.FeedId = uf.FeedId) as LastPublished,
@@ -195,7 +195,7 @@ public class IndexModel : AppPageModel
                 select uc.Id as ChannelId, uc.Name, uc.Slug,
                     json_query((
                         select uf.FeedId, uf.Title, uf.Slug, uf.Description, 
-                            uf.Link, uf.Updated, uf.Error,
+                            uf.Link, uf.Updated, uf.Scheduled, uf.Error,
                             (select max(p.Published) 
                              from rss.Posts p 
                              where p.FeedId = uf.FeedId) as LastPublished

@@ -6,16 +6,33 @@
     {
         <div class="col-md-9">
             <div class="d-flex justify-content-between pb-2 border-bottom">
-                <h3>
-                    <i class="bi bi-rss-fill flex-shrink-0 me-1 @FeedTextClass(feed)"></i>
-                    <a href="@Html.Raw(feed.Link)" class="link-dark">
-                        @feed.Title
-                    </a>
-                </h3>
+                <div>
+                    <h3>
+                        <i class="bi bi-rss-fill flex-shrink-0 me-1 @FeedTextClass(feed)"></i>
+                        <a href="@Html.Raw(feed.Link)" class="link-dark">
+                            @feed.Title
+                        </a>
+                    </h3>
+                    <p class="feed-post-meta">
+                        <time datetime="@feed.UpdatedLocal.ToString(CultureInfo.InvariantCulture)" class="bi bi-clock">
+                            @feed.UpdatedLocal.ToString("f")
+                        </time>
+                        @if (feed.ScheduledLocal is DateTimeOffset scheduled)
+                        {
+                            <text>|&nbsp;</text>
+                            <time datetime="@scheduled.ToString(CultureInfo.InvariantCulture)" class="bi bi-alarm">
+                                @scheduled.ToString("f")
+                            </time>
+                        }
+                    </p>
+                </div>    
                 <div class="btn-group btn-group-sm align-self-center" role="group" aria-label="feed commands">
                     <a asp-page="/Feed" asp-route-id="@feed.FeedId" class="btn btn-outline-primary" title="Edit @feed.Title">
                         <i class="bi bi-pencil-fill"></i>
                     </a>
+                    <button type="button" class="btn btn-outline-success" title="Update @feed.Title">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
                     <button is="confirm-dialog" type="button" class="btn btn-outline-danger"
                             action="@lg.GetPathByName(nameof(Api.DeleteFeed), new { id = feed.FeedId })"
                             title="Delete @feed.Title" action-text="Delete">
@@ -42,7 +59,9 @@
                     </p>
                     <p class="mb-0">
                         <small class="text-muted">
-                            @post.PublishedLocal.ToString("f")
+                            <time datetime="@post.PublishedLocal.ToString(CultureInfo.InvariantCulture)">
+                                @post.PublishedLocal.ToString("f")
+                            </time>
                             @if (!string.IsNullOrWhiteSpace(post.Author))
                             {
                                 <text>|&nbsp;</text>

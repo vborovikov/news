@@ -33,14 +33,15 @@ public record RssChannelInfo
 
 public record RssChannel : RssChannelInfo
 {
-    public IEnumerable<RssFeed> Feeds { get; init; } = Enumerable.Empty<RssFeed>();
+    public IEnumerable<RssFeed> Feeds { get; init; } = [];
 }
 
 public record RssFeedInfo
 {
-    private static TimeSpan OutdatedThreshold = TimeSpan.FromDays(30);
+    private static readonly TimeSpan OutdatedThreshold = TimeSpan.FromDays(30);
 
-    private DateTimeOffset? updateLocal;
+    private DateTimeOffset? updatedLocal;
+    private DateTimeOffset? scheduledLocal;
     private DateTimeOffset? lastPublished;
 
     public Guid FeedId { get; init; }
@@ -50,7 +51,9 @@ public record RssFeedInfo
     public string Link { get; init; } = "";
     
     public DateTimeOffset Updated { get; init; }
-    public DateTimeOffset UpdatedLocal => this.updateLocal ??= this.Updated.ToLocalTime();
+    public DateTimeOffset UpdatedLocal => this.updatedLocal ??= this.Updated.ToLocalTime();
+    public DateTimeOffset? Scheduled { get; init; }
+    public DateTimeOffset? ScheduledLocal => this.scheduledLocal ??= this.Scheduled?.ToLocalTime();
 
     public DateTimeOffset? LastPublished { get; init; }
     public DateTimeOffset? LastPublishedLocal => this.lastPublished ??= this.LastPublished?.ToLocalTime();
@@ -65,7 +68,7 @@ public record RssFeedInfo
 
 public record RssFeed : RssFeedInfo
 {
-    public IEnumerable<RssPost> Posts { get; init; } = Enumerable.Empty<RssPost>();
+    public IEnumerable<RssPost> Posts { get; init; } = [];
 }
 
 public abstract record PostBase
