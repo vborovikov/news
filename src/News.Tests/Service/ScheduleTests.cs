@@ -1,10 +1,7 @@
 ﻿namespace News.Tests.Service;
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 [TestClass]
@@ -21,4 +18,12 @@ public class ScheduleTests
         Assert.IsTrue(result);
     }
 
+    [TestMethod]
+    public void UpdateInteval_EmptyList_NullValue()
+    {
+        var pubDates = Array.Empty<DateTimeOffset?>();
+        var avgPeriodInSeconds = pubDates.Zip(pubDates.Skip(1), (newer, older) => newer - older).Average(t => t?.TotalSeconds);
+
+        Assert.IsFalse(avgPeriodInSeconds.HasValue);
+    }
 }

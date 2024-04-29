@@ -846,68 +846,74 @@ sealed class Worker : BackgroundService,
     private async Task<bool> TryScheduleFeedUpdateAsync(DbFeed feed, Feed update, CancellationToken cancellationToken)
     {
         var pubDates = update.Items.Select(i => i.PublishingDate).OrderByDescending(d => d);
-        if (pubDates.Any())
+        var avgPeriodInSeconds = pubDates.Zip(pubDates.Skip(1), (newer, older) => newer - older).Average(t => t?.TotalSeconds);
+        if (avgPeriodInSeconds.HasValue)
         {
-            var avgPeriodInSeconds = pubDates.Zip(pubDates.Skip(1), (newer, older) => newer - older).Average(t => t?.TotalSeconds);
-            if (avgPeriodInSeconds.HasValue)
+            var nextUpdate = DateTimeOffset.Now.AddSeconds(avgPeriodInSeconds.Value);
+            if (nextUpdate > DateTimeOffset.Now)
             {
-                var nextUpdate = DateTimeOffset.Now.AddSeconds(avgPeriodInSeconds.Value);
-                if (nextUpdate > DateTimeOffset.Now)
+                var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
+                var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);
+                if (nextUpdate < nearestNextUpdate)
                 {
-                    var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
-                    if (nextUpdate < nearestNextUpdate)
-                    {
-                        nextUpdate = nearestNextUpdate;
-                    }
-                    else
-                    {
-                        var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);
-                        if (nextUpdate > farthestNextUpdate)
-                        {
-                            nextUpdate = farthestNextUpdate;
-                        }
-                    }
+                    nextUpdate = nearestNextUpdate;
+                }
+                else if (nextUpdate > farthestNextUpdate)
+                {
+                    nextUpdate = farthestNextUpdate;
+                }
 
-                    if (feed.Scheduled is null || nextUpdate > feed.Scheduled)
-                    {
-                        await this.scheduler.ExecuteAsync(
-                            new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
-                            nextUpdate);
+                if (feed.Scheduled is null || nextUpdate > feed.Scheduled || feed.Scheduled > farthestNextUpdate)
+                {
+                    await this.scheduler.ExecuteAsync(
+                        new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
+                        nextUpdate);
 
-                        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-                        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
-                        try
-                        {
-                            await cnn.ExecuteAsync(
-                                """
+                    await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+                    await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+                    try
+                    {
+                        await cnn.ExecuteAsync(
+                            """
                                 update rss.Feeds
                                 set Status = @Status, Scheduled = @Scheduled
                                 where Id = @FeedId;
                                 """,
-                                new
-                                {
-                                    FeedId = feed.Id,
-                                    Status = (feed.Status | FeedStatus.UseSchedule).AsDbEnum(),
-                                    Scheduled = nextUpdate
-                                }, tx);
+                            new
+                            {
+                                FeedId = feed.Id,
+                                Status = (feed.Status | FeedStatus.UseSchedule).AsDbEnum(),
+                                Scheduled = nextUpdate
+                            }, tx);
 
-                            await tx.CommitAsync(cancellationToken);
+                        await tx.CommitAsync(cancellationToken);
 
-                            this.log.LogInformation(EventIds.FeedUpdateScheduled, "Scheduled feed update for '{feedUrl}' at {nextUpdate}",
-                                feed.Source, nextUpdate);
-                            return true;
-                        }
-                        catch (Exception x) when (x is not OperationCanceledException)
-                        {
-                            await tx.RollbackAsync(cancellationToken);
-                            throw;
-                        }
+                        this.log.LogInformation(EventIds.FeedUpdateScheduled, "Scheduled feed update for '{feedUrl}' at {nextUpdate}",
+                            feed.Source, nextUpdate);
+                        return true;
+                    }
+                    catch (Exception x) when (x is not OperationCanceledException)
+                    {
+                        await tx.RollbackAsync(cancellationToken);
+                        this.log.LogError(x, "Error scheduling feed update for '{feedUrl}'", feed.Source);
+                        throw;
                     }
                 }
+                else
+                {
+                    this.log.LogInformation(EventIds.FeedUpdateScheduled, "Feed update for '{feedUrl}' is already scheduled", feed.Source);
+                }
+            }
+            else
+            {
+                this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Feed update date for '{feedUrl}' is in the past", feed.Source);
             }
         }
+        else
+        {
+            this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Cannot determine feed update interval for '{feedUrl}'", feed.Source);
+        }
 
-        this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Cannot schedule feed update for '{feedUrl}'", feed.Source);
         return false;
     }
 
