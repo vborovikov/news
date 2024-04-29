@@ -1,4 +1,4 @@
-class PostReader extends HTMLElement {
+class PostRead extends HTMLElement {
     constructor() {
         super();
     }
@@ -20,4 +20,4 @@ class PostReader extends HTMLElement {
     }
 }
 
-window.customElements.define('post-reader', PostReader, { extends: 'article' });
+window.customElements.define('post-read', PostRead, { extends: 'article' });

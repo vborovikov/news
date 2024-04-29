@@ -7,7 +7,7 @@
         <div class="col-md-9">
             @foreach (var post in feed.Posts)
             {
-                <article @{ if (!post.IsRead) { <text>is="post-reader"</text> } }
+                <article @{ if (!post.IsRead) { <text>is="post-read"</text> } }
                          data-action="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "read" })" class="feed-post">
                     <h3 class="feed-post-title">
                         <a href="@post.Link" target="_blank" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
