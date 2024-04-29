@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Dapper;
+using Dodkin.Dispatch;
 using Microsoft.AspNetCore.Mvc;
 
 static class Api
@@ -14,6 +15,8 @@ static class Api
         var feeds = app.MapGroup("/api/feed")
             .RequireAuthorization();
 
+        feeds.MapPut("/{id:guid}", UpdateFeed)
+            .WithName(nameof(UpdateFeed));
         feeds.MapDelete("/{id:guid}", DeleteFeed)
             .WithName(nameof(DeleteFeed));
 
@@ -26,6 +29,31 @@ static class Api
 
     public static Guid GetUserId(this ClaimsPrincipal user) =>
         Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var guid) ? guid : Guid.Empty;
+
+    public static async Task<IResult> UpdateFeed(Guid id,
+        [FromServices] DbDataSource db, [FromServices] IQueueRequestDispatcher rq, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var cnn = await db.OpenConnectionAsync(cancellationToken);
+            var updated = await cnn.ExecuteScalarAsync<DateTimeOffset>(
+                """
+                select f.Updated
+                from rss.UserFeeds uf
+                inner join rss.Feeds f on f.Id = uf.FeedId
+                where uf.UserId = @UserId and uf.FeedId = @FeedId;
+                """, new { UserId = user.GetUserId(), FeedId = id });
+            if ((DateTimeOffset.Now - updated).TotalHours > 1)
+            {
+                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken });
+            }
+            return Results.Ok();
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            return Results.Problem(x.Message);
+        }
+    }
 
     public static async Task<IResult> DeleteFeed(Guid id, [FromServices] DbDataSource db, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
@@ -97,7 +125,7 @@ static class Api
                     """, new { UserId = user.GetUserId(), PostId = id }, tx);
             }
             else if (mark == "star" || mark == "favorite")
-            {   
+            {
                 await cnn.ExecuteAsync(
                     """
                     update top (1) rss.UserPosts with (updlock, serializable)

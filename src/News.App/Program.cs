@@ -1,6 +1,7 @@
 namespace News.App;
 
 using Data;
+using Dodkin.Dispatch;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.FileProviders;
@@ -28,6 +29,13 @@ public static class Program
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.AppName));
         builder.Services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
+        builder.Services.AddSingleton<IQueueRequestDispatcher>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<AppOptions>>().Value;
+            var logging = sp.GetRequiredService<ILoggerFactory>();
+            return new QueueRequestDispatcher(options.ServiceQueue, options.Endpoint,
+                logging.CreateLogger("News.App.Service"));
+        });
 
         builder.Services.AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
             .AddDapperStores(options =>

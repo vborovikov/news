@@ -2,10 +2,8 @@ namespace News;
 
 using Dodkin;
 
-public record AppOptions
+public abstract record BaseOptions
 {
-    public const string AppName = "Newsreader";
-
     private DirectoryInfo? opmlDirectory;
     private DirectoryInfo? imageDirectory;
 
@@ -18,7 +16,14 @@ public record AppOptions
     public required MessageEndpoint Endpoint { get; init; }
 }
 
-public record ServiceOptions : AppOptions
+public sealed record AppOptions : BaseOptions
+{
+    public const string AppName = "Newsreader";
+
+    public required MessageQueueName ServiceQueue { get; init; } = MessageQueueName.FromName("newsmaker");
+}
+
+public sealed record ServiceOptions : BaseOptions
 {
     public const string ServiceName = "Newsmaker";
 
