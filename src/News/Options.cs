@@ -20,6 +20,11 @@ public sealed record AppOptions : BaseOptions
 {
     public const string AppName = "Newsreader";
 
+    public AppOptions()
+    {
+        this.Endpoint = MessageEndpoint.FromName("newsreader");
+    }
+
     public required MessageQueueName ServiceQueue { get; init; } = MessageQueueName.FromName("newsmaker");
 }
 
@@ -27,9 +32,14 @@ public sealed record ServiceOptions : BaseOptions
 {
     public const string ServiceName = "Newsmaker";
 
-    public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(3);
-    public TimeSpan MinUpdateInterval { get; init;} = TimeSpan.FromMinutes(15);
-    public TimeSpan MaxUpdateInterval { get; init; }= TimeSpan.FromDays(30);
+    public ServiceOptions()
+    {
+        this.Endpoint = MessageEndpoint.FromName("newsmaker");
+    }
+
+    public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(8);
+    public TimeSpan MinUpdateInterval { get; init; } = TimeSpan.FromMinutes(15);
+    public TimeSpan MaxUpdateInterval { get; init; } = TimeSpan.FromDays(30);
 
     public string? UserAgent { get; init; }
 

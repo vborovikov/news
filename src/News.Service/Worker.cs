@@ -833,7 +833,7 @@ sealed class Worker : BackgroundService,
             }
 
             await MergeFeedUpdateAsync(feed, update, cancellationToken);
-            await TryScheduleFeedUpdateAsync(feed, update, cancellationToken);
+            await TryScheduleFeedUpdateAsync(feed, cancellationToken);
         }
         // HttpClient throws a TimeoutException wrapped in TaskCanceledException so we must check that CancellationToken is not ours
         catch (Exception x) when (x is not OperationCanceledException oce || oce.CancellationToken != cancellationToken)
@@ -843,35 +843,45 @@ sealed class Worker : BackgroundService,
         }
     }
 
-    private async Task<bool> TryScheduleFeedUpdateAsync(DbFeed feed, Feed update, CancellationToken cancellationToken)
+    private async Task<bool> TryScheduleFeedUpdateAsync(DbFeed feed, CancellationToken cancellationToken)
     {
-        var pubDates = update.Items.Select(i => i.PublishingDate).OrderByDescending(d => d);
-        var avgPeriodInSeconds = pubDates.Zip(pubDates.Skip(1), (newer, older) => newer - older).Average(t => t?.TotalSeconds);
-        if (avgPeriodInSeconds.HasValue)
+        try
         {
-            var nextUpdate = DateTimeOffset.Now.AddSeconds(avgPeriodInSeconds.Value);
-            if (nextUpdate > DateTimeOffset.Now)
-            {
-                var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
-                var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);
-                if (nextUpdate < nearestNextUpdate)
-                {
-                    nextUpdate = nearestNextUpdate;
-                }
-                else if (nextUpdate > farthestNextUpdate)
-                {
-                    nextUpdate = farthestNextUpdate;
-                }
+            await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+            var avgPubGapInSeconds = await cnn.ExecuteScalarAsync<int?>(
+                """
+                with LatestPosts as (
+                    select top (10) p.Published, row_number() over (order by p.Published desc) as RowNumber
+                    from rss.Posts p
+                	where p.FeedId = @FeedId
+                )
+                select avg(datediff(second, older.Published, newer.Published)) as AverageDifferenceInSeconds
+                from LatestPosts as newer
+                join LatestPosts as older on newer.RowNumber + 1 = older.RowNumber;
+                """, new { FeedId = feed.Id });
 
-                if (feed.Scheduled is null || nextUpdate > feed.Scheduled || feed.Scheduled > farthestNextUpdate)
+            if (avgPubGapInSeconds.HasValue && avgPubGapInSeconds.Value > 0)
+            {
+                var nextUpdate = DateTimeOffset.Now.AddSeconds(avgPubGapInSeconds.Value);
+                if (nextUpdate > DateTimeOffset.Now)
                 {
-                    try
+                    var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
+                    var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);
+                    if (nextUpdate < nearestNextUpdate)
+                    {
+                        nextUpdate = nearestNextUpdate;
+                    }
+                    else if (nextUpdate > farthestNextUpdate)
+                    {
+                        nextUpdate = farthestNextUpdate;
+                    }
+
+                    if (feed.Scheduled is null || nextUpdate > feed.Scheduled || feed.Scheduled > farthestNextUpdate)
                     {
                         await this.scheduler.ExecuteAsync(
                             new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
-                            nextUpdate);
+                            at: nextUpdate);
 
-                        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
                         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
                         try
                         {
@@ -907,25 +917,26 @@ sealed class Worker : BackgroundService,
                             throw;
                         }
                     }
-                    catch (Exception x) when (x is not OperationCanceledException)
+                    else
                     {
-                        this.log.LogError(x, "Error scheduling feed update for '{feedUrl}'", feed.Source);
-                        throw;
+                        this.log.LogInformation(EventIds.FeedUpdateScheduled, "Feed update for '{feedUrl}' is already scheduled", feed.Source);
                     }
                 }
                 else
                 {
-                    this.log.LogInformation(EventIds.FeedUpdateScheduled, "Feed update for '{feedUrl}' is already scheduled", feed.Source);
+                    this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Feed update date for '{feedUrl}' is in the past", feed.Source);
                 }
             }
             else
             {
-                this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Feed update date for '{feedUrl}' is in the past", feed.Source);
+                this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Cannot determine feed update interval for '{feedUrl}'", feed.Source);
             }
+
         }
-        else
+        catch (Exception x) when (x is not OperationCanceledException)
         {
-            this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Cannot determine feed update interval for '{feedUrl}'", feed.Source);
+            this.log.LogError(x, "Error scheduling feed update for '{feedUrl}'", feed.Source);
+            throw;
         }
 
         return false;
