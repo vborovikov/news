@@ -5,17 +5,20 @@ using System.Data.Common;
 using System.Threading;
 using Dapper;
 using Data;
+using Dodkin.Dispatch;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [Authorize]
 public class ImportUrlModel : EditPageModel
 {
+    private readonly IQueueRequestDispatcher newsmaker;
     private readonly ILogger<ImportUrlModel> log;
 
-    public ImportUrlModel(DbDataSource db, ILogger<ImportUrlModel> log)
+    public ImportUrlModel(DbDataSource db, IQueueRequestDispatcher newsmaker, ILogger<ImportUrlModel> log)
         : base(db)
     {
+        this.newsmaker = newsmaker;
         this.log = log;
         this.Input = new();
     }
@@ -109,6 +112,19 @@ public class ImportUrlModel : EditPageModel
             this.log.LogError(x, "Import URL failed");
 
             return Page();
+        }
+
+        if (feed is not null)
+        {
+            // update feed immediately
+            try
+            {
+                await this.newsmaker.ExecuteAsync(new UpdateFeedCommand(feed.FeedId) { CancellationToken = cancellationToken });
+            }
+            catch (Exception x)
+            {
+                this.log.LogWarning(x, "Feed update failed");
+            }
         }
 
         // redirect to the feed
