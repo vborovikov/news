@@ -851,6 +851,8 @@ sealed class Worker : BackgroundService,
             var avgPubGapInSeconds = await cnn.ExecuteScalarAsync<int?>(
                 """
                 with LatestPosts as (
+                    select sysdatetimeoffset() as Published, 0 as RowNumber
+                    union all
                     select top (10) p.Published, row_number() over (order by p.Published desc) as RowNumber
                     from rss.Posts p
                 	where p.FeedId = @FeedId
