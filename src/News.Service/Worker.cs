@@ -855,7 +855,7 @@ sealed class Worker : BackgroundService,
                     union all
                     select top (10) p.Published, row_number() over (order by p.Published desc) as RowNumber
                     from rss.Posts p
-                	where p.FeedId = @FeedId
+                    where p.FeedId = @FeedId
                 )
                 select avg(datediff(second, older.Published, newer.Published)) as AverageDifferenceInSeconds
                 from LatestPosts as newer
