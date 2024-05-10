@@ -1,5 +1,7 @@
 namespace News.Service.Data;
 
+using System.Buffers;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using Brackets;
@@ -41,28 +43,24 @@ internal static class HtmlExtensions
         return done;
     }
 
-    public static string ToText(this Document document)
-    {
-        var text = new StringBuilder(document.Length);
+    public static string ToText(this Document document) =>
+        new StringBuilder(document.Length)
+        .AppendElements(document.GetEnumerator())
+        .ToString();
 
-        foreach (var element in document)
+    public static string ToText(this ParentTag root) =>
+        new StringBuilder(root.Length)
+        .AppendElements(root.GetEnumerator())
+        .ToString();
+
+    private static StringBuilder AppendElements(this StringBuilder text, Element.Enumerator elements)
+    {
+        foreach (var element in elements)
         {
             text.AppendElement(element);
         }
 
-        return text.ToString();
-    }
-
-    public static string ToText(this ParentTag root)
-    {
-        var text = new StringBuilder(root.Length);
-
-        foreach (var element in root)
-        {
-            text.AppendElement(element);
-        }
-
-        return text.ToString();
+        return text;
     }
 
     private static void AppendElement(this StringBuilder text, Element element)
@@ -128,13 +126,61 @@ internal static class HtmlExtensions
             if (attribute.HasValue)
             {
                 text
-                    .Append('=')
-                    .Append('"')
+                .Append('=')
+                .Append('"')
                     .Append(attribute.Value)
-                    .Append('"');
+                .Append('"');
             }
         }
 
         return text;
+    }
+
+    private const string trimChars = "@!(),-.:;?";
+    private static readonly SearchValues<char> escapeChars = SearchValues.Create("<>\"'&");
+    private static readonly string[] escapeStringPairs =
+    [
+        // these must be all once character escape sequences or a new escaping algorithm is needed
+        "<", "&lt;",
+        ">", "&gt;",
+        "\"", "&quot;",
+        "\'", "&apos;",
+        "&", "&amp;"
+    ];
+
+    private static ReadOnlySpan<char> Escape(ReadOnlySpan<char> span)
+    {
+        if (span.IsEmpty)
+            return [];
+
+        StringBuilder? sb = null;
+
+        int pos;
+        while ((pos = span.IndexOfAny(escapeChars)) >= 0)
+        {
+            sb ??= new StringBuilder();
+            sb.Append(span[..pos]).Append(GetEscapeSequence(span[pos]));
+            span = span[(pos + 1)..];
+        }
+
+        return sb == null ? span : sb.Append(span).ToString();
+    }
+
+    private static string GetEscapeSequence(char c)
+    {
+        var iMax = escapeStringPairs.Length;
+        Debug.Assert(iMax % 2 == 0, "Odd number of strings means the attr/value pairs were not added correctly");
+
+        for (int i = 0; i < iMax; i += 2)
+        {
+            string strEscSeq = escapeStringPairs[i];
+            string strEscValue = escapeStringPairs[i + 1];
+
+            if (strEscSeq[0] == c)
+                return strEscValue;
+        }
+
+        Debug.Fail("Unable to find escape sequence for this character");
+        return c.ToString();
     }
 }

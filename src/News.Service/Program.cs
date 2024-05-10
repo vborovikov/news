@@ -6,7 +6,6 @@ using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
-using News.Service.Data;
 using Polly;
 using Spryer;
 

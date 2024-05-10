@@ -70,3 +70,13 @@ public enum FeedSafeguard
     PostLinkFixer = 1 << 5,
     FPST = PostLinkFixer,
 }
+
+[Flags]
+public enum PostStatus
+{
+    None = 0 << 0,
+    OK = None,
+    
+    SkipUpdate = 1 << 0,
+    SKIP = SkipUpdate,
+}

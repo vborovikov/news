@@ -16,15 +16,6 @@ record DbFeed
     public DateTimeOffset? Scheduled { get; init; }
 }
 
-[Flags]
-enum PostStatus
-{
-    None        = 0 << 0,
-    OK          = None,
-    SkipUpdate  = 1 << 0,
-    SKIP        = SkipUpdate,
-}
-
 record DbPostInfo
 {
     public Guid Id { get; init; }
