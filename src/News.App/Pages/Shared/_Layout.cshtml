@@ -3,7 +3,7 @@
 
 @{
     var rv = ViewContext.RouteData.Values;
-    var indexPage = rv["page"] is "/Index";
+    var queryPage = rv["page"] is "/Index" or "/Search";
 }
 
 <!DOCTYPE html>
@@ -48,7 +48,7 @@
                             </ul>
                         </li>
                     </ul>
-                    @if (indexPage)
+                    @if (queryPage)
                     {
                         <form class="d-flex" method="get">
                             <div class="input-group input-group-sm">

@@ -1,0 +1,57 @@
+﻿@page
+@model News.App.Pages.SearchModel
+@{
+}
+
+<div class="row g-5">
+    <div class="col-md-9">
+        @foreach (var post in Model.Posts)
+        {
+            <div class="clearfix search-result">
+                <h5>
+                    <i class="bi @PostIconClass(post) text-muted"></i>
+                    <a asp-page="/Index"
+                       asp-route-channel="@post.ChannelSlug" asp-route-feed="@post.FeedSlug" asp-route-post="@post.Slug"
+                       asp-route-year="@post.PublishedLocal.Year.ToString("D4")"
+                       asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
+                       asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
+                       class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
+                </h5>
+                <p class="mb-0">
+                    <small class="text-muted">
+                        <time datetime="@post.PublishedLocal.ToString(CultureInfo.InvariantCulture)">
+                            @post.PublishedLocal.ToString("f")
+                        </time>
+                        @if (!string.IsNullOrWhiteSpace(post.Author))
+                        {
+                            <text>|&nbsp;</text>
+                            @Html.Raw(post.Author)
+                        }
+                    </small>
+                </p>
+                <div class="text-truncate">
+                    <small class="bi bi-link-45deg"><a href="@post.Link" class="link-success">@post.Link</a></small>
+                </div>
+                <p class="text-muted">@Html.Raw(post.Description)</p>
+            </div>
+        }
+
+        <div class="mt-2">
+            <partial name="_Pagination" model="Model.Posts" />
+        </div>
+    </div>
+    <div class="col-md-3">
+    </div>
+</div>
+
+@functions {
+    private static string PostLinkClass(RssPostInfo post)
+    {
+        return post.IsRead ? "link-dark" : "link-primary";
+    }
+
+    private static string PostIconClass(RssPostInfo post)
+    {
+        return post.IsFavorite ? "bi-star-fill" : "bi-file-text";
+    }
+}

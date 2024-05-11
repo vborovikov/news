@@ -22,14 +22,14 @@ public class IndexModel : AppPageModel
 
     public IEnumerable<RssChannel> Channels { get; private set; } = Enumerable.Empty<RssChannel>();
 
-    public async Task OnGet([FromQuery] PageRequest page, string? channel = null, string? feed = null,
+    public async Task<IActionResult> OnGet([FromQuery] PageRequest page, string? channel = null, string? feed = null,
         int year = 0, int month = 0, int day = 0, string? post = null,
         CancellationToken cancellationToken = default)
     {
         if (this.UserId == default)
         {
             // user not logged in
-            return;
+            return Unauthorized();
         }
 
         string sql;
@@ -76,9 +76,9 @@ public class IndexModel : AppPageModel
                                     select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, 
                                         p.IsRead, p.IsFavorite, p.Author, p.Content
                                     from rss.AppPosts p
-                                    /**search**/
+                                    /**search-join**/
                                     where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
-                                    order by p.Published desc
+                                    order by /**search-orderby**/ p.Published desc
                                     offset @SkipCount rows fetch next @TakeCount rows only
                                     for json path
                                 )) as Posts
@@ -140,9 +140,9 @@ public class IndexModel : AppPageModel
                                 select p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug,
                                     p.IsRead, p.IsFavorite, p.Author
                                 from rss.AppPosts p
-                                /**search**/
+                                /**search-join**/
                                 where p.FeedId = uf.FeedId
-                                order by p.Published desc
+                                order by /**search-orderby**/ p.Published desc
                                 offset @SkipCount rows fetch next @TakeCount rows only
                                 for json path
                             )) as Posts
@@ -172,9 +172,9 @@ public class IndexModel : AppPageModel
                                 select top 3 p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug,
                                     p.IsRead, p.IsFavorite, p.Author
                                 from rss.AppPosts p
-                                /**search**/
+                                /**search-join**/
                                 where p.FeedId = uf.FeedId
-                                order by p.Published desc
+                                order by /**search-orderby**/ p.Published desc
                                 for json path
                             )) as Posts
                         from rss.AppFeeds uf
@@ -187,7 +187,7 @@ public class IndexModel : AppPageModel
                 for json path;
                 """;
         }
-        else
+        else if (string.IsNullOrWhiteSpace(page.Q))
         {
             this.Granularity = GranularityLevel.Channels;
 
@@ -211,13 +211,23 @@ public class IndexModel : AppPageModel
                 for json path;
                 """;
         }
+        else
+        {
+            this.Granularity = GranularityLevel.Search;
+            return RedirectToPage("Search", new { q = page.Q });
+        }
 
         if (!string.IsNullOrWhiteSpace(page.Q))
         {
-            sql = sql.Replace("/**search**/",
-                $"""
-                inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
-                """);
+            sql = sql
+                .Replace("/**search-join**/",
+                    $"""
+                    inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
+                    """)
+                .Replace("/**search-orderby**/",
+                    """
+                    ft.Rank desc,
+                    """);
         }
 
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
@@ -235,6 +245,8 @@ public class IndexModel : AppPageModel
                 Search = page.Q.AsNVarChar(250),
                 TopN = XPage.AvailablePageSizes[^1] * 7,
             }) ?? [];
+
+        return Page();
     }
 
     public enum GranularityLevel

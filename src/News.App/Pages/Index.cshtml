@@ -14,10 +14,6 @@
     @* nothing to show since no user logged in or channels are empty *@
     <h1 class="text-center display-1">Nothing to show, please go back to see the news.</h1>
 }
-else if (Model.Granularity == IndexModel.GranularityLevel.Search)
-{
-    <partial name="Index/_Search" model="Model" />
-}
 else if (Model.Granularity <= IndexModel.GranularityLevel.Posts)
 {
     var channel = Model.Channels.First();
