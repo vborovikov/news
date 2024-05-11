@@ -848,90 +848,88 @@ sealed class Worker : BackgroundService,
         try
         {
             await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-            var avgPubGapInSeconds = await cnn.ExecuteScalarAsync<int?>(
+            var nextUpdate = await cnn.ExecuteScalarAsync<DateTimeOffset>(
                 """
+                declare @AverageDifferenceInSeconds int = 0;
+                declare @LastPublished datetimeoffset = null;
+
                 with LatestPosts as (
-                    select sysdatetimeoffset() as Published, 0 as RowNumber
-                    union all
                     select top (10) p.Published, row_number() over (order by p.Published desc) as RowNumber
                     from rss.Posts p
                     where p.FeedId = @FeedId
                 )
-                select avg(datediff(second, older.Published, newer.Published)) as AverageDifferenceInSeconds
+                select 
+                	@AverageDifferenceInSeconds = avg(datediff(second, older.Published, newer.Published)),
+                	@LastPublished = max(newer.Published)
                 from LatestPosts as newer
                 join LatestPosts as older on newer.RowNumber + 1 = older.RowNumber;
+
+                declare @NextPublished datetimeoffset = dateadd(second, @AverageDifferenceInSeconds, @LastPublished);
+                declare @Now datetimeoffset = sysdatetimeoffset();
+
+                while @NextPublished < @Now
+                begin
+                    set @NextPublished = dateadd(second, @AverageDifferenceInSeconds, @NextPublished);
+                end;
+
+                select @NextPublished;
                 """, new { FeedId = feed.Id });
 
-            if (avgPubGapInSeconds.HasValue && avgPubGapInSeconds.Value > 0)
+            var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
+            var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);
+            if (nextUpdate < nearestNextUpdate)
             {
-                var nextUpdate = DateTimeOffset.Now.AddSeconds(avgPubGapInSeconds.Value);
-                if (nextUpdate > DateTimeOffset.Now)
+                nextUpdate = nearestNextUpdate;
+            }
+            else if (nextUpdate > farthestNextUpdate)
+            {
+                nextUpdate = farthestNextUpdate;
+            }
+
+            if (feed.Scheduled is null || nextUpdate > feed.Scheduled || feed.Scheduled > farthestNextUpdate)
+            {
+                await this.scheduler.ExecuteAsync(
+                    new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
+                    at: nextUpdate);
+
+                await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
-                    var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);
-                    if (nextUpdate < nearestNextUpdate)
-                    {
-                        nextUpdate = nearestNextUpdate;
-                    }
-                    else if (nextUpdate > farthestNextUpdate)
-                    {
-                        nextUpdate = farthestNextUpdate;
-                    }
-
-                    if (feed.Scheduled is null || nextUpdate > feed.Scheduled || feed.Scheduled > farthestNextUpdate)
-                    {
-                        await this.scheduler.ExecuteAsync(
-                            new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
-                            at: nextUpdate);
-
-                        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
-                        try
-                        {
-                            var currentStatus = await cnn.ExecuteScalarAsync<DbEnum<FeedStatus>>(
-                                """
+                    var currentStatus = await cnn.ExecuteScalarAsync<DbEnum<FeedStatus>>(
+                        """
                                 select f.Status
                                 from rss.Feeds f
                                 where f.Id = @FeedId;
                                 """, new { FeedId = feed.Id }, tx);
 
-                            await cnn.ExecuteAsync(
-                                """
+                    await cnn.ExecuteAsync(
+                        """
                                 update rss.Feeds
                                 set Status = @Status, Scheduled = @Scheduled
                                 where Id = @FeedId;
                                 """,
-                                new
-                                {
-                                    FeedId = feed.Id,
-                                    Status = (currentStatus | FeedStatus.UseSchedule).AsDbEnum(),
-                                    Scheduled = nextUpdate
-                                }, tx);
-
-                            await tx.CommitAsync(cancellationToken);
-
-                            this.log.LogInformation(EventIds.FeedUpdateScheduled, "Scheduled feed update for '{feedUrl}' at {nextUpdate}",
-                                feed.Source, nextUpdate);
-                            return true;
-                        }
-                        catch (Exception x) when (x is not OperationCanceledException)
+                        new
                         {
-                            await tx.RollbackAsync(cancellationToken);
-                            throw;
-                        }
-                    }
-                    else
-                    {
-                        this.log.LogInformation(EventIds.FeedUpdateScheduled, "Feed update for '{feedUrl}' is already scheduled", feed.Source);
-                    }
+                            FeedId = feed.Id,
+                            Status = (currentStatus | FeedStatus.UseSchedule).AsDbEnum(),
+                            Scheduled = nextUpdate
+                        }, tx);
+
+                    await tx.CommitAsync(cancellationToken);
+
+                    this.log.LogInformation(EventIds.FeedUpdateScheduled, "Scheduled feed update for '{feedUrl}' at {nextUpdate}",
+                        feed.Source, nextUpdate);
+                    return true;
                 }
-                else
+                catch (Exception x) when (x is not OperationCanceledException)
                 {
-                    this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Feed update date for '{feedUrl}' is in the past", feed.Source);
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
                 }
             }
             else
             {
-                this.log.LogWarning(EventIds.FeedUpdateNotScheduled, "Cannot determine feed update interval for '{feedUrl}'", feed.Source);
+                this.log.LogInformation(EventIds.FeedUpdateScheduled, "Feed update for '{feedUrl}' is already scheduled", feed.Source);
             }
 
         }
