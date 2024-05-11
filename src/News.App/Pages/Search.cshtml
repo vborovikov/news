@@ -1,6 +1,7 @@
 ﻿@page
 @model News.App.Pages.SearchModel
 @{
+    ViewData["Title"] = $"\"{Request.Query["q"].ToString()}\"";
 }
 
 <div class="row g-5">
