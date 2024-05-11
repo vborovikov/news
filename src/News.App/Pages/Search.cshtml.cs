@@ -39,7 +39,7 @@ public class SearchModel : AppPageModel
             inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
             inner join rss.AppFeeds f on f.FeedId = p.FeedId
             inner join rss.UserChannels c on c.Id = f.ChannelId
-            where p.UserId = @UserId
+            where f.UserId = @UserId
             order by ft.Rank desc, p.Published desc
             offset @SkipCount rows fetch next @TakeCount rows only;
             """, new
