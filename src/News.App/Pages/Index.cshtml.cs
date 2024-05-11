@@ -29,7 +29,7 @@ public class IndexModel : AppPageModel
         if (this.UserId == default)
         {
             // user not logged in
-            return Unauthorized();
+            return RedirectToPage("Account/Login", new { area = "Identity" });
         }
 
         string sql;
