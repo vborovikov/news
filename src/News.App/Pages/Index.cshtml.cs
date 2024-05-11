@@ -5,6 +5,7 @@ using Data;
 using Microsoft.AspNetCore.Mvc;
 using Relay.InteractionModel;
 using Spryer;
+using XPage = Relay.InteractionModel.Page;
 
 public class IndexModel : AppPageModel
 {
@@ -75,8 +76,8 @@ public class IndexModel : AppPageModel
                                     select p.PostId, p.Title, p.Published, p.Description, p.Link, p.Slug, 
                                         p.IsRead, p.IsFavorite, p.Author, p.Content
                                     from rss.AppPosts p
+                                    /**search**/
                                     where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
-                                        /**where**/
                                     order by p.Published desc
                                     offset @SkipCount rows fetch next @TakeCount rows only
                                     for json path
@@ -139,8 +140,8 @@ public class IndexModel : AppPageModel
                                 select p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug,
                                     p.IsRead, p.IsFavorite, p.Author
                                 from rss.AppPosts p
+                                /**search**/
                                 where p.FeedId = uf.FeedId
-                                    /**where**/
                                 order by p.Published desc
                                 offset @SkipCount rows fetch next @TakeCount rows only
                                 for json path
@@ -171,8 +172,8 @@ public class IndexModel : AppPageModel
                                 select top 3 p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug,
                                     p.IsRead, p.IsFavorite, p.Author
                                 from rss.AppPosts p
+                                /**search**/
                                 where p.FeedId = uf.FeedId
-                                    /**where**/
                                 order by p.Published desc
                                 for json path
                             )) as Posts
@@ -213,9 +214,9 @@ public class IndexModel : AppPageModel
 
         if (!string.IsNullOrWhiteSpace(page.Q))
         {
-            sql = sql.Replace("/**where**/",
+            sql = sql.Replace("/**search**/",
                 $"""
-                and (p.Title like '%' + @Search + '%' or p.Description like '%' + @Search + '%' or p.Content like '%' + @Search + '%')
+                inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
                 """);
         }
 
@@ -232,6 +233,7 @@ public class IndexModel : AppPageModel
                 ((IPage)page).SkipCount,
                 ((IPage)page).TakeCount,
                 Search = page.Q.AsNVarChar(250),
+                TopN = XPage.AvailablePageSizes[^1] * 7,
             }) ?? [];
     }
 
