@@ -6,6 +6,8 @@
 use News;
 go
 
+-- v0.5.0-beta.15
+
 -- full-text search for the database
 exec sp_fulltext_database @action = 'enable';
 
