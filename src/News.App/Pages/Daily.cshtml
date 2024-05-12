@@ -1,4 +1,4 @@
-﻿@page "{channel?}"
+﻿@page
 @using System.Globalization;
 @model News.App.Pages.DailyModel
 @{
@@ -21,10 +21,6 @@
                    class="btn @(oldNews ? "btn-outline-info" : "btn-outline-secondary disabled")">
                     <i class="bi bi-arrow-right"></i>
                 </a>
-                <button type="button"
-                        class="btn @(oldNews ? "btn-outline-secondary disabled" : "btn-outline-primary")">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
             </div>
         </div>
 
