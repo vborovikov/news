@@ -169,12 +169,13 @@ public class IndexModel : AppPageModel
                              from rss.Posts p 
                              where p.FeedId = uf.FeedId) as LastPublished,
                              json_query((
-                                select top 3 p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug,
+                                select p.PostId, p.Title, p.Description, p.Published, p.Link, p.Slug,
                                     p.IsRead, p.IsFavorite, p.Author
                                 from rss.AppPosts p
                                 /**search-join**/
                                 where p.FeedId = uf.FeedId
                                 order by /**search-orderby**/ p.Published desc
+                                offset ((@PageNumber - 1) * 3) rows fetch next 3 rows only
                                 for json path
                             )) as Posts
                         from rss.AppFeeds uf
@@ -242,6 +243,7 @@ public class IndexModel : AppPageModel
                 MaxDate = maxDate,
                 ((IPage)page).SkipCount,
                 ((IPage)page).TakeCount,
+                PageNumber = page.P ?? XPage.FirstPageNumber,
                 Search = page.Q.AsNVarChar(250),
                 TopN = XPage.AvailablePageSizes[^1] * 7,
             }) ?? [];
