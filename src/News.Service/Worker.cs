@@ -65,7 +65,7 @@ sealed class Worker : BackgroundService,
                 command.FeedId, DateTimeOffset.Now);
 
             var feed = await GetFeedToUpdateAsync(command.FeedId, command.CancellationToken);
-            if (feed is null || (DateTimeOffset.Now - feed.Updated) < this.options.MinUpdateInterval)
+            if (feed is null)
             {
                 this.log.LogWarning(EventIds.FeedUpdateSkipped, "Updating feed '{feedId}' skipped", command.FeedId);
                 return;
