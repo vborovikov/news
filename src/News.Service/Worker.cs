@@ -897,17 +897,17 @@ sealed class Worker : BackgroundService,
                 {
                     var currentStatus = await cnn.ExecuteScalarAsync<DbEnum<FeedStatus>>(
                         """
-                                select f.Status
-                                from rss.Feeds f
-                                where f.Id = @FeedId;
-                                """, new { FeedId = feed.Id }, tx);
+                        select f.Status
+                        from rss.Feeds f
+                        where f.Id = @FeedId;
+                        """, new { FeedId = feed.Id }, tx);
 
                     await cnn.ExecuteAsync(
                         """
-                                update rss.Feeds
-                                set Status = @Status, Scheduled = @Scheduled
-                                where Id = @FeedId;
-                                """,
+                        update rss.Feeds
+                        set Status = @Status, Scheduled = @Scheduled
+                        where Id = @FeedId;
+                        """,
                         new
                         {
                             FeedId = feed.Id,

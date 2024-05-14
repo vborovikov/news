@@ -78,7 +78,7 @@ public class IndexModel : AppPageModel
                                     from rss.AppPosts p
                                     /**search-join**/
                                     where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
-                                    order by /**search-orderby**/ p.Published desc
+                                    order by p.Published desc
                                     offset @SkipCount rows fetch next @TakeCount rows only
                                     for json path
                                 )) as Posts
@@ -142,7 +142,7 @@ public class IndexModel : AppPageModel
                                 from rss.AppPosts p
                                 /**search-join**/
                                 where p.FeedId = uf.FeedId
-                                order by /**search-orderby**/ p.Published desc
+                                order by p.Published desc
                                 offset @SkipCount rows fetch next @TakeCount rows only
                                 for json path
                             )) as Posts
@@ -174,7 +174,7 @@ public class IndexModel : AppPageModel
                                 from rss.AppPosts p
                                 /**search-join**/
                                 where p.FeedId = uf.FeedId
-                                order by /**search-orderby**/ p.Published desc
+                                order by p.Published desc
                                 offset ((@PageNumber - 1) * 3) rows fetch next 3 rows only
                                 for json path
                             )) as Posts
@@ -224,10 +224,6 @@ public class IndexModel : AppPageModel
                 .Replace("/**search-join**/",
                     $"""
                     inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
-                    """)
-                .Replace("/**search-orderby**/",
-                    """
-                    ft.Rank desc,
                     """);
         }
 
