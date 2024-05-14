@@ -1,5 +1,4 @@
 ﻿@using Relay.InteractionModel
-
 @model IEnumerable<object>
 
 @{
@@ -8,17 +7,18 @@
 
 <nav class="d-flex justify-content-between" aria-label="Pagination">
     <ul class="pagination">
-        <li class="page-item @(Model.Count() == ps ? "" : "disabled")">
-            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p + 1)" asp-route-ps="@ps">
-                <i class="bi bi-arrow-left"></i>
-            </a>
-        </li>
         <li class="page-item @(p > 1 ? "" : "disabled")">
             <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p - 1)" asp-route-ps="@ps">
-                <i class="bi bi-arrow-right"></i>
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        <li class="page-item @(Model.Count() == ps ? "" : "disabled")">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p + 1)" asp-route-ps="@ps">
+                <i class="bi bi-chevron-right"></i>
             </a>
         </li>
     </ul>
+
     <ul class="pagination">
         @foreach (var pageSize in Page.AvailablePageSizes)
         {

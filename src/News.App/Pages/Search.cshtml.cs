@@ -48,7 +48,7 @@ public class SearchModel : AppPageModel
                 ((IPage)page).SkipCount,
                 ((IPage)page).TakeCount,
                 Search = page.Q.AsNVarChar(250),
-                TopN = XPage.AvailablePageSizes[^1] * 7,
+                TopN = page.GetPageSize() * 7,
             }) ?? [];
 
         return Page();
