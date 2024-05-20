@@ -15,17 +15,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Brackets" Version="0.6.0-beta.17" />
+    <PackageReference Include="Brackets" Version="0.6.0" />
     <PackageReference Include="Dapper" Version="2.1.35" />
     <PackageReference Include="FastMember" Version="1.5.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.5.0" />
     <PackageReference Include="ReadabilityLib" Version="0.6.0-beta.1" />
-    <PackageReference Include="Spryer" Version="0.9.6-beta.2" />
-    <PackageReference Include="Storefront.UserAgent" Version="0.2.1-beta.2" />
+    <PackageReference Include="Spryer" Version="0.9.6" />
+    <PackageReference Include="Storefront.UserAgent" Version="0.2.3" />
     <PackageReference Include="SyndicationLib" Version="0.2.0-beta.4" />
   </ItemGroup>
 

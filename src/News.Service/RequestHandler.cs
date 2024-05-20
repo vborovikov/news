@@ -12,6 +12,7 @@
             : base(new RequestDispatcher(worker), endpoint, logger)
         {
             this.PeekProperties = MessageProperty.CorrelationId;
+            RecognizeTypesFrom(typeof(UpdateFeedCommand).Assembly);
         }
 
         // filter out the messages with CorrelationId set, these are the response messages for the UserAgent dispatcher

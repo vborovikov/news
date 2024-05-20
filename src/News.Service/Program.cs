@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
 using Polly;
 using Spryer;
+using Storefront.UserAgent;
 
 static class HttpClients
 {
@@ -43,11 +44,11 @@ static class Program
 
                 services.Configure<ServiceOptions>(hostContext.Configuration.GetSection(ServiceOptions.ServiceName));
 #pragma warning disable CA1416 // Validate platform compatibility
-                services.Configure<EventLogSettings>(settings =>
+                services.Configure((Action<EventLogSettings>)(settings =>
                 {
                     settings.SourceName = ServiceOptions.ServiceName;
                     settings.LogName = "Application";
-                });
+                }));
 #pragma warning restore CA1416 // Validate platform compatibility
 
                 services.ConfigureHttpClientDefaults(http =>
@@ -122,20 +123,28 @@ static class Program
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/webp"));
                 });
 
-                services.AddSingleton<IQueueRequestDispatcher>(sp =>
+                services.AddSingleton((Func<IServiceProvider, IQueueRequestDispatcher>)(sp =>
                 {
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
                     var logging = sp.GetRequiredService<ILoggerFactory>();
-                    return new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
+                    
+                    var dispatcher = new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
                         logging.CreateLogger("News.Service.UserAgent"));
-                });
-                services.AddSingleton<IQueueRequestScheduler>(sp =>
+                    dispatcher.RecognizeTypesFrom(typeof(PageInfoQuery).Assembly);
+
+                    return dispatcher;
+                }));
+                services.AddSingleton((Func<IServiceProvider, IQueueRequestScheduler>)(sp =>
                 {
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
                     var logging = sp.GetRequiredService<ILoggerFactory>();
-                    return new QueueRequestDispatcher(options.SchedulerQueue, options.Endpoint,
+
+                    var dispatcher = new QueueRequestDispatcher(options.SchedulerQueue, options.Endpoint,
                         logging.CreateLogger("News.Service.Scheduler"));
-                });
+                    dispatcher.RecognizeTypesFrom(typeof(UpdateFeedCommand).Assembly);
+
+                    return dispatcher;
+                }));
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddHostedService<Worker>();
             })

@@ -33,8 +33,12 @@ public static class Program
         {
             var options = sp.GetRequiredService<IOptions<AppOptions>>().Value;
             var logging = sp.GetRequiredService<ILoggerFactory>();
-            return new QueueRequestDispatcher(options.ServiceQueue, options.Endpoint,
+
+            var dispatcher = new QueueRequestDispatcher(options.ServiceQueue, options.Endpoint,
                 logging.CreateLogger("News.App.Service"));
+            dispatcher.RecognizeTypesFrom(typeof(UpdateFeedCommand).Assembly);
+
+            return dispatcher;
         });
 
         builder.Services.AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
