@@ -1,7 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
  <PropertyGroup>
     <VersionPrefix>0.5.0</VersionPrefix>
-    <VersionSuffix>beta.20</VersionSuffix>
+    <VersionSuffix>beta.21</VersionSuffix>
     <PackageVersion>$(Version)</PackageVersion>
  </PropertyGroup>
 </Project>
