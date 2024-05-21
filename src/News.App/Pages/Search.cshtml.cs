@@ -40,7 +40,7 @@ public class SearchModel : AppPageModel
             inner join rss.AppFeeds f on f.FeedId = p.FeedId
             inner join rss.UserChannels c on c.Id = f.ChannelId
             where f.UserId = @UserId
-            order by p.IsFavorite desc, p.IsRead desc, ft.Rank desc, p.Published desc
+            order by ft.Rank desc, p.IsFavorite desc, p.IsRead desc, p.Published desc
             offset @SkipCount rows fetch next @TakeCount rows only;
             """, new
             {
