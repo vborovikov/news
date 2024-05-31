@@ -30,8 +30,8 @@
                     <a asp-page="/Feed" asp-route-id="@feed.FeedId" class="btn btn-outline-primary" title="Edit @feed.Title">
                         <i class="bi bi-pencil-fill"></i>
                     </a>
-                    <button is="feed-update" type="button" class="btn btn-outline-success" title="Update @feed.Title"
-                            data-action="@lg.GetPathByName(nameof(Api.UpdateFeed), new { id = feed.FeedId })">
+                    <button is="action-button" type="button" class="btn btn-outline-success" title="Update @feed.Title"
+                            data-action="@lg.GetPathByName(nameof(Api.UpdateFeed), new { id = feed.FeedId })" data-method="PUT" data-reload="10s">
                         <i class="bi bi-arrow-clockwise"></i>
                     </button>
                     <button is="confirm-dialog" type="button" class="btn btn-outline-danger"
