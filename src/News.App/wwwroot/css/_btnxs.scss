@@ -1,0 +1,30 @@
+﻿//
+// Extra small buttons
+//
+
+$font-size-xs:                ($font-size-base * .75) !default;
+$line-height-xs: 1.5 !default;
+
+$input-btn-padding-y-xs:      .125rem !default;
+$input-btn-padding-x-xs:      .25rem !default;
+$input-btn-font-size-xs:      $font-size-xs !default;
+$input-btn-line-height-xs:    $line-height-xs !default;
+
+$btn-padding-y-xs:            $input-btn-padding-y-xs !default;
+$btn-padding-x-xs:            $input-btn-padding-x-xs !default;
+$btn-font-size-xs:            $input-btn-font-size-xs !default;
+$btn-line-height-xs:          $input-btn-line-height-xs !default;
+
+$border-radius-xs:            .1rem !default;
+$btn-border-radius-xs:        $border-radius-xs !default;
+
+.btn-xs {
+  @include button-size($btn-padding-y-xs, $btn-padding-x-xs, $btn-font-size-xs, $btn-border-radius-xs);
+}
+
+.btn-group-xs > .btn { @extend .btn-xs; }
+
+.btn-xs + .dropdown-toggle-split {
+  padding-right: $btn-padding-x-xs * .75;
+  padding-left: $btn-padding-x-xs * .75;
+}

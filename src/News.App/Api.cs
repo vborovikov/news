@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Dapper;
 using Dodkin.Dispatch;
 using Microsoft.AspNetCore.Mvc;
+using Spryer;
 
 static class Api
 {
@@ -22,6 +23,9 @@ static class Api
 
         var posts = app.MapGroup("/api/post")
             .RequireAuthorization();
+
+        posts.MapPut("/{id:guid}", UpdatePost)
+            .WithName(nameof(UpdatePost));
 
         posts.MapPatch("/{id:guid}", MarkPost)
             .WithName(nameof(MarkPost));
@@ -85,6 +89,34 @@ static class Api
         catch (Exception x) when (x is not OperationCanceledException)
         {
             await tx.RollbackAsync(cancellationToken);
+            return Results.Problem(x.Message);
+        }
+    }
+
+    public static async Task<IResult> UpdatePost(Guid id, [FromServices] DbDataSource db, [FromServices] IQueueRequestDispatcher rq, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        await using var cnn = await db.OpenConnectionAsync(cancellationToken);
+        try
+        {
+            var postStatus = await cnn.ExecuteScalarAsync<DbEnum<PostStatus>?>(
+                """
+                select p.Status
+                from rss.Posts p
+                inner join rss.UserFeeds uf on uf.FeedId = p.FeedId
+                where Id = @PostId and uf.UserId = @UserId;
+                """,
+                new { UserId = user.GetUserId(), PostId = id });
+
+            if (postStatus.HasValue && !postStatus.Value.HasFlag(PostStatus.SkipUpdate))
+            {
+                await rq.ExecuteAsync(new UpdatePostCommand(id) { CancellationToken = cancellationToken });
+                return Results.Ok();
+            }
+
+            return Results.NotFound();
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
             return Results.Problem(x.Message);
         }
     }

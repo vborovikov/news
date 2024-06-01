@@ -9,36 +9,49 @@
             {
                 <article @{ if (!post.IsRead) { <text>is="post-read"</text> } }
                          data-action="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "read" })" class="feed-post">
-                    <h3 class="feed-post-title">
-                        <a href="@post.Link" target="_blank" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
-                    </h3>
-                    <p class="feed-post-meta">
-                        @post.PublishedLocal.ToString("f")
-                        @if (!string.IsNullOrWhiteSpace(post.Author))
-                        {
-                            <text>|&nbsp;</text>
-                            @Html.Raw(post.Author)
-                        }
-
-                        <text>|&nbsp;</text>
-                        <i class="bi bi-rss @FeedTextClass(feed)"></i>
-                        <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
-                            asp-route-year="" class="link-dark">
-                            @feed.Title
-                        </a>
-                        <text>|&nbsp;</text>
-                        <i class="bi bi-bookmark text-info"></i>
-                        <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed=""
-                            asp-route-year="" class="link-dark">
-                            @Model.Name
-                        </a>
-                        <text>|&nbsp;</text>
-                        <a is="post-star" class="text-warning" data-favorite="@post.IsFavorite" 
-                           data-star="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "star" })"
-                           data-unstar="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "unstar" })">
-                            <i class="bi bi-star"></i>
-                        </a>
-                    </p>
+                    <header>
+                        <h3 class="feed-post-title">
+                            <a href="@post.Link" target="_blank" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
+                        </h3>
+                        <nav style="--bs-breadcrumb-divider: '|';">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <time datetime="@post.PublishedLocal.ToString(CultureInfo.InvariantCulture)">
+                                        @post.PublishedLocal.ToString("f")
+                                    </time>
+                                </li>
+                                @if (!string.IsNullOrWhiteSpace(post.Author))
+                                {
+                                    <li class="breadcrumb-item">@Html.Raw(post.Author)</li>
+                                }
+                                <li class="breadcrumb-item">
+                                    <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+                                                asp-route-year="" class="link-dark bi bi-rss @FeedTextClass(feed)">
+                                        @feed.Title
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed=""
+                                        asp-route-year="" class="link-dark bi bi-bookmark text-info">
+                                        @Model.Name
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <div class="btn-group btn-group-xs">
+                                        <a is="post-star" class="btn btn-outline-warning" data-favorite="@post.IsFavorite"
+                                            data-star="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "star" })"
+                                            data-unstar="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "unstar" })">
+                                            <i class="bi bi-star"></i>
+                                        </a>
+                                        <button is="action-button" class="btn btn-outline-success" title="Update &quot;@post.Title&quot;"
+                                            data-action="@lg.GetPathByName(nameof(Api.UpdatePost), new { id = post.PostId })" data-method="PUT" data-reload="5s">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                    </div>
+                                </li>
+                            </ol>
+                        </nav>
+                    </header>
                     <hr />
                     <section>
                         @Html.Raw(post.Content)

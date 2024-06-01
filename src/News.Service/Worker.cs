@@ -26,6 +26,7 @@ using Syndication.Parser;
 
 sealed class Worker : BackgroundService,
     IAsyncCommandHandler<UpdateFeedCommand>,
+    IAsyncCommandHandler<UpdatePostCommand>,
     IAsyncCommandHandler<LocalizeFeedsCommand>
 {
     private const int MaxLocalizingPostCount = 10;
@@ -55,6 +56,12 @@ sealed class Worker : BackgroundService,
         this.log = log;
         this.wslog = wslog;
         this.busyMonitor = new Stopwatch();
+    }
+
+    Task IAsyncCommandHandler<UpdatePostCommand>.ExecuteAsync(UpdatePostCommand command)
+    {
+        //todo: re-sanitize post
+        throw new NotImplementedException();
     }
 
     async Task IAsyncCommandHandler<UpdateFeedCommand>.ExecuteAsync(UpdateFeedCommand command)
@@ -173,7 +180,10 @@ sealed class Worker : BackgroundService,
             await LocalizeFeedAsync(feed, LocalizingJobTimeout, cancellationToken);
         }
 
-        await SanitizeFeedAsync(feed, cancellationToken);
+        if (feed.Safeguards != FeedSafeguard.None)
+        {
+            await SanitizeFeedAsync(feed, cancellationToken);
+        }
     }
 
     private async Task LocalizeFeedAsync(DbFeed feed, TimeSpan desiredDuration, CancellationToken cancellationToken)

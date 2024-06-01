@@ -10190,3 +10190,13 @@ textarea.form-control-lg {
     display: none !important;
   }
 }
+.btn-xs, .btn-group-xs > .btn {
+  padding: 0.125rem 0.25rem;
+  font-size: 0.75rem;
+  border-radius: 0.1rem;
+}
+
+.btn-xs + .dropdown-toggle-split, .btn-group-xs > .btn + .dropdown-toggle-split {
+  padding-right: 0.1875rem;
+  padding-left: 0.1875rem;
+}
