@@ -3,9 +3,9 @@ namespace News.App.Pages;
 using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
 using Dapper;
+using Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Data;
 using Spryer;
 
 [Authorize]
@@ -60,7 +60,8 @@ public class FeedModel : EditPageModel
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
-                set Source = @FeedUrl, Status = @FeedStatus, Error = null, Safeguards = @Safeguards
+                set Source = @FeedUrl, Status = @FeedStatus, Error = null, Safeguards = @Safeguards,
+                    TitlePath = @TitlePath, AuthorPath = @AuthorPath, DescriptionPath = @DescriptionPath, ContentPath = @ContentPath
                 where Id = @FeedId;
 
                 update rss.UserFeeds
@@ -72,10 +73,14 @@ public class FeedModel : EditPageModel
                     this.UserId,
                     this.Input.FeedId,
                     this.Input.ChannelId,
-                    this.Input.FeedUrl,
-                    this.Input.FeedSlug,
-                    this.Input.FeedTitle,
+                    FeedUrl = this.Input.FeedUrl.AsNVarChar(850),
+                    FeedSlug = this.Input.FeedSlug.AsVarChar(100),
+                    FeedTitle = this.Input.FeedTitle.AsNVarChar(200),
                     this.Input.Safeguards,
+                    TitlePath = this.Input.TitlePath.AsNVarChar(200),
+                    AuthorPath = this.Input.AuthorPath.AsNVarChar(200),
+                    DescriptionPath = this.Input.DescriptionPath.AsNVarChar(200),
+                    ContentPath = this.Input.ContentPath.AsNVarChar(200),
                     FeedStatus = (feedInfo.Status & ~FeedStatus.SkipUpdate & ~FeedStatus.HttpError).AsDbEnum(),
                 }, tx);
 
@@ -112,38 +117,6 @@ public class FeedModel : EditPageModel
         return RedirectToPage("Index", new { channel = feedPath.ChannelSlug, feed = feedPath.FeedSlug });
     }
 
-    public async Task<IActionResult> OnDelete(Guid id, CancellationToken cancellationToken = default)
-    {
-        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            var channelSlug = await cnn.QuerySingleAsync<string>(
-                """
-                select uc.Slug
-                from rss.UserFeeds uf
-                inner join rss.UserChannels uc on uf.ChannelId = uc.Id
-                where uf.UserId = @UserId and uf.FeedId = @FeedId;
-                """, new { this.UserId, FeedId = id }, tx);
-
-            await cnn.ExecuteAsync(
-                """
-                delete from rss.Feeds
-                where UserId = @UserId and Id = @FeedId;
-                """, new { this.UserId, FeedId = id });
-            await tx.CommitAsync(cancellationToken);
-
-            return RedirectToPage("Index", new { channel = channelSlug });
-        }
-        catch (Exception x)
-        {
-            await tx.RollbackAsync(cancellationToken);
-            this.log.LogError(x, "Delete feed failed");
-
-            return NotFound(x.Message);
-        }
-    }
-
     public record InputModel
     {
         public Guid FeedId { get; init; }
@@ -159,6 +132,15 @@ public class FeedModel : EditPageModel
 
         [Required, Display(Name = "Feed channel")]
         public Guid ChannelId { get; init; }
+
+        public string? TitlePath { get; init; }
+
+        public string? AuthorPath { get; init; }
+
+        public string? DescriptionPath { get; init; }
+
+        [RequiredIf(nameof(SafeguardContentExtractor), true)]
+        public string? ContentPath { get; init; }
 
         [Display(Name = "Safety measures")]
         public DbEnum<FeedSafeguard> Safeguards { get; set; }

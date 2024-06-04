@@ -78,6 +78,41 @@
             </div>
         </fieldset>
 
+        <fieldset class="row g-3 mt-2">
+            <legend>Metadata</legend>
+            <div class="col-12 col-sm-6 mt-0">
+                <label asp-for="Input.TitlePath" class="form-label">Title XPath</label>
+                <div class="input-group has-validation">
+                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
+                    <input asp-for="Input.TitlePath" type="text" class="form-control" placeholder="XPath expression">
+                    <span asp-validation-for="Input.TitlePath"></span>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 mt-0">
+                <label asp-for="Input.AuthorPath" class="form-label">Author XPath</label>
+                <div class="input-group has-validation">
+                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
+                    <input asp-for="Input.AuthorPath" type="text" class="form-control" placeholder="XPath expression">
+                    <span asp-validation-for="Input.AuthorPath"></span>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 mt-0">
+                <label asp-for="Input.DescriptionPath" class="form-label">Description XPath</label>
+                <div class="input-group has-validation">
+                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
+                    <input asp-for="Input.DescriptionPath" type="text" class="form-control" placeholder="XPath expression">
+                    <span asp-validation-for="Input.DescriptionPath"></span>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 mt-0">
+                <label asp-for="Input.ContentPath" class="form-label">Content XPath</label>
+                <div class="input-group has-validation">
+                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
+                    <input asp-for="Input.ContentPath" type="text" class="form-control" placeholder="XPath expression">
+                    <span asp-validation-for="Input.ContentPath"></span>
+                </div>
+            </div>
+        </fieldset>
         <div class="mt-4">
             <button type="submit" class="btn btn-outline-primary">Update</button>
             <button type="reset" class="btn btn-link link-secondary text-decoration-none">Cancel</button>

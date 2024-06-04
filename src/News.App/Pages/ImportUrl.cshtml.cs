@@ -145,7 +145,7 @@ public class ImportUrlModel : EditPageModel
         [RequiredIf(nameof(ChannelId), null), Display(Name = "New channel name")]
         public string? ChannelName { get; init; }
         [RequiredIf(nameof(ChannelId), null), RegularExpression("^[a-z][a-z0-9-]*$"), MaxLength(50), Display(Name = "New channel slug")]
-        //todo: [DeniedValues("daily", "feed", "import", "index", "news", "img")]
+        [DeniedValues("daily", "feed", "import", "index", "img", "search", "error", "privacy")]
         public string? ChannelSlug { get; init; }
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute);
