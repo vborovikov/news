@@ -965,8 +965,14 @@ sealed class Worker : BackgroundService,
             feedLinks.FirstOrDefault(fl => fl.FeedType != FeedType.Unknown) ??
             feedLinks.FirstOrDefault();
 
-        if (feedLink is not null && DocumentReader.TryMakeAbsoluteUrl(feed.Source, feedLink.Url, out var newFeedSource))
+        if (feedLink is not null)
         {
+            if (!DocumentReader.TryMakeAbsoluteUrl(feed.Source, feedLink.Url, out var newFeedSource))
+            {
+                // url is already absolute
+                newFeedSource = feedLink.Url;
+            }
+
             this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, newFeedSource);
             feed = feed with { Source = newFeedSource };
         }
