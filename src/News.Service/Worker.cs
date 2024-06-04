@@ -800,7 +800,7 @@ sealed class Worker : BackgroundService,
             Feed? update = null;
             if (feed.Status.HasFlag(FeedStatus.UserAgent))
             {
-                var feedData = await this.usr.GetStringAsync(feed.Source, cancellationToken);
+                var feedData = await this.usr.GetStringAsync(feed.Source, feed.Status.HasFlag(FeedStatus.UseProxy), cancellationToken);
                 if (!string.IsNullOrWhiteSpace(feedData))
                 {
                     try
@@ -1134,7 +1134,7 @@ sealed class Worker : BackgroundService,
                 return FeedStatus.UseProxy | prevStatus;
             }
 
-            if (httpEx.InnerException is AuthenticationException)
+            if (httpEx.InnerException is AuthenticationException or IOException)
             {
                 // probably TLS 1.3 not supported
                 return FeedStatus.UserAgent | prevStatus;

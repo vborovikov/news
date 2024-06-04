@@ -10,12 +10,13 @@ static class UserAgent
 {
     private static readonly TimeSpan timeout = TimeSpan.FromMinutes(5);
 
-    public static async Task<string?> GetStringAsync(this IQueueRequestDispatcher dispatcher, string url, CancellationToken cancellationToken)
+    public static async Task<string?> GetStringAsync(this IQueueRequestDispatcher dispatcher, string url, bool useProxy, CancellationToken cancellationToken)
     {
         var pageInfo = await dispatcher.RunAsync(
             new PageInfoQuery(new Uri(url))
             {
                 UseContent = true,
+                UseProxy = useProxy,
                 CancellationToken = cancellationToken
             }, timeout);
 
