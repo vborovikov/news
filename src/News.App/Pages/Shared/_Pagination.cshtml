@@ -1,29 +1,56 @@
 ﻿@using Relay.InteractionModel
+@using Spryer
 
 @model IEnumerable<object>
 
 @{
     var (routeData, p, ps) = this.GetPageQueryParams();
+    var f = new DbEnum<IndexModel.PostFilter>();
+    if (routeData.TryGetValue("f", out var fs))
+    {
+        f = new DbEnum<IndexModel.PostFilter>(fs);
+        routeData.Remove("f");
+    }
+    fs = f.ToString().ToLowerInvariant();
 }
 
 <nav class="d-flex justify-content-between" aria-label="Pagination">
     <ul class="pagination">
         <li class="page-item @(Model.Count() == ps ? "" : "disabled")">
-            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p + 1)" asp-route-ps="@ps">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p + 1)" asp-route-ps="@ps" asp-route-f="@fs">
                 <i class="bi bi-arrow-left"></i>
             </a>
         </li>
         <li class="page-item @(p > 1 ? "" : "disabled")">
-            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p - 1)" asp-route-ps="@ps">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p - 1)" asp-route-ps="@ps" asp-route-f="@fs">
                 <i class="bi bi-arrow-right"></i>
             </a>
         </li>
     </ul>
+
+    <ul class="pagination ms-auto ps-1 pe-3">
+        <li class="page-item @(f == IndexModel.PostFilter.None ? "disabled" : "")">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@ps" asp-route-f="a">
+                <i class="bi bi-book"></i>
+            </a>
+        </li>
+        <li class="page-item @(f == IndexModel.PostFilter.Unread ? "disabled" : "")">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@ps" asp-route-f="u">
+                <i class="bi bi-eye"></i>
+            </a>
+        </li>
+        <li class="page-item @(f == IndexModel.PostFilter.Favorites ? "disabled" : "")">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@ps" asp-route-f="f">
+                <i class="bi bi-star"></i>
+            </a>
+        </li>
+    </ul>
+
     <ul class="pagination">
         @foreach (var pageSize in Page.AvailablePageSizes)
         {
             <li class="page-item @(pageSize == ps ? "disabled" : "")">
-                <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@pageSize">
+                <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@pageSize" asp-route-f="@fs">
                     @pageSize
                 </a>
             </li>

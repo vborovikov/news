@@ -79,6 +79,7 @@ public class IndexModel : AppPageModel
                                     from rss.AppPosts p
                                     /**search-join**/
                                     where p.FeedId = uf.FeedId and p.Published >= @MinDate and p.Published <= @MaxDate
+                                        /**filter-where-expr**/
                                     order by p.Published desc
                                     offset @SkipCount rows fetch next @TakeCount rows only
                                     for json path
@@ -143,6 +144,7 @@ public class IndexModel : AppPageModel
                                 from rss.AppPosts p
                                 /**search-join**/
                                 where p.FeedId = uf.FeedId
+                                    /**filter-where-expr**/
                                 order by p.Published desc
                                 offset @SkipCount rows fetch next @TakeCount rows only
                                 for json path
@@ -175,6 +177,7 @@ public class IndexModel : AppPageModel
                                 from rss.AppPosts p
                                 /**search-join**/
                                 where p.FeedId = uf.FeedId
+                                    /**filter-where-expr**/
                                 order by p.Published desc
                                 offset ((@PageNumber - 1) * 3) rows fetch next 3 rows only
                                 for json path
@@ -228,6 +231,19 @@ public class IndexModel : AppPageModel
                     """);
         }
 
+        if (!string.IsNullOrWhiteSpace(page.F))
+        {
+            var f = (PostFilter)new DbEnum<PostFilter>(page.F);
+            if (f != PostFilter.None)
+            {
+                sql = sql
+                    .Replace("/**filter-where-expr**/",
+                        $"""
+                        and {(f == PostFilter.Unread ? "p.IsRead is null" : "p.IsFavorite = 1")}
+                        """);
+            }
+        }
+
         var pageSize = page.GetPageSize(this.PageContext.HttpContext);
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         this.Channels = await cnn.QueryJsonAsync<IEnumerable<RssChannel>>(sql,
@@ -264,5 +280,15 @@ public class IndexModel : AppPageModel
         Channel,
         // all channels and feeds in them
         Channels,
+    }
+
+    public enum PostFilter
+    {
+        None,
+        A = None,
+        Unread,
+        U = Unread,
+        Favorites,
+        F = Favorites,
     }
 }
