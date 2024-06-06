@@ -4,6 +4,7 @@ using System.Data.Common;
 using Data;
 using Microsoft.AspNetCore.Mvc;
 using Relay.InteractionModel;
+using Shared;
 using Spryer;
 using XPage = Relay.InteractionModel.Page;
 
@@ -227,6 +228,7 @@ public class IndexModel : AppPageModel
                     """);
         }
 
+        var pageSize = page.GetPageSize(this.PageContext.HttpContext);
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         this.Channels = await cnn.QueryJsonAsync<IEnumerable<RssChannel>>(sql,
             new
@@ -238,10 +240,10 @@ public class IndexModel : AppPageModel
                 MinDate = minDate,
                 MaxDate = maxDate,
                 ((IPage)page).SkipCount,
-                ((IPage)page).TakeCount,
+                TakeCount = pageSize,
                 PageNumber = page.P ?? XPage.FirstPageNumber,
                 Search = page.Q.AsNVarChar(250),
-                TopN = page.GetPageSize() * 7,
+                TopN = pageSize * 7,
             }) ?? [];
 
         return Page();

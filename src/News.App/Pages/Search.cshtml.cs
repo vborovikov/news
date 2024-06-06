@@ -5,6 +5,7 @@ using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using News.App.Data;
+using News.App.Pages.Shared;
 using Relay.InteractionModel;
 using Spryer;
 using XPage = Relay.InteractionModel.Page;
@@ -12,6 +13,8 @@ using XPage = Relay.InteractionModel.Page;
 [Authorize]
 public class SearchModel : AppPageModel
 {
+    public const string PageSizeCookieName = "searchPageSize";
+
     private readonly DbDataSource db;
     private readonly ILogger<SearchModel> log;
 
@@ -28,6 +31,7 @@ public class SearchModel : AppPageModel
         if (string.IsNullOrEmpty(page.Q))
             return RedirectToPage("Index");
 
+        var pageSize = page.GetPageSize(this.PageContext.HttpContext, PageSizeCookieName);
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
 
         this.Posts = await cnn.QueryAsync<RssSearchPost>(
@@ -46,9 +50,9 @@ public class SearchModel : AppPageModel
             {
                 this.UserId,
                 ((IPage)page).SkipCount,
-                ((IPage)page).TakeCount,
+                TakeCount = pageSize,
                 Search = page.Q.AsNVarChar(250),
-                TopN = page.GetPageSize() * 7,
+                TopN = pageSize * 7,
             }) ?? [];
 
         return Page();

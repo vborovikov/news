@@ -2,7 +2,7 @@
 @model IEnumerable<object>
 
 @{
-    var (routeData, p, ps) = this.GetPageQueryParams();
+    var (routeData, p, ps) = this.GetPageQueryParams(SearchModel.PageSizeCookieName);
 }
 
 <nav class="d-flex justify-content-between" aria-label="Pagination">
