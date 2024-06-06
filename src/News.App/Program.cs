@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
+using Relay.InteractionModel;
 using Services;
 using Spryer;
 using Spryer.AspNetCore.Identity;
@@ -18,6 +19,7 @@ public static class Program
         DbEnum<PostStatus>.Initialize();
         DbEnum<FeedStatus>.Initialize();
         DbEnum<FeedSafeguard>.Initialize();
+        Page.Initialize(10, 15, 30, 50, 100, 150);
     }
 
     public static void Main(string[] args)
