@@ -26,9 +26,17 @@ static class PageExtensions
 
         if (routeData.TryGetValue("ps", out var psval) && int.TryParse(psval, out var psn))
         {
+            var requestedPageSize = Page.NormalizePageSize(psn);
+            var shouldStore = ps != requestedPageSize;
+
             ps = Page.NormalizePageSize(psn);
             routeData.Remove("ps");
-            page.Context.Response.Cookies.Append(pageSizeCookieName, ps.ToString(CultureInfo.InvariantCulture));
+
+            if (shouldStore)
+            {
+                page.Context.Response.Cookies.Append(pageSizeCookieName, psval,
+                    new CookieOptions { Expires = DateTimeOffset.Now.AddMonths(1) });
+            }
         }
 
         return (routeData, p, ps);
