@@ -14,7 +14,7 @@
     fs = f.ToString().ToLowerInvariant();
 }
 
-<nav class="d-flex justify-content-between" aria-label="Pagination">
+<nav class="d-flex justify-content-between flex-sm-wrap" aria-label="Pagination">
     <ul class="pagination">
         <li class="page-item @(Model.Count() == ps ? "" : "disabled")">
             <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p + 1)" asp-route-ps="@ps" asp-route-f="@fs">
@@ -28,7 +28,7 @@
         </li>
     </ul>
 
-    <ul class="pagination ms-auto ps-1 pe-3">
+    <ul class="pagination ms-auto px-1">
         <li class="page-item @(f == IndexModel.PostFilter.None ? "disabled" : "")">
             <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@ps" asp-route-f="a">
                 <i class="bi bi-book"></i>
