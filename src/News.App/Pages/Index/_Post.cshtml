@@ -9,12 +9,12 @@
             {
                 <article @{ if (!post.IsRead) { <text>is="post-read"</text> } }
                          data-action="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "read" })" class="feed-post">
-                    <header>
+                    <header class="border-bottom mb-2">
                         <h3 class="feed-post-title">
                             <a href="@post.Link" target="_blank" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
                         </h3>
                         <nav style="--bs-breadcrumb-divider: '|';">
-                            <ol class="breadcrumb">
+                            <ol class="breadcrumb mb-2">
                                 <li class="breadcrumb-item">
                                     <time datetime="@post.PublishedLocal.ToString(CultureInfo.InvariantCulture)">
                                         @post.PublishedLocal.ToString("f")
@@ -52,7 +52,6 @@
                             </ol>
                         </nav>
                     </header>
-                    <hr />
                     <section>
                         @Html.Raw(post.Content)
                     </section>
