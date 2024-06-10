@@ -807,6 +807,11 @@ sealed class Worker : BackgroundService,
                     {
                         update = Feed.FromString(feedData);
                     }
+                    catch (HtmlContentDetectedException x)
+                    {
+                        feed = MaybeUpdateFeedSource(feed, x.FeedLinks);
+                        throw;
+                    }
                     catch (Exception)
                     {
                         feed = MaybeUpdateFeedSource(feed, feedData);
