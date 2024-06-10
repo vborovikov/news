@@ -863,31 +863,44 @@ sealed class Worker : BackgroundService,
         try
         {
             await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+            // the mode for the gaps between the latest 10 posts plus 5 minutes
             var nextUpdate = await cnn.ExecuteScalarAsync<DateTimeOffset>(
                 """
-                declare @AverageDifferenceInSeconds int = 0;
-                declare @LastPublished datetimeoffset = null;
+                declare @UpdatePeriod int = 0;
 
                 with LatestPosts as (
                     select top (10) p.Published, row_number() over (order by p.Published desc) as RowNumber
                     from rss.Posts p
                     where p.FeedId = @FeedId
+                ),
+                PostGaps as (
+                	select datediff(second, older.Published, newer.Published) as Gap
+                	from LatestPosts as newer
+                	join LatestPosts as older on newer.RowNumber + 1 = older.RowNumber
+                ),
+                PostGapStats as (
+                	select Gap, count(Gap) as Frequency
+                	from PostGaps
+                	group by Gap
                 )
-                select 
-                	@AverageDifferenceInSeconds = avg(datediff(second, older.Published, newer.Published)),
-                	@LastPublished = max(newer.Published)
-                from LatestPosts as newer
-                join LatestPosts as older on newer.RowNumber + 1 = older.RowNumber;
-
-                declare @NextPublished datetimeoffset = dateadd(second, @AverageDifferenceInSeconds, @LastPublished);
+                select top (1) @UpdatePeriod = Gap
+                from PostGapStats
+                order by Frequency desc;
+                
+                declare @LastUpdated datetimeoffset = null;
+                select @LastUpdated = max(p.Published)
+                from rss.Posts p
+                where p.FeedId = @FeedId;
+                
+                declare @NextUpdated datetimeoffset = dateadd(minute, 5, dateadd(second, @UpdatePeriod, @LastUpdated));
                 declare @Now datetimeoffset = sysdatetimeoffset();
 
-                while @NextPublished < @Now
+                while @NextUpdated < @Now
                 begin
-                    set @NextPublished = dateadd(second, @AverageDifferenceInSeconds, @NextPublished);
+                    set @NextUpdated = dateadd(second, @UpdatePeriod, @NextUpdated);
                 end;
 
-                select @NextPublished;
+                select @NextUpdated;
                 """, new { FeedId = feed.Id });
 
             var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
