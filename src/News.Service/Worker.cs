@@ -863,10 +863,10 @@ sealed class Worker : BackgroundService,
         try
         {
             await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-            // the mode for the gaps between the latest 10 posts plus 5 minutes
+            // the mode for the gaps between the latest 10 posts plus 5 minutes or the median gap
             var nextUpdate = await cnn.ExecuteScalarAsync<DateTimeOffset>(
                 """
-                declare @UpdatePeriod int = 0;
+                declare @UpdatePeriod int = 0, @UpdateType int = 0;
 
                 with LatestPosts as (
                     select top (10) p.Published, row_number() over (order by p.Published desc) as RowNumber
@@ -874,32 +874,45 @@ sealed class Worker : BackgroundService,
                     where p.FeedId = @FeedId
                 ),
                 PostGaps as (
-                	select datediff(second, older.Published, newer.Published) as Gap
-                	from LatestPosts as newer
-                	join LatestPosts as older on newer.RowNumber + 1 = older.RowNumber
+                    select datediff(second, older.Published, newer.Published) as Gap
+                    from LatestPosts as newer
+                    join LatestPosts as older on newer.RowNumber + 1 = older.RowNumber
                 ),
                 PostGapStats as (
-                	select Gap, count(Gap) as Frequency
-                	from PostGaps
-                	group by Gap
+                    select Gap, count(Gap) as Frequency
+                    from PostGaps
+                    group by Gap
+                ),
+                PostGapModes as (
+                    select Gap, Frequency
+                    from PostGapStats
+                    where Frequency > 1 and Gap > 0
+                    union all
+                    select distinct percentile_cont(0.5) within group (order by Gap) over (partition by Frequency) as Gap,
+                        -1 as Frequency
+                    from PostGapStats
                 )
-                select top (1) @UpdatePeriod = Gap
-                from PostGapStats
+                select top (1) @UpdatePeriod = Gap, @UpdateType = Frequency
+                from PostGapModes
                 order by Frequency desc;
-                
+
                 declare @LastUpdated datetimeoffset = null;
                 select @LastUpdated = max(p.Published)
                 from rss.Posts p
                 where p.FeedId = @FeedId;
-                
-                declare @NextUpdated datetimeoffset = dateadd(minute, 5, dateadd(second, @UpdatePeriod, @LastUpdated));
-                declare @Now datetimeoffset = sysdatetimeoffset();
 
+                declare @NextUpdated datetimeoffset = dateadd(second, @UpdatePeriod, @LastUpdated);
+                if @UpdateType > 0
+                begin
+                    set @NextUpdated = dateadd(minute, 5, @NextUpdated);
+                end;
+
+                declare @Now datetimeoffset = sysdatetimeoffset();
                 while @NextUpdated < @Now
                 begin
                     set @NextUpdated = dateadd(second, @UpdatePeriod, @NextUpdated);
                 end;
-
+                
                 select @NextUpdated;
                 """, new { FeedId = feed.Id });
 
