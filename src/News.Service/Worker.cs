@@ -927,7 +927,9 @@ sealed class Worker : BackgroundService,
                 nextUpdate = farthestNextUpdate;
             }
 
-            if (feed.Scheduled is null || nextUpdate > feed.Scheduled || feed.Scheduled > farthestNextUpdate)
+            if (feed.Scheduled is null || 
+                (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled) > this.options.MinUpdateInterval) || 
+                feed.Scheduled > farthestNextUpdate)
             {
                 await this.scheduler.ExecuteAsync(
                     new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
