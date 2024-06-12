@@ -322,7 +322,7 @@ sealed class Worker : BackgroundService,
                 {
                     PostId = post.Id,
                     Status = GetPostStatus(error, post.Status),
-                    Error = error.Message.AsNVarChar(2000),
+                    Error = GetErrorMessage(error).AsNVarChar(2000),
                 }, tx);
 
             await tx.CommitAsync(cancellationToken);
@@ -1130,7 +1130,7 @@ sealed class Worker : BackgroundService,
                     Source = feed.Source.AsNVarChar(850),
                     Updated = DateTimeOffset.Now,
                     Status = GetFeedStatus(error, feed.Status),
-                    Error = error.Message.AsNVarChar(2000)
+                    Error = GetErrorMessage(error).AsNVarChar(2000)
                 }, tx);
 
             await tx.CommitAsync(cancellationToken);
@@ -1140,6 +1140,14 @@ sealed class Worker : BackgroundService,
             await tx.RollbackAsync(cancellationToken);
             this.log.LogError(x, "Error storing feed update error");
         }
+    }
+
+    private static string GetErrorMessage(Exception exception)
+    {
+        if (exception.InnerException is Exception inner)
+            return $"{exception.GetType().Name}({inner.GetType().Name}): {exception.Message}";
+
+        return $"{exception.GetType().Name}: {exception.Message}";
     }
 
     private static DbEnum<FeedStatus> GetFeedStatus(Exception error, FeedStatus prevStatus)
