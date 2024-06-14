@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc.Razor;
+using News.App.Data;
 using Relay.InteractionModel;
 
 static class PageExtensions
@@ -9,7 +10,8 @@ static class PageExtensions
     private const string DefaultPageSizeCookieName = "pageSize";
 
     public static (Dictionary<string, string> RouteData, int PageNumber, int PageSize) 
-        GetPageQueryParams(this RazorPage page, string pageSizeCookieName = DefaultPageSizeCookieName)
+        GetPageQueryParams(this RazorPage page, string pageSizeCookieName = DefaultPageSizeCookieName,
+            Func<int?, int>? normalizePageSize =  null)
     {
         var routeData = page.Context.Request.Query.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value.ToString());
 
@@ -19,17 +21,18 @@ static class PageExtensions
             p = pn;
             routeData.Remove("p");
         }
-        
+
+        var normalize = normalizePageSize ?? Page.NormalizePageSize;
         var ps = page.Context.Request.Cookies.TryGetValue(pageSizeCookieName, out var pageSizeCookie) &&
             int.TryParse(pageSizeCookie, CultureInfo.InvariantCulture, out var pageSize) ? 
-            Page.NormalizePageSize(pageSize) : Page.AvailablePageSizes[0];
+            normalize(pageSize) : normalize(default);
 
         if (routeData.TryGetValue("ps", out var psval) && int.TryParse(psval, out var psn))
         {
-            var requestedPageSize = Page.NormalizePageSize(psn);
+            var requestedPageSize = normalize(psn);
             var shouldStore = ps != requestedPageSize;
 
-            ps = Page.NormalizePageSize(psn);
+            ps = normalize(psn);
             routeData.Remove("ps");
 
             if (shouldStore)
@@ -42,11 +45,14 @@ static class PageExtensions
         return (routeData, p, ps);
     }
 
-    public static int GetPageSize(this PageRequest pageRequest, HttpContext context, string pageSizeCookieName = DefaultPageSizeCookieName)
+    public static int GetPageSize(this PageRequest pageRequest, HttpContext context, string? pageSizeCookieName = null)
     {
-        var ps = pageRequest.Ps ?? (context.Request.Cookies.TryGetValue(pageSizeCookieName, out var pageSizeCookie) &&
+        var channel = pageRequest is ChannelPageRequest;
+        var cookieName = pageSizeCookieName ?? (channel ? ChannelPageRequest.PageSizeCookieName : DefaultPageSizeCookieName);
+
+        var ps = pageRequest.Ps ?? (context.Request.Cookies.TryGetValue(cookieName, out var pageSizeCookie) &&
             int.TryParse(pageSizeCookie, CultureInfo.InvariantCulture, out var pageSize) ? pageSize : null);
 
-        return Page.NormalizePageSize(ps);
+        return channel ? ChannelPageRequest.NormalizePageSize(ps) : Page.NormalizePageSize(ps);
     }
 }

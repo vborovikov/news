@@ -161,6 +161,7 @@ public class IndexModel : AppPageModel
         else if (!string.IsNullOrWhiteSpace(channel))
         {
             this.Granularity = GranularityLevel.Channel;
+            page = new ChannelPageRequest(page);
 
             sql =
                 """
@@ -179,7 +180,7 @@ public class IndexModel : AppPageModel
                                 where p.FeedId = uf.FeedId
                                     /**filter-where-expr**/
                                 order by p.Published desc
-                                offset ((@PageNumber - 1) * 3) rows fetch next 3 rows only
+                                offset @SkipCount rows fetch next @TakeCount rows only
                                 for json path
                             )) as Posts
                         from rss.AppFeeds uf
