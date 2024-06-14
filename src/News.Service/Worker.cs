@@ -878,22 +878,23 @@ sealed class Worker : BackgroundService,
                     from LatestPosts as newer
                     join LatestPosts as older on newer.RowNumber + 1 = older.RowNumber
                 ),
-                PostGapStats as (
+                PostGapModes as (
                     select Gap, count(Gap) as Frequency
                     from PostGaps
                     group by Gap
                 ),
-                PostGapModes as (
+                PostGapStats as (
                     select Gap, Frequency
-                    from PostGapStats
+                    from PostGapModes
                     where Frequency > 1 and Gap > 0
                     union all
                     select distinct percentile_cont(0.5) within group (order by Gap) over (partition by Frequency) as Gap,
                         -1 as Frequency
-                    from PostGapStats
+                    from PostGapModes
                 )
                 select top (1) @UpdatePeriod = Gap, @UpdateType = Frequency
-                from PostGapModes
+                from PostGapStats
+                where Gap > 0
                 order by Frequency desc;
 
                 declare @LastUpdated datetimeoffset = null;
