@@ -30,9 +30,10 @@ public class FeedModel : EditPageModel
             """
             select 
                 af.FeedId, af.ChannelId, af.Source as FeedUrl, 
-                af.Title as FeedTitle, af.Slug as FeedSlug,
-                af.Safeguards
+                af.Title as FeedTitle, af.Slug as FeedSlug, af.Safeguards,
+                f.TitlePath, f.AuthorPath, f.DescriptionPath, f.ContentPath
             from rss.AppFeeds af
+            inner join rss.Feeds f on f.Id = af.FeedId
             where af.UserId = @UserId and af.FeedId = @FeedId;
             """, new { this.UserId, FeedId = id });
     }
