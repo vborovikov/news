@@ -20,7 +20,7 @@
                                         @post.PublishedLocal.ToString("f")
                                     </time>
                                 </li>
-                                @if (!string.IsNullOrWhiteSpace(post.Author))
+                                @if (!string.IsNullOrWhiteSpace(post.Author) && !feed.Title.Contains(post.Author))
                                 {
                                     <li class="breadcrumb-item">@Html.Raw(post.Author)</li>
                                 }
@@ -36,25 +36,25 @@
                                         @Model.Name
                                     </a>
                                 </li>
-                                <li class="breadcrumb-item">
-                                    <div class="btn-group btn-group-xs">
-                                        <a is="post-star" class="btn btn-outline-warning" data-favorite="@post.IsFavorite"
-                                            data-star="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "star" })"
-                                            data-unstar="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "unstar" })">
-                                            <i class="bi bi-star"></i>
-                                        </a>
-                                        <button is="action-button" class="btn btn-outline-success" title="Update &quot;@post.Title&quot;"
-                                            data-action="@lg.GetPathByName(nameof(Api.UpdatePost), new { id = post.PostId })" data-method="PUT" data-reload="5s">
-                                            <i class="bi bi-arrow-clockwise"></i>
-                                        </button>
-                                    </div>
-                                </li>
                             </ol>
                         </nav>
                     </header>
                     <section>
                         @Html.Raw(post.Content)
                     </section>
+                    <footer class="d-flex justify-content-center border-top py-2">
+                        <div class="btn-group btn-group-sm">
+                            <a is="post-star" class="btn btn-outline-warning" data-favorite="@post.IsFavorite"
+                                data-star="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "star" })"
+                                data-unstar="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "unstar" })">
+                                <i class="bi bi-star"></i>
+                            </a>
+                            <button is="action-button" class="btn btn-outline-success" title="Update &quot;@post.Title&quot;"
+                                data-action="@lg.GetPathByName(nameof(Api.UpdatePost), new { id = post.PostId })" data-method="PUT" data-reload="5s">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </footer>
                 </article>
             }
 

@@ -30,7 +30,9 @@
                                    asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
                                    asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
                                    asp-route-post="@post.Slug" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
-                                <small class="text-muted">| @post.PublishedLocal.ToString("f")</small>
+                                <time datetime="@post.PublishedLocal.ToString(CultureInfo.InvariantCulture)">
+                                    <small class="text-muted">| @post.PublishedLocal.ToString("f")</small>
+                                </time>
                             </li>
                         }
                     </ul>

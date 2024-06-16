@@ -6,7 +6,7 @@
     {
         <div class="col-md-9">
             <div class="d-flex justify-content-between border-bottom">
-                <hgroup>
+                <header>
                     <h3>
                         <i class="bi bi-rss-fill @FeedTextClass(feed)"></i>
                         <a href="@Html.Raw(feed.Link)" class="link-dark">
@@ -30,7 +30,7 @@
                             }
                         </ol>
                     </nav>
-                </hgroup>    
+                </header>    
                 <div class="btn-group btn-group-sm align-self-center" role="group" aria-label="feed commands">
                     <a asp-page="/Feed" asp-route-id="@feed.FeedId" class="btn btn-outline-primary" title="Edit &quot;@feed.Title&quot;">
                         <i class="bi bi-pencil-fill"></i>
