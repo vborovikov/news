@@ -47,7 +47,9 @@ static class Api
                 inner join rss.Feeds f on f.Id = uf.FeedId
                 where uf.UserId = @UserId and uf.FeedId = @FeedId;
                 """, new { UserId = user.GetUserId(), FeedId = id });
+#if !DEBUG
             if ((DateTimeOffset.Now - updated).TotalHours > 1)
+#endif
             {
                 await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken });
             }
