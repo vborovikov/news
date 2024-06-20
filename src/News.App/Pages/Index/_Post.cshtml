@@ -42,7 +42,7 @@
                     <section>
                         @Html.Raw(post.Content)
                     </section>
-                    <footer class="d-flex justify-content-center border-top py-2">
+                    <footer class="d-flex justify-content-center border-top mt-2 py-2">
                         <div class="btn-group btn-group-sm">
                             <a is="post-star" class="btn btn-outline-warning" data-favorite="@post.IsFavorite"
                                 data-star="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "star" })"
