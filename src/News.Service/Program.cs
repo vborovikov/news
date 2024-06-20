@@ -89,13 +89,17 @@ static class Program
                 });
 
                 // feed http client
-                services.AddHttpClient(HttpClients.Feed, ConfigureFeedHttpClient);
+                services
+                    .AddHttpClient(HttpClients.Feed, ConfigureFeedHttpClient)
+                    .ConfigurePrimaryHttpMessageHandler(ConfigureFeedHttpMessageHandler);
                 services
                     .AddHttpClient(HttpClients.FeedProxy, ConfigureFeedHttpClient)
                     .ConfigurePrimaryHttpMessageHandler((handler, sp) =>
                     {
+                        ConfigureFeedHttpMessageHandler(handler, sp);
+
                         var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
-                        if (handler is HttpClientHandler clientHandler && options.ProxyAddress is not null)
+                        if (handler is HttpClientHandler { SupportsProxy: true } clientHandler && options.ProxyAddress is not null)
                         {
                             var proxy = new WebProxy(options.ProxyAddress, BypassOnLocal: true)
                             {
@@ -162,7 +166,28 @@ static class Program
         httpClient.DefaultRequestHeaders.Accept.Clear();
         httpClient.DefaultRequestHeaders.Accept.Add(new("application/rss+xml"));
         httpClient.DefaultRequestHeaders.Accept.Add(new("application/atom+xml"));
-        httpClient.DefaultRequestHeaders.Accept.Add(new("application/xml"));
-        httpClient.DefaultRequestHeaders.Accept.Add(new("text/xml"));
+        httpClient.DefaultRequestHeaders.Accept.Add(new("application/xml", 0.8));
+        httpClient.DefaultRequestHeaders.Accept.Add(new("text/xml", 0.7));
+        httpClient.DefaultRequestHeaders.Accept.Add(new("*/*", 0.5));
+
+        httpClient.DefaultRequestHeaders.AcceptEncoding.Clear();
+        httpClient.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip,deflate,br,*;q=0.1");
+
+        httpClient.DefaultRequestHeaders.AcceptLanguage.Clear();
+        httpClient.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.9,ru-RU,ru;q=0.8,*;q=0.5");
+
+        httpClient.DefaultRequestHeaders.AcceptCharset.Clear();
+        httpClient.DefaultRequestHeaders.AcceptCharset.ParseAdd("UTF-8");
+    }
+
+    private static void ConfigureFeedHttpMessageHandler(HttpMessageHandler messageHandler, IServiceProvider sp)
+    {
+        if (messageHandler is not HttpClientHandler handler)
+            return;
+            
+        if (handler.SupportsAutomaticDecompression)
+        {
+            handler.AutomaticDecompression = DecompressionMethods.All;
+        }
     }
 }
