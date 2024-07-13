@@ -973,13 +973,15 @@ sealed class Worker : BackgroundService,
             }
             else
             {
-                this.log.LogInformation(EventIds.FeedUpdateScheduled, "Feed update for '{feedUrl}' is already scheduled", feed.Source);
+                this.log.LogWarning(EventIds.FeedUpdateNotScheduled,
+                    "Feed update for '{feedUrl}' is already scheduled at {scheduled}, update at {nextUpdate} will be skipped", 
+                    feed.Source, feed.Scheduled.Value, nextUpdate);
             }
 
         }
         catch (Exception x) when (x is not OperationCanceledException)
         {
-            this.log.LogError(x, "Error scheduling feed update for '{feedUrl}'", feed.Source);
+            this.log.LogError(EventIds.FeedUpdateNotScheduled, x, "Error scheduling feed update for '{feedUrl}'", feed.Source);
             throw;
         }
 
