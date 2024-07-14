@@ -929,7 +929,7 @@ sealed class Worker : BackgroundService,
             }
 
             if (feed.Scheduled is null || 
-                (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled) > this.options.MinUpdateInterval) || 
+                (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled) >= this.options.MinUpdateInterval) || 
                 feed.Scheduled > farthestNextUpdate)
             {
                 await this.scheduler.ExecuteAsync(
