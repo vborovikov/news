@@ -29,6 +29,7 @@ sealed class Worker : BackgroundService,
     IAsyncCommandHandler<UpdatePostCommand>,
     IAsyncCommandHandler<LocalizeFeedsCommand>
 {
+    private static readonly TimeSpan Epsilon = TimeSpan.FromSeconds(1);
     private const int MaxLocalizingPostCount = 10;
     private const int MaxLocalizingJobCount = 10;
     private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(3);
@@ -929,7 +930,7 @@ sealed class Worker : BackgroundService,
             }
 
             if (feed.Scheduled is null || 
-                (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled) >= this.options.MinUpdateInterval) || 
+                (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled + Epsilon) >= this.options.MinUpdateInterval) || 
                 feed.Scheduled > farthestNextUpdate)
             {
                 await this.scheduler.ExecuteAsync(
