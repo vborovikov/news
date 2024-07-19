@@ -29,7 +29,8 @@ img, figure {
     @extend .img-fluid;
 }
 
-video, iframe {
+//todo: modify content to wrap video and iframe tags with a parent element with .ratio and an aspect ratio class
+video {
     @extend .ratio;
     @extend .ratio-16x9;
 }
