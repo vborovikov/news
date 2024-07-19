@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Syndication;
 using Syndication.Feeds;
 using Spryer;
+using System.Diagnostics.CodeAnalysis;
 
 record DbFeed
 {
@@ -41,6 +42,17 @@ abstract record WrapperBase
         }
 
         return strings[^1] ?? string.Empty;
+    }
+
+    [return: NotNullIfNotNull(nameof(str))]
+    protected static string? Truncate(string? str, int maxLength)
+    {
+        if (str is { Length: > 0 } text && text.Length >= maxLength)
+        {
+            return text[..maxLength];
+        }
+
+        return str;
     }
 }
 
@@ -162,17 +174,17 @@ record FeedItemWrapper : WrapperBase
     }
 
     public string Title =>
-        string.IsNullOrWhiteSpace(this.item.Title) ? this.Link :
-        this.item.Title.Length >= 1000 ? this.item.Title[..1000] :
-        this.item.Title;
+        string.IsNullOrWhiteSpace(this.item.Title) ? this.Link : Truncate(this.item.Title, 1000);
 
     public string? Description => this.item.Content is not null ?
         GetNonEmpty(this.item.Description, (this.item.SpecificItem as AtomFeedItem)?.Summary) :
         null;
 
-    public string? Author => this.item.Author ??
+    public string? Author => Truncate(
+        this.item.Author ??
         (this.item.SpecificItem as Rss20FeedItem)?.DC.Creator ??
-        (this.item.SpecificItem as Rss10FeedItem)?.DC.Creator;
+        (this.item.SpecificItem as Rss10FeedItem)?.DC.Creator,
+        100);
 
     // null checks in case the author is having a writer's block
     public string Content => GetNonEmpty(this.item.Content, this.item.Description, this.Link, "<no content>");
