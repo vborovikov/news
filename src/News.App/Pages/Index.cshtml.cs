@@ -225,11 +225,14 @@ public class IndexModel : AppPageModel
 
         if (!string.IsNullOrWhiteSpace(page.Q))
         {
-            sql = sql
-                .Replace("/**search-join**/",
-                    $"""
-                    inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
-                    """);
+            //sql = sql
+            //    .Replace("/**search-join**/",
+            //        $"""
+            //        inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
+            //        """);
+
+            this.Granularity = GranularityLevel.Search;
+            return RedirectToPage("Search", new { q = page.Q, channel, feed });
         }
 
         if (!string.IsNullOrWhiteSpace(page.F))
@@ -251,9 +254,9 @@ public class IndexModel : AppPageModel
             new
             {
                 this.UserId,
-                ChannelSlug = channel,
-                FeedSlug = feed,
-                PostSlug = post,
+                ChannelSlug = channel.AsVarChar(100),
+                FeedSlug = feed.AsVarChar(100),
+                PostSlug = post.AsVarChar(100),
                 MinDate = minDate,
                 MaxDate = maxDate,
                 ((IPage)page).SkipCount,

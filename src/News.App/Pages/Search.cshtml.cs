@@ -26,15 +26,12 @@ public class SearchModel : AppPageModel
 
     public IEnumerable<RssSearchPost> Posts { get; private set; } = [];
 
-    public async Task<IActionResult> OnGet([FromQuery] PageRequest page, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> OnGet([FromQuery] PageRequest page, string? channel = null, string? feed = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(page.Q))
             return RedirectToPage("Index");
 
-        var pageSize = page.GetPageSize(this.PageContext.HttpContext, PageSizeCookieName);
-        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-
-        this.Posts = await cnn.QueryAsync<RssSearchPost>(
+        var sql =
             """
             select
                 p.PostId, p.Title, p.Description, p.Published, p.IsRead, p.IsFavorite, p.Author,
@@ -44,16 +41,33 @@ public class SearchModel : AppPageModel
             inner join rss.AppFeeds f on f.FeedId = p.FeedId
             inner join rss.UserChannels c on c.Id = f.ChannelId
             where f.UserId = @UserId
+                /**where-expr**/
             order by ft.Rank desc, p.IsFavorite desc, p.IsRead desc, p.Published desc
             offset @SkipCount rows fetch next @TakeCount rows only;
-            """, new
-            {
-                this.UserId,
-                ((IPage)page).SkipCount,
-                TakeCount = pageSize,
-                Search = page.Q.AsNVarChar(250),
-                TopN = pageSize * 7,
-            }) ?? [];
+            """;
+
+        if (!string.IsNullOrEmpty(feed))
+        {
+            sql = sql.Replace("/**where-expr**/", "and f.Slug = @FeedSlug and c.Slug = @ChannelSlug");
+        }
+        else if (!string.IsNullOrEmpty(channel))
+        {
+            sql = sql.Replace("/**where-expr**/", "and c.Slug = @ChannelSlug");
+        }
+
+        var pageSize = page.GetPageSize(this.PageContext.HttpContext, PageSizeCookieName);
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+
+        this.Posts = await cnn.QueryAsync<RssSearchPost>(sql, new
+        {
+            this.UserId,
+            ((IPage)page).SkipCount,
+            TakeCount = pageSize,
+            Search = page.Q.AsNVarChar(250),
+            TopN = pageSize * 7,
+            ChannelSlug = channel.AsVarChar(100),
+            FeedSlug = feed.AsVarChar(100),
+        }) ?? [];
 
         return Page();
     }
