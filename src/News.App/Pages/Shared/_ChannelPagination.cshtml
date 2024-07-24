@@ -4,7 +4,7 @@
 @model IEnumerable<object>
 
 @{
-    var (routeData, p, ps) = this.GetPageQueryParams(ChannelPageRequest.PageSizeCookieName, ChannelPageRequest.NormalizePageSize);
+    var (routeData, p, ps) = this.GetPageQueryParams(normalizePageSize: ChannelPageRequest.NormalizePageSize);
 }
 
 <nav class="d-flex justify-content-between flex-sm-wrap" aria-label="Pagination">

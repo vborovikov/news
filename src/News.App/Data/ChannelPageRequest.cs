@@ -6,7 +6,6 @@ using Relay.InteractionModel;
 
 sealed class ChannelPageRequest : PageRequest
 {
-    public const string PageSizeCookieName = "channelPageSize";
     public static readonly int[] PageSizes = [3, 5, 10];
 
     public ChannelPageRequest(PageRequest page) : base(page)

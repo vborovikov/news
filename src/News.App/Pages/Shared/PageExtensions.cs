@@ -9,9 +9,9 @@ static class PageExtensions
 {
     private const string DefaultPageSizeCookieName = "pageSize";
 
-    public static (Dictionary<string, string> RouteData, int PageNumber, int PageSize) 
-        GetPageQueryParams(this RazorPage page, string pageSizeCookieName = DefaultPageSizeCookieName,
-            Func<int?, int>? normalizePageSize =  null)
+    public static (Dictionary<string, string> RouteData, int PageNumber, int PageSize)
+        GetPageQueryParams(this RazorPage page, string pageSizeCookieNameSuffix = DefaultPageSizeCookieName,
+            Func<int?, int>? normalizePageSize = null)
     {
         var routeData = page.Context.Request.Query.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value.ToString());
 
@@ -22,9 +22,10 @@ static class PageExtensions
             routeData.Remove("p");
         }
 
+        var pageSizeCookieName = GetPageSizeCookieName(page.Context, pageSizeCookieNameSuffix);
         var normalize = normalizePageSize ?? Page.NormalizePageSize;
         var ps = page.Context.Request.Cookies.TryGetValue(pageSizeCookieName, out var pageSizeCookie) &&
-            int.TryParse(pageSizeCookie, CultureInfo.InvariantCulture, out var pageSize) ? 
+            int.TryParse(pageSizeCookie, CultureInfo.InvariantCulture, out var pageSize) ?
             normalize(pageSize) : normalize(default);
 
         if (routeData.TryGetValue("ps", out var psval) && int.TryParse(psval, out var psn))
@@ -45,14 +46,37 @@ static class PageExtensions
         return (routeData, p, ps);
     }
 
-    public static int GetPageSize(this PageRequest pageRequest, HttpContext context, string? pageSizeCookieName = null)
+    public static int GetPageSize(this PageRequest pageRequest, HttpContext context, string pageSizeCookieNameSuffix = DefaultPageSizeCookieName)
     {
-        var channel = pageRequest is ChannelPageRequest;
-        var cookieName = pageSizeCookieName ?? (channel ? ChannelPageRequest.PageSizeCookieName : DefaultPageSizeCookieName);
+        var pageSizeCookieName = GetPageSizeCookieName(context, pageSizeCookieNameSuffix);
 
-        var ps = pageRequest.Ps ?? (context.Request.Cookies.TryGetValue(cookieName, out var pageSizeCookie) &&
+        var ps = pageRequest.Ps ?? (context.Request.Cookies.TryGetValue(pageSizeCookieName, out var pageSizeCookie) &&
             int.TryParse(pageSizeCookie, CultureInfo.InvariantCulture, out var pageSize) ? pageSize : null);
 
-        return channel ? ChannelPageRequest.NormalizePageSize(ps) : Page.NormalizePageSize(ps);
+        return pageRequest is ChannelPageRequest ? ChannelPageRequest.NormalizePageSize(ps) : Page.NormalizePageSize(ps);
+    }
+
+    private static string GetPageSizeCookieName(HttpContext context, string pageSizeCookieNameSuffix)
+    {
+        var pageSizeCookieNamePrefix = string.Concat(
+            context.Request.RouteValues["channel"] as string,
+            ToTitleCase(context.Request.RouteValues["feed"] as string));
+
+        var pageSizeCookieName = string.IsNullOrWhiteSpace(pageSizeCookieNamePrefix) ? pageSizeCookieNameSuffix :
+            string.Concat(pageSizeCookieNamePrefix, ToTitleCase(pageSizeCookieNameSuffix));
+
+        return pageSizeCookieName;
+    }
+
+    private static string ToTitleCase(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return name ?? string.Empty;
+
+        return string.Create(name.Length, name, (span, src) =>
+        {
+            src.CopyTo(span);
+            span[0] = char.ToUpperInvariant(name[0]);
+        });
     }
 }
