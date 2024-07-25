@@ -19,7 +19,7 @@ public static class Program
         DbEnum<PostStatus>.Initialize();
         DbEnum<FeedStatus>.Initialize();
         DbEnum<FeedSafeguard>.Initialize();
-        Page.Initialize(10, 15, 25, 35, 50);
+        Page.Initialize(10, 15, 25, 50);
     }
 
     public static void Main(string[] args)
