@@ -71,7 +71,7 @@
                             @if (!string.IsNullOrWhiteSpace(post.Author))
                             {
                                 <text>|&nbsp;</text>
-                                @Html.Raw(post.Author)
+                                @Html.Raw(Html.Encode(post.Author))
                             }
                         </small>
                     </p>

@@ -22,7 +22,7 @@
                                 </li>
                                 @if (!string.IsNullOrWhiteSpace(post.Author) && !feed.Title.Contains(post.Author))
                                 {
-                                    <li class="breadcrumb-item">@Html.Raw(post.Author)</li>
+                                    <li class="breadcrumb-item">@Html.Raw(Html.Encode(post.Author))</li>
                                 }
                                 <li class="breadcrumb-item">
                                     <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
