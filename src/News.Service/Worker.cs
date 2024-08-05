@@ -906,9 +906,14 @@ sealed class Worker : BackgroundService,
                 declare @NextUpdated datetimeoffset = dateadd(second, @UpdatePeriod, @LastUpdated);
                 if @UpdateType > 0
                 begin
-                    set @NextUpdated = dateadd(minute, 5, @NextUpdated);
+                    set @NextUpdated = dateadd(second, @UpdateDelay, @NextUpdated);
                 end;
 
+                if @UpdatePeriod = 0
+                begin
+                    set @UpdatePeriod = @UpdateDelay;
+                end;
+                
                 declare @Now datetimeoffset = sysdatetimeoffset();
                 while @NextUpdated < @Now
                 begin
@@ -916,7 +921,7 @@ sealed class Worker : BackgroundService,
                 end;
                 
                 select @NextUpdated;
-                """, new { FeedId = feed.Id });
+                """, new { FeedId = feed.Id, UpdateDelay = (int)this.options.UpdateDelay.TotalSeconds });
 
             var nearestNextUpdate = DateTimeOffset.Now.Add(this.options.MinUpdateInterval);
             var farthestNextUpdate = DateTimeOffset.Now.Add(this.options.MaxUpdateInterval);

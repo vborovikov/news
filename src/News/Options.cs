@@ -37,10 +37,26 @@ public sealed record ServiceOptions : BaseOptions
         this.Endpoint = MessageEndpoint.FromName("newsmaker");
     }
 
+    /// <summary>
+    /// Update interval for periodical feed updates.
+    /// </summary>
     public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(8);
+    /// <summary>
+    /// Minimum update interval for scheduled feed updates.
+    /// </summary>
     public TimeSpan MinUpdateInterval { get; init; } = TimeSpan.FromMinutes(15);
+    /// <summary>
+    /// Maximum update interval for scheduled feed updates.
+    /// </summary>
     public TimeSpan MaxUpdateInterval { get; init; } = TimeSpan.FromDays(30);
+    /// <summary>
+    /// Update delay for scheduled feed updates with punctual posting.
+    /// </summary>
+    public TimeSpan UpdateDelay { get; init; } = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// User agent string for http requests.
+    /// </summary>
     public string? UserAgent { get; init; }
 
     public required MessageQueueName UserAgentQueue { get; init; } = MessageQueueName.FromName("useragent");
