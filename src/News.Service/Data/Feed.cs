@@ -157,21 +157,13 @@ record FeedItemWrapper : WrapperBase
 
     public string Slug => this.Link.SlugifyPost();
 
-    public DateTimeOffset Published => this.published ??= GetPublished();
-
-    private DateTimeOffset GetPublished()
-    {
-        var publishedStr = this.PublishedDateString;
-
-        if (DateTimeOffset.TryParse(publishedStr, out var published))
-            return published;
-
-        if (BrokenDateTimeOffset.TryParse(publishedStr, out published))
-            return published;
-
-        Debug.WriteLine($"Unable to parse '{publishedStr}'");
-        return DateTimeOffset.Now;
-    }
+    public DateTimeOffset Published => this.published ??= 
+        this.item.PublishingDate ??
+        (this.item.SpecificItem as AtomFeedItem)?.Updated ??
+        (this.item.SpecificItem as AtomFeedItem)?.Published ??
+        (this.item.SpecificItem as Rss091FeedItem)?.PubDate ??
+        (this.item.SpecificItem as Rss20FeedItem)?.PubDate ??
+        DateTimeOffset.Now;
 
     public string Title =>
         string.IsNullOrWhiteSpace(this.item.Title) ? this.Link : Truncate(this.item.Title, 1000);
