@@ -26,7 +26,7 @@
                                 }
                                 <li class="breadcrumb-item">
                                     <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
-                                                asp-route-year="" class="link-dark bi bi-rss @FeedTextClass(feed)">
+                                                asp-route-year="" class="link-dark bi bi-rss @FeedTextClass(feed)" title="@feed.Error">
                                         @feed.Title
                                     </a>
                                 </li>
