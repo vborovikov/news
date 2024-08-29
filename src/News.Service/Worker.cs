@@ -44,18 +44,17 @@ sealed class Worker : BackgroundService,
     private readonly ILogger wslog;
     private readonly Stopwatch busyMonitor;
 
-    public Worker(IOptions<ServiceOptions> options,
-        DbDataSource db, IHttpClientFactory web, IQueueRequestDispatcher usr, IQueueRequestScheduler scheduler,
-        ILogger<Worker> log, ILogger<WindowShopper> wslog, ILogger<RequestHandler> rhlog)
+    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, 
+        IQueueRequestDispatcher usr, IQueueRequestScheduler scheduler, ILoggerFactory loggerFactory)
     {
         this.options = options.Value;
         this.db = db;
         this.web = web;
         this.usr = usr;
         this.scheduler = scheduler;
-        this.handler = new(this, this.options.Endpoint, rhlog);
-        this.log = log;
-        this.wslog = wslog;
+        this.handler = new(this, this.options.Endpoint, loggerFactory.CreateLogger<RequestHandler>());
+        this.log = loggerFactory.CreateLogger<Worker>();
+        this.wslog = loggerFactory.CreateLogger<WindowShopper>();
         this.busyMonitor = new Stopwatch();
     }
 
