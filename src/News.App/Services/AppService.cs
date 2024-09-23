@@ -21,15 +21,21 @@ class AppService : IApp
             .GetCustomAttribute<AssemblyProductAttribute>()?
             .Product ?? string.Empty;
 
-        version = assembly?
+        var infoVersion = assembly?
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? string.Empty;
 
-        var metadataPos = version.IndexOf('+');
+        var metadataPos = infoVersion.IndexOf('+');
         if (metadataPos > 0)
         {
-            version = version[..metadataPos];
+            infoVersion = infoVersion[..metadataPos];
         }
+
+        var fileVersion = assembly?
+            .GetCustomAttribute<AssemblyFileVersionAttribute>()?
+            .Version ?? string.Empty;
+
+        version = string.IsNullOrWhiteSpace(fileVersion) ? infoVersion : $"{infoVersion} ({fileVersion})";
     }
 
     public string Product => product;
