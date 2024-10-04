@@ -4,24 +4,34 @@ using System.Reflection;
 
 public interface IApp
 {
+    string Name { get; }
     string Product { get; }
     string Version { get; }
+    string InfoVersion { get; }
+    string FileVersion { get; }
 }
 
 public class AppService : IApp
 {
+    private static readonly string name;
     private static readonly string product;
     private static readonly string version;
+    private static readonly string infoVersion;
+    private static readonly string fileVersion;
 
     static AppService()
     {
         var assembly = Assembly.GetEntryAssembly();
 
+        name = assembly?
+            .GetCustomAttribute<AssemblyTitleAttribute>()?
+            .Title ?? string.Empty;
+
         product = assembly?
             .GetCustomAttribute<AssemblyProductAttribute>()?
             .Product ?? string.Empty;
 
-        var infoVersion = assembly?
+        infoVersion = assembly?
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? string.Empty;
 
@@ -31,13 +41,16 @@ public class AppService : IApp
             infoVersion = infoVersion[..metadataPos];
         }
 
-        var fileVersion = assembly?
+        fileVersion = assembly?
             .GetCustomAttribute<AssemblyFileVersionAttribute>()?
             .Version ?? string.Empty;
 
         version = string.IsNullOrWhiteSpace(fileVersion) ? infoVersion : $"{infoVersion} ({fileVersion})";
     }
 
+    public string Name => name;
     public string Product => product;
     public string Version => version;
+    public string InfoVersion => infoVersion;
+    public string FileVersion => fileVersion;
 }

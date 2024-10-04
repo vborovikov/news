@@ -1,6 +1,7 @@
 namespace News.Service;
 
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
@@ -56,10 +57,17 @@ static class Program
                     http.ConfigureHttpClient((sp, httpClient) =>
                     {
                         var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
+
                         if (options.UserAgent is not null)
                         {
                             httpClient.DefaultRequestHeaders.UserAgent.Clear();
                             httpClient.DefaultRequestHeaders.Add("User-Agent", options.UserAgent);
+                        }
+                        else
+                        {
+                            var app = new AppService();
+                            httpClient.DefaultRequestHeaders.UserAgent.Clear();
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", $"{app.Name}/{app.FileVersion} ({app.Product} {app.InfoVersion})");
                         }
 
                         // Overall timeout across all tries
@@ -131,7 +139,7 @@ static class Program
                 {
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
                     var logging = sp.GetRequiredService<ILoggerFactory>();
-                    
+
                     var dispatcher = new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
                         logging.CreateLogger("News.Service.UserAgent"));
                     dispatcher.RecognizeTypesFrom(typeof(PageInfoQuery).Assembly);
@@ -184,7 +192,7 @@ static class Program
     {
         if (messageHandler is not HttpClientHandler handler)
             return;
-            
+
         if (handler.SupportsAutomaticDecompression)
         {
             handler.AutomaticDecompression = DecompressionMethods.All;
