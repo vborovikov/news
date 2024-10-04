@@ -139,7 +139,7 @@ static class Program
                 {
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
                     var logging = sp.GetRequiredService<ILoggerFactory>();
-
+                    
                     var dispatcher = new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
                         logging.CreateLogger("News.Service.UserAgent"));
                     dispatcher.RecognizeTypesFrom(typeof(PageInfoQuery).Assembly);
@@ -192,7 +192,7 @@ static class Program
     {
         if (messageHandler is not HttpClientHandler handler)
             return;
-
+            
         if (handler.SupportsAutomaticDecompression)
         {
             handler.AutomaticDecompression = DecompressionMethods.All;
