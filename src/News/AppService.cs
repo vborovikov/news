@@ -1,4 +1,4 @@
-﻿namespace News.App.Services;
+﻿namespace News;
 
 using System.Reflection;
 
@@ -8,7 +8,7 @@ public interface IApp
     string Version { get; }
 }
 
-class AppService : IApp
+public class AppService : IApp
 {
     private static readonly string product;
     private static readonly string version;

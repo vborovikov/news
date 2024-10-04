@@ -30,4 +30,8 @@
   <ItemGroup>
     <ProjectReference Include="..\News\News.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
 </Project>
