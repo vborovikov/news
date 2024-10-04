@@ -67,7 +67,7 @@ static class Program
                         {
                             var app = new AppService();
                             httpClient.DefaultRequestHeaders.UserAgent.Clear();
-                            httpClient.DefaultRequestHeaders.Add("User-Agent", $"{app.Name}/{app.FileVersion} ({app.Product} {app.InfoVersion})");
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", app.UserAgent);
                         }
 
                         // Overall timeout across all tries

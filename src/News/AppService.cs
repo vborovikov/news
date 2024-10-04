@@ -9,6 +9,7 @@ public interface IApp
     string Version { get; }
     string InfoVersion { get; }
     string FileVersion { get; }
+    string UserAgent { get; }
 }
 
 public class AppService : IApp
@@ -48,9 +49,13 @@ public class AppService : IApp
         version = string.IsNullOrWhiteSpace(fileVersion) ? infoVersion : $"{infoVersion} ({fileVersion})";
     }
 
+    public static readonly AppService Instance = new();
+
     public string Name => name;
     public string Product => product;
     public string Version => version;
     public string InfoVersion => infoVersion;
     public string FileVersion => fileVersion;
+
+    public string UserAgent => $"{this.Name}/{this.FileVersion} ({this.Product} {this.InfoVersion})";
 }

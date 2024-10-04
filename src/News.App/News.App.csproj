@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <Title>News@Home</Title>
-    <Description>News Reader</Description>
+    <Description>Newsreader</Description>
     <ApplicationIcon>Properties\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -29,9 +29,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\News\News.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\" />
   </ItemGroup>
 </Project>

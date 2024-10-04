@@ -10,7 +10,7 @@
 
   <PropertyGroup>
     <Title>News@Home</Title>
-    <Description>News Aggregator</Description>
+    <Description>Newsmaker</Description>
     <ApplicationIcon>Properties\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
