@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -32,6 +33,7 @@ sealed class Worker : BackgroundService,
     private static readonly TimeSpan Epsilon = TimeSpan.FromSeconds(1);
     private const int MaxLocalizingPostCount = 10;
     private const int MaxLocalizingJobCount = 10;
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(3);
 
     private readonly ServiceOptions options;
@@ -44,7 +46,7 @@ sealed class Worker : BackgroundService,
     private readonly ILogger wslog;
     private readonly Stopwatch busyMonitor;
 
-    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web, 
+    public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web,
         IQueueRequestDispatcher usr, IQueueRequestScheduler scheduler, ILoggerFactory loggerFactory)
     {
         this.options = options.Value;
@@ -115,6 +117,9 @@ sealed class Worker : BackgroundService,
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        this.log.LogInformation(EventIds.ServiceStarted, "User agent string: {userAgent}", 
+            this.options.UserAgent ?? AppInfo.Instance.UserAgent);
+
         return Task.WhenAll(
             AggregateNewsAsync(stoppingToken),
             this.handler.ProcessAsync(stoppingToken));
@@ -272,37 +277,37 @@ sealed class Worker : BackgroundService,
 
     private async Task DownloadPostContentAsync(DbPost post, WindowShopper client, CancellationToken cancellationToken)
     {
-        string postContent;
         try
         {
-            postContent = await client.GetSourceAsync(new(post.Link), ResourceAccess.WebRequest, cancellationToken);
+            using var postPage = await client.GetPageAsync(new(new(post.Link), ResourceAccess.WebRequest), cancellationToken);
+            postPage.EnsureSuccessStatusCode();
+
+            await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+            await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await cnn.ExecuteAsync(
+                    """
+                    update rss.Posts
+                    set LocalContentSource = @LocalContentSource
+                    where Id = @Id;
+                    """, new
+                    {
+                        post.Id,
+                        LocalContentSource = postPage.ToString().AsNVarChar(),
+                    }, tx);
+
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch (Exception x) when (x is not OperationCanceledException)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
         catch (Exception x) when (x is not OperationCanceledException)
         {
             await StorePostUpdateErrorAsync(post, x, cancellationToken);
-            throw;
-        }
-
-        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            await cnn.ExecuteAsync(
-                """
-                update rss.Posts
-                set LocalContentSource = @LocalContentSource
-                where Id = @Id;
-                """, new
-                {
-                    post.Id,
-                    LocalContentSource = postContent.AsNVarChar(),
-                }, tx);
-
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch (Exception x) when (x is not OperationCanceledException)
-        {
-            await tx.RollbackAsync(cancellationToken);
             throw;
         }
     }
@@ -354,7 +359,8 @@ sealed class Worker : BackgroundService,
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
         {
-            var postArticle = DocumentReader.ParseArticle(postSource, new Uri(post.Link));
+            var postDocument = Document.Html.Parse(postSource);
+            var postArticle = postDocument.ParseArticle(new Uri(post.Link));
             await cnn.ExecuteAsync(
                 """
                 update rss.Posts
@@ -800,12 +806,18 @@ sealed class Worker : BackgroundService,
             Feed? update = null;
             if (feed.Status.HasFlag(FeedStatus.UserAgent))
             {
-                var feedData = await this.usr.GetStringAsync(feed.Source, feed.Status.HasFlag(FeedStatus.UseProxy), cancellationToken);
-                if (!string.IsNullOrWhiteSpace(feedData))
+                var feedData = await this.usr.RunAsync(new PageQuery(feed.Source)
+                {
+                    UseProxy = feed.Status.HasFlag(FeedStatus.UseProxy),
+                    CancellationToken = cancellationToken
+                }, RequestTimeout);
+
+                if (feedData.Source.Length > 0)
                 {
                     try
                     {
-                        update = Feed.FromString(feedData);
+                        using var feedStream = feedData.ToStream();
+                        update = await Feed.FromStreamAsync(feedStream, cancellationToken);
                     }
                     catch (HtmlContentDetectedException x)
                     {
@@ -814,7 +826,8 @@ sealed class Worker : BackgroundService,
                     }
                     catch (Exception)
                     {
-                        feed = MaybeUpdateFeedSource(feed, feedData);
+                        using var feedStream = feedData.ToStream();
+                        feed = await MaybeUpdateFeedSource(feed, feedStream, cancellationToken);
                         throw;
                     }
                 }
@@ -933,8 +946,8 @@ sealed class Worker : BackgroundService,
                 nextUpdate = farthestNextUpdate;
             }
 
-            if (feed.Scheduled is null || 
-                (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled + Epsilon) >= this.options.MinUpdateInterval) || 
+            if (feed.Scheduled is null ||
+                (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled + Epsilon) >= this.options.MinUpdateInterval) ||
                 feed.Scheduled > farthestNextUpdate)
             {
                 await this.scheduler.ExecuteAsync(
@@ -979,7 +992,7 @@ sealed class Worker : BackgroundService,
             else
             {
                 this.log.LogWarning(EventIds.FeedUpdateNotScheduled,
-                    "Feed update for '{feedUrl}' is already scheduled at {scheduled}, update at {nextUpdate} will be skipped", 
+                    "Feed update for '{feedUrl}' is already scheduled at {scheduled}, update at {nextUpdate} will be skipped",
                     feed.Source, feed.Scheduled.Value, nextUpdate);
             }
 
@@ -993,9 +1006,18 @@ sealed class Worker : BackgroundService,
         return false;
     }
 
-    private DbFeed MaybeUpdateFeedSource(DbFeed feed, string feedData)
+    private async Task<DbFeed> MaybeUpdateFeedSource(DbFeed feed, Stream feedData, CancellationToken cancellationToken)
     {
-        var html = Document.Html.Parse(feedData);
+        if (feedData.CanSeek)
+        {
+            feedData.Seek(0, SeekOrigin.Begin);
+        }
+        else if (feedData is BrotliStream { BaseStream.CanSeek: true } brotli)
+        {
+            brotli.BaseStream.Seek(0, SeekOrigin.Begin);
+        }
+
+        var html = await Document.Html.ParseAsync(feedData, cancellationToken);
         var feedLinks = Feed.FindAll(html);
         return MaybeUpdateFeedSource(feed, feedLinks);
     }
@@ -1006,9 +1028,9 @@ sealed class Worker : BackgroundService,
             feedLinks.FirstOrDefault(fl => fl.FeedType != FeedType.Unknown) ??
             feedLinks.FirstOrDefault();
 
-        if (feedLink is not null)
+        if (feedLink is not null && Uri.TryCreate(feed.Source, UriKind.Absolute, out var feedSourceUri))
         {
-            if (!DocumentReader.TryMakeAbsoluteUrl(feed.Source, feedLink.Url, out var newFeedSource))
+            if (!feedSourceUri.TryMakeAbsoluteUrl(feedLink.Url, out var newFeedSource))
             {
                 // url is already absolute
                 newFeedSource = feedLink.Url;

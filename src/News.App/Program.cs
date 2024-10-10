@@ -26,8 +26,6 @@ public static class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        builder.Services.AddSingleton<IApp, AppService>();
-
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.AppName));
         builder.Services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));

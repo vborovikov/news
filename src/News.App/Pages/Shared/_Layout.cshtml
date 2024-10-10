@@ -1,5 +1,4 @@
 ﻿@using News;
-@inject IApp app
 
 @{
     var rv = ViewContext.RouteData.Values;
@@ -73,7 +72,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; @DateTimeOffset.Now.Year - @app.Product @app.Version - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            &copy; @DateTimeOffset.Now.Year - @AppService.Instance.Product @AppService.Instance.Version - <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
 

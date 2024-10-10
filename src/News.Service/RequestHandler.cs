@@ -12,6 +12,7 @@
             : base(new RequestDispatcher(worker), endpoint, logger)
         {
             this.PeekProperties = MessageProperty.CorrelationId;
+            this.ReadProperties = MessageProperty.None; // ignore request TTL
             RecognizeTypesFrom(typeof(UpdateFeedCommand).Assembly);
         }
 

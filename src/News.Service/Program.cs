@@ -1,7 +1,6 @@
 namespace News.Service;
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
@@ -65,9 +64,8 @@ static class Program
                         }
                         else
                         {
-                            var app = new AppService();
                             httpClient.DefaultRequestHeaders.UserAgent.Clear();
-                            httpClient.DefaultRequestHeaders.Add("User-Agent", app.UserAgent);
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", AppInfo.Instance.UserAgent);
                         }
 
                         // Overall timeout across all tries
@@ -142,7 +140,7 @@ static class Program
                     
                     var dispatcher = new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
                         logging.CreateLogger("News.Service.UserAgent"));
-                    dispatcher.RecognizeTypesFrom(typeof(PageInfoQuery).Assembly);
+                    dispatcher.RecognizeTypesFrom(typeof(PageQuery).Assembly);
 
                     return dispatcher;
                 }));

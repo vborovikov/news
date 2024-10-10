@@ -18,9 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.6" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.1" />
-    <PackageReference Include="Spryer.AspNetCore.Identity.SqlServer" Version="0.2.0-beta" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Spryer.AspNetCore.Identity.SqlServer" Version="0.2.2-beta" />
+    <PackageReference Include="System.Runtime.Caching" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
