@@ -391,7 +391,7 @@ sealed class Worker : BackgroundService,
             var posts = await cnn.QueryAsync<DbPost>(
                 """
                 select top (@PostCount) p.Id, p.Link, p.Title, p.Status, p.Description, p.Content
-                from rss.Posts p
+                from rss.Posts p with (readpast, index(PK_Posts_Id))
                 where p.FeedId = @FeedId and p.LocalContentSource is null and p.Status not like '%SKIP%' 
                 order by p.Published desc;
                 """, new { FeedId = feed.Id, PostCount = postCount });
@@ -416,7 +416,7 @@ sealed class Worker : BackgroundService,
                 select p.Id, p.Link, p.Title, p.Status,
                     isnull(p.LocalDescription, p.Description) as Description,
                     isnull(p.LocalContent, p.Content) as Content
-                from rss.Posts p
+                from rss.Posts p with (readpast, index(PK_Posts_Id))
                 where p.FeedId = @FeedId and p.SafeContent is null;
                 """, new { FeedId = feed.Id }, tx);
 
