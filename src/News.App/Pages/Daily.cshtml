@@ -48,8 +48,17 @@
                                    asp-route-year="@post.PublishedLocal.Year.ToString("D4")"
                                    asp-route-month="@post.PublishedLocal.Month.ToString("D2")"
                                    asp-route-day="@post.PublishedLocal.Day.ToString("D2")"
-                                   asp-route-post="@post.Slug" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
-                                <small class="text-muted">| @post.FeedTitle</small>
+                                   asp-route-post="@post.Slug" class="@PostLinkClass(post)">
+                                   @Html.Raw(post.Title)
+                                </a>
+                                <small class="text-muted">
+                                    | 
+                                    <a asp-page="/Index"
+                                       asp-route-channel="@channel.Slug" asp-route-feed="@post.FeedSlug"
+                                       class="text-reset">
+                                        @Html.Raw(post.FeedTitle)
+                                    </a>
+                                </small>
                             </li>
                         }
                     </ul>
