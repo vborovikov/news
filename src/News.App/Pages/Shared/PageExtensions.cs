@@ -9,18 +9,21 @@ static class PageExtensions
 {
     private const string DefaultPageSizeCookieName = "pageSize";
     private static readonly TimeSpan PageSizeCookieMaxAge = TimeSpan.FromDays(180);
+    private const string PageNumberParamName = nameof(PageRequest.P);
+    private const string PageSizeParamName = nameof(PageRequest.Ps);
 
     public static (Dictionary<string, string> RouteData, int PageNumber, int PageSize)
         GetPageQueryParams(this RazorPage page, string pageSizeCookieNameSuffix = DefaultPageSizeCookieName,
             Func<int?, int>? normalizePageSize = null)
     {
-        var routeData = page.Context.Request.Query.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value.ToString());
+        var routeData = page.Context.Request.Query
+            .ToDictionary(x => x.Key, x => x.Value.ToString(), StringComparer.OrdinalIgnoreCase);
 
         var p = Page.FirstPageNumber;
-        if (routeData.TryGetValue("p", out var pval) && int.TryParse(pval, out var pn))
+        if (routeData.TryGetValue(PageNumberParamName, out var pval) && int.TryParse(pval, out var pn))
         {
             p = pn;
-            routeData.Remove("p");
+            routeData.Remove(PageNumberParamName);
         }
 
         var pageSizeCookieName = GetPageSizeCookieName(page.Context, pageSizeCookieNameSuffix);
@@ -29,13 +32,13 @@ static class PageExtensions
             int.TryParse(pageSizeCookie, CultureInfo.InvariantCulture, out var pageSize) ?
             normalize(pageSize) : normalize(default);
 
-        if (routeData.TryGetValue("ps", out var psval) && int.TryParse(psval, out var psn))
+        if (routeData.TryGetValue(PageSizeParamName, out var psval) && int.TryParse(psval, out var psn))
         {
             var requestedPageSize = normalize(psn);
             var shouldStore = ps != requestedPageSize;
 
             ps = normalize(psn);
-            routeData.Remove("ps");
+            routeData.Remove(PageSizeParamName);
 
             if (shouldStore)
             {
