@@ -8,6 +8,7 @@ using Relay.InteractionModel;
 static class PageExtensions
 {
     private const string DefaultPageSizeCookieName = "pageSize";
+    private static readonly TimeSpan PageSizeCookieMaxAge = TimeSpan.FromDays(180);
 
     public static (Dictionary<string, string> RouteData, int PageNumber, int PageSize)
         GetPageQueryParams(this RazorPage page, string pageSizeCookieNameSuffix = DefaultPageSizeCookieName,
@@ -39,7 +40,7 @@ static class PageExtensions
             if (shouldStore)
             {
                 page.Context.Response.Cookies.Append(pageSizeCookieName, psval,
-                    new CookieOptions { Expires = DateTimeOffset.Now.AddMonths(1) });
+                    new CookieOptions { MaxAge = PageSizeCookieMaxAge });
             }
         }
 
