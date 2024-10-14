@@ -11,12 +11,17 @@ To run the project follow these steps:
 4. Build the project in Visual Studio/VS Code/dotnet CLI
 5. Run the web app and the service program
 
-Assuming you have the SQL Server LocalDB installed with the default instance named `MSSQLLocalDB`, you can create the database like this:
+Assuming you have the SQL Server LocalDB installed with the default instance named `MSSQLLocalDB`, you can create the database named `News` like this:
 
 ```
 PS> cd .\news\
-PS> sqlcmd -S "(LocalDB)\MSSQLLocalDB" -i .\db\db.sql
-PS> sqlcmd -S "(LocalDB)\MSSQLLocalDB" -i .\db\dbup_01.sql
+PS> sqlcmd -S '(LocalDB)\MSSQLLocalDB' -i .\db\db.sql -I
+```
+
+SQL Server LocalDB can suffice for this project but Express or Developer edition is recommended, so that you can use fulltext search capabilities. To enable fulltext search, run the following command (`.` here means the default SQL Server instance):
+
+```
+PS> sqlcmd -S '.' -i .\db\db_fulltext.sql -I
 ```
 
 Add the following lines to `appsettings.json` or `secrets.json` in News.App and News.Service:
