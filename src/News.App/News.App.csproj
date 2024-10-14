@@ -13,6 +13,10 @@
     <ApplicationIcon>Properties\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <IdentitySqlScriptFile>..\..\db\migrations\dbup_01.sql</IdentitySqlScriptFile>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="compilerconfig.json" />
   </ItemGroup>
