@@ -30,6 +30,3 @@ go
 
 drop schema asp;
 go
-
-drop database News;
-go
