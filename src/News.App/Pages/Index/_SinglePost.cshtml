@@ -1,0 +1,138 @@
+﻿@model RssChannel
+@inject LinkGenerator lg
+
+<div class="row g-5">
+    @foreach (var feed in Model.Feeds)
+    {
+        <div class="col-md-9">
+            @foreach (var post in feed.Posts)
+            {
+                <article @{ if (!post.IsRead) { <text>is="post-read"</text> } }
+                         data-action="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "read" })" class="feed-post">
+                    <header class="border-bottom mb-2">
+                        <h3 class="feed-post-title">
+                            <a href="@post.Link" target="_blank" class="@PostLinkClass(post)">@Html.Raw(post.Title)</a>
+                        </h3>
+                        <nav style="--bs-breadcrumb-divider: '|';">
+                            <ol class="breadcrumb mb-2">
+                                <li class="breadcrumb-item">
+                                    <time datetime="@post.PublishedLocal.ToString(CultureInfo.InvariantCulture)">
+                                        @post.PublishedLocal.ToString("f")
+                                    </time>
+                                </li>
+                                @if (!string.IsNullOrWhiteSpace(post.Author) && !feed.Title.Contains(post.Author))
+                                {
+                                    <li class="breadcrumb-item">@Html.Raw(Html.Encode(post.Author))</li>
+                                }
+                                <li class="breadcrumb-item">
+                                    <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+                                                asp-route-year="" class="link-dark bi bi-rss @FeedTextClass(feed)" title="@feed.Error">
+                                        @feed.Title
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed=""
+                                        asp-route-year="" class="link-dark bi bi-bookmark text-info">
+                                        @Model.Name
+                                    </a>
+                                </li>
+                            </ol>
+                        </nav>
+                    </header>
+                    <section>
+                        @Html.Raw(post.Content)
+                    </section>
+                    <footer class="d-flex justify-content-center border-top mt-2 py-2">
+                        <div class="btn-group btn-group-sm">
+                            <a is="post-star" class="btn btn-outline-warning" data-favorite="@post.IsFavorite"
+                                data-star="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "star" })"
+                                data-unstar="@lg.GetPathByName(nameof(Api.MarkPost), new { id = post.PostId, mark = "unstar" })">
+                                <i class="bi bi-star"></i>
+                            </a>
+                            <button is="action-button" class="btn btn-outline-success" title="Update &quot;@post.Title&quot;"
+                                data-action="@lg.GetPathByName(nameof(Api.UpdatePost), new { id = post.PostId })" data-method="PUT" data-reload="5s">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </footer>
+                </article>
+            }
+
+            @if (feed.Posts.Count() > 1)
+            {
+                <div class="mt-2">
+                    <partial name="_Pagination" model="feed.Posts" />
+                </div>
+            }
+        </div>
+
+        <div class="col-md-3">
+            <aside class="position-sticky" style="top: 1rem;">
+                @if (!string.IsNullOrWhiteSpace(feed.Description))
+                {
+                    <div class="p-4 mb-3 bg-light rounded">
+                        <h4 class="">About</h4>
+                        <p class="mb-0">@Html.Raw(feed.Description)</p>
+                    </div>
+                }
+
+                @if (feed.LastPublishedLocal.HasValue)
+                {
+                    var pubDate = feed.LastPublishedLocal.Value;
+                    var pubDateLast = pubDate.AddYears(-1);
+                    <nav class="p-4">
+                        <h4 class="">Archives</h4>
+                        <ol class="list-unstyled mb-0">
+                            @while (pubDate > pubDateLast)
+                            {
+                                <li>
+                                    <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
+                                       asp-route-year="@pubDate.Year.ToString("D4")"
+                                       asp-route-month="@pubDate.Month.ToString("D2")"
+                                       asp-route-day="">
+                                        @pubDate.ToString("MMMM yyyy")
+                                    </a>
+                                </li>
+                                pubDate = pubDate.AddMonths(-1);
+                            }
+                        </ol>
+                    </nav>
+                }
+                <div class="p-4">
+                    <h4 class="">Elsewhere</h4>
+                    <ol class="list-unstyled">
+                        <li><a href="@feed.Link">Website</a></li>
+                        <li><a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug" asp-route-year="">@feed.Title</a></li>
+                        <li><a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="">@Model.Name</a></li>
+                    </ol>
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+
+@functions {
+    private static string PostLinkClass(RssPostInfo post)
+    {
+        return post.IsRead ? "link-secondary" : "link-dark";
+    }
+
+    private static string FeedLinkClass(RssFeedInfo feed)
+    {
+        return "link-" + FeedStatusName(feed);
+    }
+
+    private static string FeedTextClass(RssFeedInfo feed)
+    {
+        return "text-" + FeedStatusName(feed);
+    }
+
+    private static string FeedStatusName(RssFeedInfo feed)
+    {
+        return
+            feed.HasError ? "danger" :
+            feed.IsOutdated ? "secondary" :
+            feed.HasPosts ? "primary" :
+            "warning";
+    }
+}
