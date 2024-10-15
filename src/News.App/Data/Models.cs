@@ -91,8 +91,9 @@ public record RssPostInfo : PostBase
     public string? Author { get; init; }
 }
 
-public record RssPostRef : PostBase
+public record RssPostRef : RssPostInfo
 {
+    public required string ChannelSlug { get; init; }
     public required string FeedSlug { get; init; }
 }
 

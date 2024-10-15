@@ -275,17 +275,26 @@ public class IndexModel : AppPageModel
             // get similar posts
             this.SimilarPosts = await cnn.QueryAsync<RssPostRef>(
                 """
-                with SimilarPosts as(
-                    select row_number() over (partition by pp.PostId order by s.score desc) as Occurrence,
-                    pp.PostId, pp.Title, pp.Slug, puf.Slug as FeedSlug, pp.Link, pp.Published, s.score as Score
-                    from rss.AppPosts pp
-                    inner join SemanticSimilarityTable(rss.Posts, *, @PostId) s on pp.PostId = s.matched_document_key
-                    inner join rss.UserFeeds puf on pp.FeedId = puf.FeedId)
-                select sp.PostId, sp.Title, sp.Slug, sp.FeedSlug, sp.Link, sp.Published
+                with SimilarPosts as
+                (
+                    select 
+                        row_number() over (partition by p.PostId order by s.score desc) as Occurrence,
+                        p.PostId, p.Title, p.Description, p.Author, p.Link, p.Published, p.IsRead, p.IsFavorite,
+                        p.Slug, f.Slug as FeedSlug, ch.Slug as ChannelSlug, s.score as Score
+                    from rss.AppPosts p
+                    inner join SemanticSimilarityTable(rss.Posts, *, @PostId) s on p.PostId = s.matched_document_key
+                    inner join rss.UserFeeds f on p.FeedId = f.FeedId
+                    inner join rss.UserChannels ch on f.ChannelId = ch.Id
+                    where ch.UserId = @UserId
+                )
+                select 
+                    sp.PostId, sp.Title, sp.Description, sp.Author, 
+                    sp.Link, sp.Published, sp.IsRead, sp.IsFavorite, 
+                    sp.Slug, sp.FeedSlug, sp.ChannelSlug
                 from SimilarPosts sp
                 where sp.Occurrence = 1
                 order by sp.Score desc;
-                """, new { originalPost.PostId }
+                """, new { this.UserId, originalPost.PostId }
                 ) ?? [];
         }
 
@@ -318,4 +327,6 @@ public class IndexModel : AppPageModel
         Favorites,
         F = Favorites,
     }
+
+    public record SinglePostModel(RssPost Post, IEnumerable<RssPostRef> SimilarPosts, RssFeedInfo Feed, RssChannelInfo Channel);
 }

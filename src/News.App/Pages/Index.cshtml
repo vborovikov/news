@@ -22,7 +22,7 @@ else if (Model.Granularity <= IndexModel.GranularityLevel.Posts)
     {
         var post = feed.Posts.First();
         ViewData["Title"] = $"{post.Title} | {feed.Title} | {channel.Name}";
-        <partial name="Index/_SinglePost" model="channel" />
+        <partial name="Index/_SinglePost" model="new IndexModel.SinglePostModel(post, Model.SimilarPosts, feed, channel)" />
     }
     else
     {
