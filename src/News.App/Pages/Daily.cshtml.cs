@@ -79,7 +79,7 @@ public class DailyModel : AppPageModel
         return Page();
     }
 
-    public record PostSummary : PostBase
+    public record PostSummary : RssPostInfo
     {
         public required string FeedSlug { get; init; }
         public required string FeedTitle { get; init; }

@@ -77,18 +77,23 @@ public abstract record PostBase
 
     public required Guid PostId { get; init; }
     public required string Title { get; init; }
-    public string? Description { get; init; }
-    public required string Link { get; init; }
     public required string Slug { get; init; }
+    public required string Link { get; init; }
     public required DateTimeOffset Published { get; init; }
     public DateTimeOffset PublishedLocal => this.publishedLocal ??= this.Published.ToLocalTime();
+}
+
+public record RssPostInfo : PostBase
+{
+    public string? Description { get; init; }
     public bool IsRead { get; init; }
     public bool IsFavorite { get; init; }
     public string? Author { get; init; }
 }
 
-public record RssPostInfo : PostBase
+public record RssPostRef : PostBase
 {
+    public required string FeedSlug { get; init; }
 }
 
 public record RssPost : RssPostInfo

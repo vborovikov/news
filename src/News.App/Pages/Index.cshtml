@@ -28,7 +28,7 @@ else if (Model.Granularity <= IndexModel.GranularityLevel.Posts)
         ViewData["Title"] = $"{feed.Title} | {channel.Name}";
     }
 
-    <partial name="Index/_Post" model="channel" />
+    <partial name="Index/_Posts" model="channel" />
 }
 else if (Model.Granularity == IndexModel.GranularityLevel.Feed)
 {

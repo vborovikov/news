@@ -1,6 +1,7 @@
 ﻿namespace News.App.Pages;
 
 using System.Data.Common;
+using Dapper;
 using Data;
 using Microsoft.AspNetCore.Mvc;
 using Relay.InteractionModel;
@@ -21,7 +22,9 @@ public class IndexModel : AppPageModel
 
     public GranularityLevel Granularity { get; private set; } = GranularityLevel.None;
 
-    public IEnumerable<RssChannel> Channels { get; private set; } = Enumerable.Empty<RssChannel>();
+    public IEnumerable<RssChannel> Channels { get; private set; } = [];
+
+    public IEnumerable<RssPostRef> SimilarPosts { get; private set; } = [];
 
     public async Task<IActionResult> OnGet([FromQuery] PageRequest page, string? channel = null, string? feed = null,
         int year = 0, int month = 0, int day = 0, string? post = null,
@@ -265,6 +268,26 @@ public class IndexModel : AppPageModel
                 Search = page.Q.AsNVarChar(250),
                 TopN = pageSize * 7,
             }) ?? [];
+
+        if (this.Granularity == GranularityLevel.Post &&
+            this.Channels.FirstOrDefault()?.Feeds.FirstOrDefault()?.Posts.FirstOrDefault() is RssPost originalPost)
+        {
+            // get similar posts
+            this.SimilarPosts = await cnn.QueryAsync<RssPostRef>(
+                """
+                with SimilarPosts as(
+                    select row_number() over (partition by pp.PostId order by s.score desc) as Occurrence,
+                    pp.PostId, pp.Title, pp.Slug, puf.Slug as FeedSlug, pp.Link, pp.Published, s.score as Score
+                    from rss.AppPosts pp
+                    inner join SemanticSimilarityTable(rss.Posts, *, @PostId) s on pp.PostId = s.matched_document_key
+                    inner join rss.UserFeeds puf on pp.FeedId = puf.FeedId)
+                select sp.PostId, sp.Title, sp.Slug, sp.FeedSlug, sp.Link, sp.Published
+                from SimilarPosts sp
+                where sp.Occurrence = 1
+                order by sp.Score desc;
+                """, new { originalPost.PostId }
+                ) ?? [];
+        }
 
         return Page();
     }
