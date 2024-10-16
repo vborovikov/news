@@ -1,5 +1,41 @@
 ﻿namespace News;
 
+/// <summary>
+/// Determines the type of a feed.
+/// </summary>
+public enum FeedType
+{
+    /// <summary>
+    /// Unknown feed type.
+    /// </summary>
+    Unknown,
+    ANY = Unknown,
+
+    /// <summary>
+    /// Personal blogs, news, articles, etc.
+    /// </summary>
+    Blog,
+    LOG = Blog,
+
+    /// <summary>
+    /// Link aggregator or any feed that provides only links.
+    /// </summary>
+    LinkAggregator,
+    LNK = LinkAggregator,
+
+    /// <summary>
+    /// Music blogs, podcasts, etc.
+    /// </summary>
+    Audioblog,
+    AUD = Audioblog,
+
+    /// <summary>
+    /// Vlogs, videos, etc.
+    /// </summary>
+    Vlog,
+    VID = Vlog,
+}
+
 [Flags]
 public enum FeedStatus
 {
