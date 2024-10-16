@@ -289,7 +289,7 @@ public class IndexModel : AppPageModel
                 )
                 select sp.*
                 from SimilarPosts sp
-                where sp.Occurrence = 1
+                where sp.Occurrence = 1 and sp.Score > 0.5
                 order by sp.Score desc;
                 """, new { this.UserId, originalPost.PostId }
                 ) ?? [];
