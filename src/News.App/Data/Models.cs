@@ -71,7 +71,7 @@ public record RssFeed : RssFeedInfo
     public IEnumerable<RssPost> Posts { get; init; } = [];
 }
 
-public abstract record PostBase
+public record RssPostInfo
 {
     private DateTimeOffset? publishedLocal;
 
@@ -81,10 +81,6 @@ public abstract record PostBase
     public required string Link { get; init; }
     public required DateTimeOffset Published { get; init; }
     public DateTimeOffset PublishedLocal => this.publishedLocal ??= this.Published.ToLocalTime();
-}
-
-public record RssPostInfo : PostBase
-{
     public string? Description { get; init; }
     public bool IsRead { get; init; }
     public bool IsFavorite { get; init; }
@@ -95,6 +91,7 @@ public record RssPostRef : RssPostInfo
 {
     public required string ChannelSlug { get; init; }
     public required string FeedSlug { get; init; }
+    public string FeedTitle { get; init; } = "";
 }
 
 public record RssPost : RssPostInfo

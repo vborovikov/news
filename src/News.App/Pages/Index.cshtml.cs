@@ -280,17 +280,14 @@ public class IndexModel : AppPageModel
                     select 
                         row_number() over (partition by p.PostId order by s.score desc) as Occurrence,
                         p.PostId, p.Title, p.Description, p.Author, p.Link, p.Published, p.IsRead, p.IsFavorite,
-                        p.Slug, f.Slug as FeedSlug, ch.Slug as ChannelSlug, s.score as Score
+                        p.Slug, f.Slug as FeedSlug, f.Title as FeedTitle, ch.Slug as ChannelSlug, s.score as Score
                     from rss.AppPosts p
                     inner join SemanticSimilarityTable(rss.Posts, *, @PostId) s on p.PostId = s.matched_document_key
-                    inner join rss.UserFeeds f on p.FeedId = f.FeedId
+                    inner join rss.AppFeeds f on p.FeedId = f.FeedId
                     inner join rss.UserChannels ch on f.ChannelId = ch.Id
                     where ch.UserId = @UserId
                 )
-                select 
-                    sp.PostId, sp.Title, sp.Description, sp.Author, 
-                    sp.Link, sp.Published, sp.IsRead, sp.IsFavorite, 
-                    sp.Slug, sp.FeedSlug, sp.ChannelSlug
+                select sp.*
                 from SimilarPosts sp
                 where sp.Occurrence = 1
                 order by sp.Score desc;

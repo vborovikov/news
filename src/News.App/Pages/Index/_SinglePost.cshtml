@@ -57,32 +57,40 @@
                     </div>
                 </footer>
             </article>
-    </div>
 
-    <div class="col-md-3">
-        <aside class="position-sticky" style="top: 1rem;">
             @if (Model.SimilarPosts.Any())
             {
-                <nav class="p-4">
-                    <h4 class="">Others</h4>
-                    <ol class="list-unstyled mb-0">
+                <div class="bg-light rounded">
+                    <ul class="py-3">
                         @foreach (var similarPost in Model.SimilarPosts)
                         {
-                            <li class="text-truncate">
+                            <li>
                                 <a asp-page="/Index" asp-route-channel="@similarPost.ChannelSlug" asp-route-feed="@similarPost.FeedSlug"
                                    asp-route-year="@similarPost.PublishedLocal.Year.ToString("D4")"
                                    asp-route-month="@similarPost.PublishedLocal.Month.ToString("D2")"
                                    asp-route-day="@similarPost.PublishedLocal.Day.ToString("D2")"
                                    asp-route-post="@similarPost.Slug"
-                                   title="@similarPost.Title">
+                               title="@similarPost.Title" class="@PostLinkClass(post)">
                                     @Html.Raw(similarPost.Title)
                                 </a>
+                                <small class="text-muted">
+                                    | 
+                                    <a asp-page="/Index"
+                                       asp-route-channel="@similarPost.ChannelSlug" asp-route-feed="@similarPost.FeedSlug"
+                                       class="text-reset">
+                                        @Html.Raw(similarPost.FeedTitle)
+                                    </a>
+                                </small>
                             </li>
                         }
-                    </ol>
-                </nav>
+                    </ul>
+                </div>
             }
-            else if (!string.IsNullOrWhiteSpace(feed.Description))
+    </div>
+
+    <div class="col-md-3">
+        <aside class="position-sticky" style="top: 1rem;">
+            @if (!string.IsNullOrWhiteSpace(feed.Description))
             {
                 <div class="p-4 mb-3 bg-light rounded">
                     <h4 class="">About</h4>
