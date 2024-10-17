@@ -42,8 +42,6 @@ public class IndexModel : AppPageModel
         var maxDate = DateTimeOffset.Now;
         if (year > 0)
         {
-            this.Granularity = string.IsNullOrEmpty(post) ? GranularityLevel.Posts : GranularityLevel.Post;
-
             // tweaking dates when showing posts
             if (day > 0)
             {
@@ -64,8 +62,10 @@ public class IndexModel : AppPageModel
                 maxDate = minDate.AddYears(1);
             }
 
-            if (this.Granularity == GranularityLevel.Posts)
+            if (string.IsNullOrEmpty(post))
             {
+                this.Granularity = GranularityLevel.Posts;
+
                 sql =
                     """
                     select uc.Id as ChannelId, uc.Name, uc.Slug,
@@ -97,6 +97,8 @@ public class IndexModel : AppPageModel
             }
             else
             {
+                this.Granularity = GranularityLevel.Post;
+
                 sql =
                     """
                     select uc.Id as ChannelId, uc.Name, uc.Slug,
