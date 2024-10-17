@@ -117,7 +117,7 @@ sealed class Worker : BackgroundService,
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        this.log.LogInformation(EventIds.ServiceStarted, "User agent string: {userAgent}", 
+        this.log.LogInformation(EventIds.ServiceStarted, "User agent string: {userAgent}",
             this.options.UserAgent ?? AppInfo.Instance.UserAgent);
 
         return Task.WhenAll(
@@ -469,7 +469,7 @@ sealed class Worker : BackgroundService,
 
         if (safeguards.HasFlag(FeedSafeguard.DescriptionImageRemover))
         {
-            var imgElements = html.Find("//img").ToArray();
+            var imgElements = html.FindAll(el => el is Tag { Name: "img" }).ToArray();
             foreach (var img in imgElements)
             {
                 img.TryDelete(deleteEmptyAncestors: true);
