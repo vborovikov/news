@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Relay.InteractionModel;
 using Shared;
 using Spryer;
-using XPage = Relay.InteractionModel.Page;
 
 public class IndexModel : AppPageModel
 {
@@ -222,18 +221,14 @@ public class IndexModel : AppPageModel
         }
         else
         {
+            // global search
             this.Granularity = GranularityLevel.Search;
             return RedirectToPage("Search", new { q = page.Q });
         }
 
         if (!string.IsNullOrWhiteSpace(page.Q))
         {
-            //sql = sql
-            //    .Replace("/**search-join**/",
-            //        $"""
-            //        inner join freetexttable(rss.Posts, *, @Search, @TopN) ft on ft.[Key] = p.PostId
-            //        """);
-
+            // feed search
             this.Granularity = GranularityLevel.Search;
             return RedirectToPage("Search", new { q = page.Q, channel, feed });
         }
@@ -264,8 +259,6 @@ public class IndexModel : AppPageModel
                 MaxDate = maxDate,
                 ((IPage)page).SkipCount,
                 TakeCount = pageSize,
-                PageNumber = page.P ?? XPage.FirstPageNumber,
-                Search = page.Q.AsNVarChar(250),
                 TopN = pageSize * 7,
             }) ?? [];
 
