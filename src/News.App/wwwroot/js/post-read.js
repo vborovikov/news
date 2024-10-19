@@ -1,4 +1,6 @@
 class PostRead extends HTMLElement {
+    #timerId;
+
     constructor() {
         super();
     }
@@ -7,15 +9,15 @@ class PostRead extends HTMLElement {
         const action = this.dataset.action;
         if (action) {
             // mark post as read after 10 seconds
-            this.timerId = setTimeout(() => {
+            this.#timerId = setTimeout(() => {
                 fetch(action, { method: 'PATCH' });
             }, 10000);
         }
     }
 
     disconnectedCallback() {
-        if (this.timerId) {
-            clearTimeout(this.timerId);
+        if (this.#timerId) {
+            clearTimeout(this.#timerId);
         }
     }
 }
