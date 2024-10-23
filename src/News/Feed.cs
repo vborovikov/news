@@ -1,5 +1,7 @@
 ﻿namespace News;
 
+using System.ComponentModel;
+
 /// <summary>
 /// Determines the type of a feed.
 /// </summary>
@@ -8,32 +10,38 @@ public enum FeedType
     /// <summary>
     /// Unknown feed type.
     /// </summary>
+    [AmbientValue("ANY")]
     Unknown,
-    ANY = Unknown,
 
     /// <summary>
     /// Personal blogs, news, articles, etc.
     /// </summary>
+    [AmbientValue("LOG")]
     Blog,
-    LOG = Blog,
+
+    /// <summary>
+    /// Blogs containing posts with links to other blogs.
+    /// </summary>
+    [AmbientValue("DIG")]
+    Digest,
 
     /// <summary>
     /// Link aggregator or any feed that provides only links.
     /// </summary>
+    [AmbientValue("LNK")]
     LinkAggregator,
-    LNK = LinkAggregator,
 
     /// <summary>
     /// Music blogs, podcasts, etc.
     /// </summary>
+    [AmbientValue("AUD")]
     Audioblog,
-    AUD = Audioblog,
 
     /// <summary>
     /// Vlogs, videos, etc.
     /// </summary>
+    [AmbientValue("VID")]
     Vlog,
-    VID = Vlog,
 }
 
 [Flags]
