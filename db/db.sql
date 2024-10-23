@@ -26,3 +26,4 @@ go
 -- dbup_07.sql fulltext only
 :r .\migrations\dbup_08.sql
 -- dbup_09.sql fulltext only
+:r .\migrations\dbup_10.sql
