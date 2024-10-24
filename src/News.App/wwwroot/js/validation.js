@@ -1,17 +1,28 @@
 ﻿const vs = new aspnetValidation.ValidationService();
 
 vs.addProvider("requiredif", function (value, element, params) {
-    const otherElement = document.getElementsByName(params.property)[0];
-    if (otherElement && otherElement.value === params.value) {
+    if (params.others !== undefined) {
         const isValid = !!value;
-        if (isValid && !!element.dataset.valRequiredifSkip) {
-            // trigger other property validation if this one valid
-            otherElement.dataset.valRequiredifSkip = true;
-            vs.isFieldValid(otherElement, true);
+        const revalidateOthers = element.dataset.valRequiredifReval;
+        let validated = false;
+
+        const others = new Map(Object.entries(JSON.parse(params.others)));
+        for (const [otherName, otherValue] of others) {
+            const otherElement = document.getElementsByName(otherName)[0];
+            if (otherElement && otherElement.value === otherValue) {
+                if (isValid && revalidateOthers) {
+                    // trigger other field validation if this one valid
+                    otherElement.dataset.valRequiredifReval = false;
+                    vs.isFieldValid(otherElement, true);
+                }
+                validated = true;
+            }
         }
 
-        element.dataset.valRequiredifSkip = false;
-        return isValid;
+        if (validated) {
+            element.dataset.valRequiredifReval = true;
+            return isValid;
+        }
     }
 
     return true;

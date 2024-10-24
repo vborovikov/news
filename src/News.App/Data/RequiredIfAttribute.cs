@@ -3,6 +3,8 @@
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
@@ -60,10 +62,17 @@ public class RequiredIfAttribute : ValidationAttribute, IClientModelValidator
         var otherFieldName = GetFieldName(context.ModelMetadata.ContainerMetadata?.Properties[this.otherPropertyName]) ?? this.otherPropertyName;
 
         context.Attributes.TryAdd("data-val", "true");
-        context.Attributes.TryAdd("data-val-requiredif", $"The {thisFieldName} field is required if {otherFieldName} field is not set.");
-        
-        context.Attributes.TryAdd("data-val-requiredif-value", this.desiredValue?.ToString() ?? "");
-        context.Attributes.TryAdd("data-val-requiredif-property", GetInputName(this.otherPropertyName, context));
+
+        // error message
+        var message = $"The {thisFieldName} field is required if {otherFieldName} field is not set.";
+        context.Attributes["data-val-requiredif"] = context.Attributes.TryGetValue("data-val-requiredif", out var messages) ?
+            string.Join('\n', messages, message) : message;
+
+        // property and its value
+        var others = (context.Attributes.TryGetValue("data-val-requiredif-others", out var othersStr) ?
+            JsonSerializer.Deserialize<Dictionary<string, string>>(othersStr) : []) ?? [];
+        others.TryAdd(GetInputName(this.otherPropertyName, context), this.desiredValue?.ToString() ?? string.Empty);
+        context.Attributes["data-val-requiredif-others"] = JsonSerializer.Serialize(others);
 
         static string? GetFieldName(ModelMetadata? modelMetadata)
         {
