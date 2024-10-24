@@ -61,33 +61,31 @@ public class RequiredIfAttribute : ValidationAttribute, IClientModelValidator
 
         context.Attributes.TryAdd("data-val", "true");
         context.Attributes.TryAdd("data-val-requiredif", $"The {thisFieldName} field is required if {otherFieldName} field is not set.");
+        
         context.Attributes.TryAdd("data-val-requiredif-value", this.desiredValue?.ToString() ?? "");
-
-        var otherPropertyInputName = this.otherPropertyName;
-
-        var thisPropertyName = context.ModelMetadata.PropertyName;
-        var thisPropertyInputName = context.Attributes["name"];
-        if (thisPropertyName is not null && thisPropertyInputName is not null)
-        {
-            otherPropertyInputName = ReplaceLast(thisPropertyInputName, thisPropertyName, this.otherPropertyName);
-        }
-
-        // let's hope the input name is correct
-        context.Attributes.TryAdd("data-val-requiredif-property", otherPropertyInputName);
+        context.Attributes.TryAdd("data-val-requiredif-property", GetInputName(this.otherPropertyName, context));
 
         static string? GetFieldName(ModelMetadata? modelMetadata)
         {
             return modelMetadata?.DisplayName ?? modelMetadata?.Name;
         }
+    }
 
-        static string ReplaceLast(string source, string search, string replace)
+    private static string GetInputName(string propertyName, ClientModelValidationContext context)
+    {
+        var inputName = propertyName;
+
+        if (context.ModelMetadata.PropertyName is string thisPropertyName &&
+            context.Attributes["name"] is string thisInputName)
         {
-            int place = source.LastIndexOf(search);
-
-            if (place == -1)
-                return source;
-
-            return source.Remove(place, search.Length).Insert(place, replace);
+            var pos = thisInputName.LastIndexOf(thisPropertyName, StringComparison.Ordinal);
+            if (pos > 0)
+            {
+                inputName = thisInputName.Remove(pos, thisPropertyName.Length).Insert(pos, propertyName);
+            }
         }
+
+        // let's hope the input name is correct
+        return inputName;
     }
 }
