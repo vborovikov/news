@@ -29,7 +29,7 @@ public class FeedModel : EditPageModel
         this.Input = await cnn.QuerySingleAsync<InputModel>(
             """
             select 
-                af.FeedId, af.ChannelId, af.Source as FeedUrl, 
+                af.FeedId, af.ChannelId, af.Source as FeedUrl, af.Type as FeedType,
                 af.Title as FeedTitle, af.Slug as FeedSlug, af.Safeguards,
                 f.TitlePath, f.AuthorPath, f.DescriptionPath, f.ContentPath
             from rss.AppFeeds af
@@ -61,7 +61,7 @@ public class FeedModel : EditPageModel
             await cnn.ExecuteAsync(
                 """
                 update rss.Feeds
-                set Source = @FeedUrl, Status = @FeedStatus, Error = null, Safeguards = @Safeguards,
+                set Source = @FeedUrl, Type = @FeedType, Status = @FeedStatus, Error = null, Safeguards = @Safeguards,
                     TitlePath = @TitlePath, AuthorPath = @AuthorPath, DescriptionPath = @DescriptionPath, ContentPath = @ContentPath
                 where Id = @FeedId;
 
@@ -75,6 +75,7 @@ public class FeedModel : EditPageModel
                     this.Input.FeedId,
                     this.Input.ChannelId,
                     FeedUrl = this.Input.FeedUrl.AsNVarChar(850),
+                    this.Input.FeedType,
                     FeedSlug = this.Input.FeedSlug.AsVarChar(100),
                     FeedTitle = this.Input.FeedTitle.AsNVarChar(200),
                     this.Input.Safeguards,
@@ -131,8 +132,16 @@ public class FeedModel : EditPageModel
         [Required, RegularExpression("^[a-z][a-z0-9-]+$"), MaxLength(50), Display(Name = "Feed slug")]
         public string FeedSlug { get; init; } = "";
 
-        [Required, Display(Name = "Feed channel")]
-        public Guid ChannelId { get; init; }
+        [RequiredIf(nameof(ChannelName), null), RequiredIf(nameof(ChannelSlug), null), Display(Name = "Feed channel")]
+        public Guid? ChannelId { get; init; }
+
+        [RequiredIf(nameof(ChannelId), null), Display(Name = "New channel name")]
+        public string? ChannelName { get; init; }
+        [RequiredIf(nameof(ChannelId), null), RegularExpression("^[a-z][a-z0-9-]*$"), MaxLength(50), Display(Name = "New channel slug")]
+        [DeniedValues("daily", "feed", "import", "index", "img", "search", "error", "privacy")]
+        public string? ChannelSlug { get; init; }
+
+        public DbEnum<FeedType> FeedType { get; init; }
 
         public string? TitlePath { get; init; }
 

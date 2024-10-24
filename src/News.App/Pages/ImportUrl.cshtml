@@ -7,12 +7,12 @@
 <div class="bg-white p-4 shadow">
     <form method="post">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-        <fieldset class="row gx-3">
-            <legend>Feed</legend>
+        <fieldset class="row g-3">
+            <legend class="mb-0">Feed</legend>
             <div class="col-12 col-sm-8">
                 <label asp-for="Input.FeedUrl" class="form-label">URL</label>
                 <div class="input-group has-validation">
-                    <span class="input-group-text"><i class="bi bi-rss"></i></span>
+                    <span class="input-group-text"><i class="bi bi-box-arrow-up-right"></i></span>
                     <input asp-for="Input.FeedUrl" type="url" class="form-control" placeholder="Feed URL or website address">
                     <span asp-validation-for="Input.FeedUrl"></span>
                 </div>
@@ -27,8 +27,8 @@
             </div>
         </fieldset>
         <fieldset class="row g-3 mt-2">
-            <legend>Channel</legend>
-            <div class="col-12 mt-0">
+            <legend class="mb-0">Channel</legend>
+            <div class="col-12">
                 <label asp-for="Input.ChannelId" class="form-label">Channel</label>
                 <div class="input-group has-validation">
                     <div class="input-group-text"><i class="bi bi-bookmark"></i></div>

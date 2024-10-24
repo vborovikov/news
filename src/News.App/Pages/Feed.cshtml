@@ -9,26 +9,16 @@
         <input asp-for="Input.FeedId" type="hidden">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
         <fieldset class="row g-3">
-            <legend>Feed</legend>
-            <div class="col-12 mt-0">
+            <legend class="mb-0">Feed</legend>
+            <div class="col-12 col-sm-8">
                 <label asp-for="Input.FeedUrl" class="form-label">URL</label>
                 <div class="input-group has-validation">
-                    <span class="input-group-text"><i class="bi bi-rss"></i></span>
+                    <span class="input-group-text"><i class="bi bi-box-arrow-up-right"></i></span>
                     <input asp-for="Input.FeedUrl" type="url" class="form-control" placeholder="Feed URL or website address">
                     <span asp-validation-for="Input.FeedUrl"></span>
                 </div>
             </div>
-            <div class="col-12 col-sm-7">
-                <label asp-for="Input.ChannelId" class="form-label">Channel</label>
-                <div class="input-group has-validation">
-                    <div class="input-group-text"><i class="bi bi-bookmark"></i></div>
-                    <select asp-for="Input.ChannelId" asp-items="Model.Channels" class="form-control">
-                        <option value="">Select channel</option>
-                    </select>
-                    <span asp-validation-for="Input.ChannelId"></span>
-                </div>
-            </div>
-            <div class="col-12 col-sm-5">
+            <div class="col-12 col-sm-4">
                 <label asp-for="Input.FeedSlug" class="form-label">Slug</label>
                 <div class="input-group has-validation">
                     <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
@@ -36,7 +26,7 @@
                     <span asp-validation-for="Input.FeedSlug"></span>
                 </div>
             </div>
-            <div class="col-12">
+            <div class="col-12 col-sm-8">
                 <label asp-for="Input.FeedTitle" class="form-label">Title <span class="text-muted">(Optional)</span></label>
                 <div class="input-group has-validation">
                     <span class="input-group-text"><i class="bi bi-info-circle"></i></span>
@@ -44,11 +34,43 @@
                     <span asp-validation-for="Input.FeedTitle"></span>
                 </div>
             </div>
+            <div class="col-12 col-sm-4">
+                <label asp-for="Input.FeedType" class="form-label">Type</label>
+                <div class="input-group has-validation">
+                    <div class="input-group-text"><i class="bi bi-rss"></i></div>
+                    <select asp-for="Input.FeedType" asp-items="Html.GetDbEnumSelectList<FeedType>()" class="form-control">
+                    </select>
+                    <span asp-validation-for="Input.FeedType"></span>
+                </div>
+            </div>
+            <fieldset class="row g-3 mt-2">
+                <legend class="mb-0">Channel</legend>
+                <div class="col-12">
+                    <label asp-for="Input.ChannelId" class="form-label">Channel</label>
+                    <div class="input-group has-validation">
+                        <div class="input-group-text"><i class="bi bi-bookmark"></i></div>
+                        <select asp-for="Input.ChannelId" asp-items="Model.Channels" class="form-control">
+                            <option value="">Select channel</option>
+                        </select>
+                        <span asp-validation-for="Input.ChannelId"></span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label asp-for="Input.ChannelName" class="form-label">Name</label>
+                    <input asp-for="Input.ChannelName" type="text" class="form-control" placeholder="New channel name">
+                    <span asp-validation-for="Input.ChannelName"></span>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label asp-for="Input.ChannelSlug" class="form-label">Slug</label>
+                    <input asp-for="Input.ChannelSlug" type="text" class="form-control" placeholder="New channel slug">
+                    <span asp-validation-for="Input.ChannelSlug"></span>
+                </div>
+            </fieldset>
         </fieldset>
 
         <fieldset class="row g-3 mt-2">
-            <legend>Content</legend>
-            <div class="col-12 col-sm-6 mt-0">
+            <legend class="mb-0">Content</legend>
+            <div class="col-12 col-sm-6">
                 <div class="form-check form-switch">
                     <input asp-for="Input.SafeguardContentExtractor" type="checkbox" class="form-check-input" />
                     <label asp-for="Input.SafeguardContentExtractor" class="form-check-label">Download content</label>
@@ -62,7 +84,7 @@
                     <label asp-for="Input.SafeguardPostLinkFixer" class="form-check-label">Fix links to other posts</label>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 mt-0">
+            <div class="col-12 col-sm-6">
                 <div class="form-check form-switch">
                     <input asp-for="Input.SafeguardDescriptionReplacer" type="checkbox" class="form-check-input" />
                     <label asp-for="Input.SafeguardDescriptionReplacer" class="form-check-label">Replace description</label>
@@ -79,8 +101,8 @@
         </fieldset>
 
         <fieldset class="row g-3 mt-2">
-            <legend>Metadata</legend>
-            <div class="col-12 col-sm-6 mt-0">
+            <legend class="mb-0">Metadata</legend>
+            <div class="col-12 col-sm-6">
                 <label asp-for="Input.TitlePath" class="form-label">Title XPath</label>
                 <div class="input-group has-validation">
                     <span class="input-group-text"><i class="bi bi-regex"></i></span>
@@ -88,7 +110,7 @@
                     <span asp-validation-for="Input.TitlePath"></span>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 mt-0">
+            <div class="col-12 col-sm-6">
                 <label asp-for="Input.AuthorPath" class="form-label">Author XPath</label>
                 <div class="input-group has-validation">
                     <span class="input-group-text"><i class="bi bi-regex"></i></span>
