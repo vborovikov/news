@@ -46,6 +46,7 @@ public class FeedModel : EditPageModel
             return Page();
         }
 
+        var channelId = Guid.Empty;
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
@@ -57,6 +58,24 @@ public class FeedModel : EditPageModel
                 where f.Id = @FeedId;
                 """,
                 new { this.Input.FeedId }, tx);
+
+            channelId = this.Input.ChannelId ?? Guid.NewGuid();
+            if (this.Input.ChannelId is null)
+            {
+                // create new channel
+                await cnn.ExecuteAsync(
+                    """
+                    insert into rss.UserChannels (UserId, Id, Name, Slug)
+                    values (@UserId, @ChannelId, @ChannelName, @ChannelSlug);
+                    """, 
+                    new
+                    {
+                        this.UserId,
+                        ChannelId = channelId,
+                        ChannelName = this.Input.ChannelName.AsNVarChar(100),
+                        ChannelSlug = this.Input.ChannelSlug.AsVarChar(100),
+                    }, tx);
+            }
 
             await cnn.ExecuteAsync(
                 """
@@ -73,7 +92,7 @@ public class FeedModel : EditPageModel
                 {
                     this.UserId,
                     this.Input.FeedId,
-                    this.Input.ChannelId,
+                    ChannelId = channelId,
                     FeedUrl = this.Input.FeedUrl.AsNVarChar(850),
                     this.Input.FeedType,
                     FeedSlug = this.Input.FeedSlug.AsVarChar(100),
@@ -114,7 +133,7 @@ public class FeedModel : EditPageModel
             from rss.UserFeeds uf
             inner join rss.UserChannels uc on uf.ChannelId = uc.Id
             where uf.UserId = @UserId and uf.FeedId = @FeedId and uf.ChannelId = @ChannelId;
-            """, new { this.Input.FeedId, this.Input.ChannelId, this.UserId });
+            """, new { this.Input.FeedId, ChannelId = channelId, this.UserId });
 
         return RedirectToPage("Index", new { channel = feedPath.ChannelSlug, feed = feedPath.FeedSlug });
     }
