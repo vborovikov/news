@@ -14,7 +14,7 @@ public enum FeedType
     Unknown,
 
     /// <summary>
-    /// Personal blogs, news, articles, etc.
+    /// Personal blogs, slow news, articles, etc.
     /// </summary>
     [AmbientValue("LOG")]
     Blog,
@@ -26,22 +26,28 @@ public enum FeedType
     Digest,
 
     /// <summary>
-    /// Link aggregator or any feed that provides only links.
+    /// Link aggregator or any feed that provides only links and maybe comments.
     /// </summary>
     [AmbientValue("LNK")]
-    LinkAggregator,
+    Forum,
+
+    /// <summary>
+    /// News aggregator or any feed that provides only news.
+    /// </summary>
+    [AmbientValue("INF")]
+    News,
 
     /// <summary>
     /// Music blogs, podcasts, etc.
     /// </summary>
     [AmbientValue("AUD")]
-    Audioblog,
+    Audio,
 
     /// <summary>
     /// Vlogs, videos, etc.
     /// </summary>
     [AmbientValue("VID")]
-    Vlog,
+    Video,
 }
 
 [Flags]
