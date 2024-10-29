@@ -15,6 +15,8 @@ record DbFeed
     public DbEnum<FeedSafeguard> Safeguards { get; init; }
     public DateTimeOffset Updated { get; init; }
     public DateTimeOffset? Scheduled { get; init; }
+    public string? EntityTag { get; init; }
+    public string? LastModified { get; init; }
 }
 
 record DbPostInfo

@@ -101,7 +101,8 @@ sealed class Worker : BackgroundService,
 
         var feed = await cnn.QueryFirstOrDefaultAsync<DbFeed>(
             """
-            select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled
+            select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled,
+                f.EntityTag, f.LastModified
             from rss.Feeds f
             where f.Id = @FeedId and f.Status not like '%SKIP%' --and f.Status not like '%HTTP%'
             order by f.Updated;
@@ -407,10 +408,9 @@ sealed class Worker : BackgroundService,
 
     private async Task SanitizeFeedAsync(DbFeed feed, CancellationToken cancellationToken)
     {
-        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
-        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
         {
+            await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
             var posts = await cnn.QueryAsync<DbPost>(
                 """
                 select p.Id, p.Link, p.Title, p.Status,
@@ -418,29 +418,38 @@ sealed class Worker : BackgroundService,
                     isnull(p.LocalContent, p.Content) as Content
                 from rss.Posts p with (readpast, index(PK_Posts_Id))
                 where p.FeedId = @FeedId and p.SafeContent is null;
-                """, new { FeedId = feed.Id }, tx);
+                """, new { FeedId = feed.Id });
 
-            var total = posts.Count();
-            var count = 0;
-            await Parallel.ForEachAsync(posts, cancellationToken, async (post, cancellationToken) =>
+            await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+            try
             {
-                this.log.LogDebug("Safeguarding post '{postTitle}' ({count}/{total}) {feedSource}",
-                    post.Title, Interlocked.Increment(ref count), total, feed.Source);
-                await SanitizePostAsync(post, feed, tx, cancellationToken);
-            });
 
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            await tx.RollbackAsync(cancellationToken);
-            this.log.LogDebug("Safeguarding feed {feedSource} was canceled", feed.Source);
-            throw;
+                var total = posts.Count();
+                var count = 0;
+                await Parallel.ForEachAsync(posts, cancellationToken, async (post, cancellationToken) =>
+                {
+                    this.log.LogDebug("Safeguarding post '{postTitle}' ({count}/{total}) {feedSource}",
+                        post.Title, Interlocked.Increment(ref count), total, feed.Source);
+                    await SanitizePostAsync(post, feed, tx, cancellationToken);
+                });
+
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                this.log.LogDebug("Safeguarding feed {feedSource} was canceled", feed.Source);
+                throw;
+            }
+            catch (Exception x)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                this.log.LogError(x, "Error safeguarding feed {feedSource}", feed.Source);
+            }
         }
         catch (Exception x)
         {
-            await tx.RollbackAsync(cancellationToken);
-            this.log.LogError(x, "Error safeguarding feed {feedSource}", feed.Source);
+            this.log.LogError(x, "Error requesting posts to safeguard feed {feedSource}", feed.Source);
         }
     }
 
@@ -789,7 +798,8 @@ sealed class Worker : BackgroundService,
             """
             declare @Now datetimeoffset = sysdatetimeoffset();
 
-            select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled
+            select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled,
+                f.EntityTag, f.LastModified
             from rss.Feeds f
             where f.Status not like '%SKIP%' and 
                 (f.Status not like '%WAIT%' or f.Scheduled is null or f.Scheduled < @Now)
@@ -806,11 +816,37 @@ sealed class Worker : BackgroundService,
             Feed? update = null;
             if (feed.Status.HasFlag(FeedStatus.UserAgent))
             {
+                var headers = new Dictionary<string, string>();
+                if (!string.IsNullOrWhiteSpace(feed.EntityTag))
+                {
+                    headers.Add("If-None-Match", feed.EntityTag);
+                }
+                if (!string.IsNullOrWhiteSpace(feed.LastModified))
+                {
+                    headers.Add("If-Modified-Since", feed.LastModified);
+                }
                 var feedData = await this.usr.RunAsync(new PageQuery(feed.Source)
                 {
+                    Headers = headers,
                     UseProxy = feed.Status.HasFlag(FeedStatus.UseProxy),
                     CancellationToken = cancellationToken
                 }, RequestTimeout);
+
+                // store headers, handle HTTP 304 Not Modified
+                if (feedData.StatusCode != HttpStatusCode.NotModified)
+                {
+                    feedData.EnsureSuccessStatusCode();
+                }
+                await UpdateFeedStatsAsync(feed with
+                {
+                    EntityTag = feedData.Headers.GetValueOrDefault("ETag"),
+                    LastModified = feedData.Headers.GetValueOrDefault("Last-Modified"),
+                }, cancellationToken);
+                if (feedData.StatusCode == HttpStatusCode.NotModified)
+                {
+                    // return early since the feed is up to date
+                    return;
+                }
 
                 if (feedData.Source.Length > 0)
                 {
@@ -834,7 +870,16 @@ sealed class Worker : BackgroundService,
             }
             if (update is null)
             {
-                using var response = await client.GetAsync(feed.Source, cancellationToken);
+                using var request = new HttpRequestMessage(HttpMethod.Get, feed.Source);
+                if (!string.IsNullOrWhiteSpace(feed.EntityTag))
+                {
+                    request.Headers.Add("If-None-Match", feed.EntityTag);
+                }
+                if (!string.IsNullOrWhiteSpace(feed.LastModified))
+                {
+                    request.Headers.Add("If-Modified-Since", feed.LastModified);
+                }
+                using var response = await client.SendAsync(request, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.Moved ||
                     response.StatusCode == HttpStatusCode.Redirect ||
                     response.StatusCode == HttpStatusCode.PermanentRedirect)
@@ -846,7 +891,22 @@ sealed class Worker : BackgroundService,
                         feed = feed with { Source = feedNewSource };
                     }
                 }
-                response.EnsureSuccessStatusCode();
+                // store headers, handle HTTP 304 Not Modified
+                if (response.StatusCode != HttpStatusCode.NotModified)
+                {
+                    response.EnsureSuccessStatusCode();
+                }
+                await UpdateFeedStatsAsync(feed with
+                {
+                    EntityTag = response.Headers.ETag?.ToString(),
+                    LastModified = response.Content.Headers.TryGetValues("Last-Modified", out var lastModified) ?
+                        string.Join(',', lastModified) : null,
+                }, cancellationToken);
+                if (response.StatusCode == HttpStatusCode.NotModified)
+                {
+                    // return early since the feed is up to date
+                    return;
+                }
 
                 var feedData = await response.Content.ReadAsStreamAsync(cancellationToken);
                 try
@@ -868,6 +928,33 @@ sealed class Worker : BackgroundService,
         {
             this.log.LogError(x, "Error updating feed {feedUrl}", feed.Source);
             await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
+        }
+    }
+
+    private async Task UpdateFeedStatsAsync(DbFeed feed, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await cnn.ExecuteAsync(
+                """
+                update rss.Feeds
+                set EntityTag = @EntityTag, LastModified = @LastModified
+                where Id = @Id
+                """,
+                new
+                {
+                    Id = feed.Id,
+                    EntityTag = feed.EntityTag.AsVarChar(100),
+                    LastModified = feed.LastModified.AsVarChar(32),
+                }, tx);
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            this.log.LogError("Error updating feed stats for {feedUrl}", feed.Source);
         }
     }
 
@@ -911,9 +998,16 @@ sealed class Worker : BackgroundService,
                 order by Frequency desc;
 
                 declare @LastUpdated datetimeoffset = null;
-                select @LastUpdated = max(p.Published)
-                from rss.Posts p
-                where p.FeedId = @FeedId;
+                select @LastUpdated = f.Published
+                from rss.Feeds f
+                where f.Id = @FeedId;
+
+                if @LastUpdated is null
+                begin
+                    select @LastUpdated = max(p.Published)
+                    from rss.Posts p
+                    where p.FeedId = @FeedId;
+                end;
 
                 declare @NextUpdated datetimeoffset = dateadd(second, @UpdatePeriod, @LastUpdated);
                 if @UpdateType > 0
@@ -1128,6 +1222,7 @@ sealed class Worker : BackgroundService,
                     Title = @Title,
                     Description = @Description,
                     Link = @Link,
+                    Published = @Published,
                     Error = null
                 where Id = @FeedId;
 
@@ -1136,6 +1231,7 @@ sealed class Worker : BackgroundService,
                 {
                     FeedId = feed.Id,
                     Updated = DateTimeOffset.Now,
+                    Published = update.LastUpdatedDate,
                     feedUpdate.Title,
                     feedUpdate.Description,
                     feedUpdate.Link
