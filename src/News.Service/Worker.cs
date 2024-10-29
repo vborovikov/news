@@ -34,6 +34,7 @@ sealed class Worker : BackgroundService,
     private const int MaxLocalizingPostCount = 10;
     private const int MaxLocalizingJobCount = 10;
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan DbTimeout = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(3);
 
     private readonly ServiceOptions options;
@@ -395,7 +396,7 @@ sealed class Worker : BackgroundService,
                 from rss.Posts p with (readpast, index(PK_Posts_Id))
                 where p.FeedId = @FeedId and p.LocalContentSource is null and p.Status not like '%SKIP%' 
                 order by p.Published desc;
-                """, new { FeedId = feed.Id, PostCount = postCount });
+                """, new { FeedId = feed.Id, PostCount = postCount }, commandTimeout: (int)DbTimeout.TotalSeconds);
 
             return posts;
         }
@@ -418,7 +419,7 @@ sealed class Worker : BackgroundService,
                     isnull(p.LocalContent, p.Content) as Content
                 from rss.Posts p with (readpast, index(PK_Posts_Id))
                 where p.FeedId = @FeedId and p.SafeContent is null;
-                """, new { FeedId = feed.Id });
+                """, new { FeedId = feed.Id }, commandTimeout: (int)DbTimeout.TotalSeconds);
 
             await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
             try
