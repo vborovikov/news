@@ -13,7 +13,7 @@
             @foreach (var feed in channel.Feeds)
             {
                 <p>
-                    <i class="bi bi-rss-fill @FeedTextClass(feed)" title="@feed.Error"></i>
+                    <i class="@FeedTypeIcon(feed) @FeedTextClass(feed)" title="@feed.Error"></i>
                     <strong>
                         <a asp-page="/Index" asp-route-channel="@channel.Slug" asp-route-feed="@feed.Slug" asp-route-year=""
                            class="link-dark">
@@ -45,6 +45,21 @@
 </div>
 
 @functions {
+    private static string FeedTypeIcon(RssFeedInfo feed)
+    {
+        return (FeedType)feed.Type switch
+        {
+            FeedType.Blog => "bi bi-file-text-fill",
+            FeedType.Digest => "bi bi-bookmarks-fill",
+            FeedType.Forum => "bi bi-chat-square-text-fill",
+            FeedType.News => "bi bi-newspaper",
+            FeedType.Audio => "bi bi-cassette-fill",
+            FeedType.Video => "bi-bi-film",
+            FeedType.Image => "bi bi-images",
+            _ => "bi bi-rss-fill"
+        };
+    }
+
     private static string FeedLinkClass(RssFeedInfo feed)
     {
         return "link-" + FeedStatusName(feed);

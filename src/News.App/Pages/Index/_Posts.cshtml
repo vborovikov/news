@@ -26,7 +26,7 @@
                                 }
                                 <li class="breadcrumb-item">
                                     <a asp-page="/Index" asp-route-channel="@Model.Slug" asp-route-feed="@feed.Slug"
-                                                asp-route-year="" class="link-dark bi bi-rss @FeedTextClass(feed)" title="@feed.Error">
+                                                asp-route-year="" class="link-dark @FeedTypeIcon(feed) @FeedTextClass(feed)" title="@feed.Error">
                                         @feed.Title
                                     </a>
                                 </li>
@@ -112,6 +112,21 @@
 </div>
 
 @functions {
+    private static string FeedTypeIcon(RssFeedInfo feed)
+    {
+        return (FeedType)feed.Type switch
+        {
+            FeedType.Blog => "bi bi-file-text-fill",
+            FeedType.Digest => "bi bi-bookmarks-fill",
+            FeedType.Forum => "bi bi-chat-square-text-fill",
+            FeedType.News => "bi bi-newspaper",
+            FeedType.Audio => "bi bi-cassette-fill",
+            FeedType.Video => "bi-bi-film",
+            FeedType.Image => "bi bi-images",
+            _ => "bi bi-rss-fill"
+        };
+    }
+
     private static string PostLinkClass(RssPostInfo post)
     {
         return post.IsRead ? "link-secondary" : "link-dark";

@@ -48,6 +48,12 @@ public enum FeedType
     /// </summary>
     [AmbientValue("VID")]
     Video,
+
+    /// <summary>
+    /// Images, photos, comics, graphics, etc.
+    /// </summary>
+    [AmbientValue("IMG")]
+    Image,
 }
 
 [Flags]
