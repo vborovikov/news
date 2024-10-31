@@ -2,38 +2,11 @@ namespace News.App.Data;
 
 using Spryer;
 
-public abstract record ChannelBase
-{
-    public required Guid ChannelId { get; init; }
-    public required string Name { get; init; }
-    public required string Slug { get; init; }
-}
-
-record FeedInfo
-{
-    public Guid Id { get; init; }
-    public DbEnum<FeedStatus> Status { get; init; }
-    public DbEnum<FeedSafeguard> Safeguards { get; init; }
-}
-
-record FeedPath
-{
-    public Guid ChannelId { get; init; }
-    public string ChannelSlug { get; init; } = "";
-    public Guid FeedId { get; init; }
-    public string FeedSlug { get; init; } = "";
-}
-
 public record RssChannelInfo
 {
     public Guid ChannelId { get; init; }
     public string Name { get; init; } = "";
     public string Slug { get; init; } = "";
-}
-
-public record RssChannel : RssChannelInfo
-{
-    public IEnumerable<RssFeed> Feeds { get; init; } = [];
 }
 
 public record RssFeedInfo
@@ -49,6 +22,7 @@ public record RssFeedInfo
     public string Slug { get; init; } = "";
     public string? Description { get; init; }
     public string Link { get; init; } = "";
+    public DbEnum<FeedType> Type { get; init; }
     
     public DateTimeOffset Updated { get; init; }
     public DateTimeOffset UpdatedLocal => this.updatedLocal ??= this.Updated.ToLocalTime();
@@ -64,11 +38,6 @@ public record RssFeedInfo
     
     public string? Error { get; init; }
     public bool HasError => !string.IsNullOrWhiteSpace(this.Error);
-}
-
-public record RssFeed : RssFeedInfo
-{
-    public IEnumerable<RssPost> Posts { get; init; } = [];
 }
 
 public record RssPostInfo
@@ -87,14 +56,3 @@ public record RssPostInfo
     public string? Author { get; init; }
 }
 
-public record RssPostRef : RssPostInfo
-{
-    public required string ChannelSlug { get; init; }
-    public required string FeedSlug { get; init; }
-    public string FeedTitle { get; init; } = "";
-}
-
-public record RssPost : RssPostInfo
-{
-    public string Content { get; init; } = "";
-}

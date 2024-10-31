@@ -85,7 +85,7 @@ public class DailyModel : AppPageModel
         public required string FeedTitle { get; init; }
     }
 
-    public record ChannelSummary : ChannelBase
+    public record ChannelSummary : RssChannelInfo
     {
         public IEnumerable<PostSummary> Posts { get; init; } = [];
     }

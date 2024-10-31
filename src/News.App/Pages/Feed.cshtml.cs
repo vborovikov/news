@@ -212,4 +212,19 @@ public class FeedModel : EditPageModel
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute) && this.ChannelId != Guid.Empty;
     }
+
+    record FeedInfo
+    {
+        public Guid Id { get; init; }
+        public DbEnum<FeedStatus> Status { get; init; }
+        public DbEnum<FeedSafeguard> Safeguards { get; init; }
+    }
+
+    record FeedPath
+    {
+        public Guid ChannelId { get; init; }
+        public string ChannelSlug { get; init; } = "";
+        public Guid FeedId { get; init; }
+        public string FeedSlug { get; init; } = "";
+    }
 }

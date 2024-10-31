@@ -320,5 +320,27 @@ public class IndexModel : AppPageModel
         F = Favorites,
     }
 
+    public record RssChannel : RssChannelInfo
+    {
+        public IEnumerable<RssFeed> Feeds { get; init; } = [];
+    }
+
+    public record RssFeed : RssFeedInfo
+    {
+        public IEnumerable<RssPost> Posts { get; init; } = [];
+    }
+
+    public record RssPost : RssPostInfo
+    {
+        public string Content { get; init; } = "";
+    }
+
+    public record RssPostRef : RssPostInfo
+    {
+        public required string ChannelSlug { get; init; }
+        public required string FeedSlug { get; init; }
+        public string FeedTitle { get; init; } = "";
+    }
+
     public record SinglePostModel(RssPost Post, IEnumerable<RssPostRef> SimilarPosts, RssFeedInfo Feed, RssChannelInfo Channel);
 }
