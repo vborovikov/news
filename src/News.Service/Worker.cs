@@ -34,8 +34,8 @@ sealed class Worker : BackgroundService,
     private const int MaxLocalizingPostCount = 10;
     private const int MaxLocalizingJobCount = 10;
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan DbTimeout = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan DbTimeout = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan LocalizingJobTimeout = TimeSpan.FromMinutes(5);
 
     private readonly ServiceOptions options;
     private readonly DbDataSource db;
@@ -878,7 +878,10 @@ sealed class Worker : BackgroundService,
                 }
                 if (!string.IsNullOrWhiteSpace(feed.LastModified))
                 {
-                    request.Headers.Add("If-Modified-Since", feed.LastModified);
+                    // no validation here since some servers return dates
+                    // in an invalid date-time format for the 'Last-Modified' header
+                    //todo: fix date-time format?
+                    request.Headers.TryAddWithoutValidation("If-Modified-Since", feed.LastModified);
                 }
                 using var response = await client.SendAsync(request, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.Moved ||
