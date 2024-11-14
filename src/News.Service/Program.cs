@@ -146,17 +146,6 @@ static class Program
 
                     return dispatcher;
                 }));
-                services.AddSingleton((Func<IServiceProvider, IQueueRequestScheduler>)(sp =>
-                {
-                    var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
-                    var logging = sp.GetRequiredService<ILoggerFactory>();
-
-                    var dispatcher = new QueueRequestDispatcher(options.SchedulerQueue, options.Endpoint,
-                        logging.CreateLogger("News.Service.Scheduler"));
-                    dispatcher.RecognizeTypesFrom(typeof(UpdateFeedCommand).Assembly);
-
-                    return dispatcher;
-                }));
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
                 services.AddSingleton<IPersistentCommandStore, CommandStore>();
                 services.AddHostedService<Worker>();

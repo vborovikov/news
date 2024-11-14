@@ -60,7 +60,6 @@ public sealed record ServiceOptions : BaseOptions
     public string? UserAgent { get; init; }
 
     public required MessageQueueName UserAgentQueue { get; init; } = MessageQueueName.FromName("useragent");
-    public required MessageQueueName SchedulerQueue { get; init; } = MessageQueueName.FromName("dodkin");
 
     public Uri? ProxyAddress { get; init; } = null;
 }
