@@ -20,6 +20,8 @@ using Microsoft.Extensions.Options;
 using Polly.Timeout;
 using Readability;
 using Relay.RequestModel;
+using Relay.RequestModel.Default;
+using Scheduling;
 using Spryer;
 using Storefront.UserAgent;
 using Syndication;
@@ -41,20 +43,20 @@ sealed class Worker : BackgroundService,
     private readonly DbDataSource db;
     private readonly IHttpClientFactory web;
     private readonly IQueueRequestDispatcher usr;
-    private readonly IQueueRequestScheduler scheduler;
+    private readonly CommandScheduler scheduler;
     private readonly RequestHandler handler;
     private readonly ILogger log;
     private readonly ILogger wslog;
     private readonly Stopwatch busyMonitor;
 
     public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web,
-        IQueueRequestDispatcher usr, IQueueRequestScheduler scheduler, ILoggerFactory loggerFactory)
+        IQueueRequestDispatcher usr, IPersistentCommandStore commandStore, ILoggerFactory loggerFactory)
     {
         this.options = options.Value;
         this.db = db;
         this.web = web;
         this.usr = usr;
-        this.scheduler = scheduler;
+        this.scheduler = new(this, commandStore, loggerFactory.CreateLogger<CommandScheduler>());
         this.handler = new(this, this.options.Endpoint, loggerFactory.CreateLogger<RequestHandler>());
         this.log = loggerFactory.CreateLogger<Worker>();
         this.wslog = loggerFactory.CreateLogger<WindowShopper>();
@@ -124,6 +126,7 @@ sealed class Worker : BackgroundService,
 
         return Task.WhenAll(
             AggregateNewsAsync(stoppingToken),
+            this.scheduler.ProcessAsync(stoppingToken),
             this.handler.ProcessAsync(stoppingToken));
     }
 
@@ -1048,7 +1051,7 @@ sealed class Worker : BackgroundService,
                 (nextUpdate > feed.Scheduled && (nextUpdate - feed.Scheduled + Epsilon) >= this.options.MinUpdateInterval) ||
                 feed.Scheduled > farthestNextUpdate)
             {
-                await this.scheduler.ExecuteAsync(
+                await this.scheduler.ScheduleAsync(
                     new UpdateFeedCommand(feed.Id) { CancellationToken = cancellationToken },
                     at: nextUpdate);
 

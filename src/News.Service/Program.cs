@@ -6,7 +6,9 @@ using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
+using News.Service.Scheduling;
 using Polly;
+using Relay.RequestModel.Default;
 using Spryer;
 using Storefront.UserAgent;
 
@@ -156,6 +158,7 @@ static class Program
                     return dispatcher;
                 }));
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
+                services.AddSingleton<IPersistentCommandStore, CommandStore>();
                 services.AddHostedService<Worker>();
             })
             .UseWindowsService(options =>
