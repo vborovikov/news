@@ -117,6 +117,8 @@ internal class CommandStore : IPersistentCommandStore
     {
         try
         {
+            this.log.LogWarning(EventIds.SchedulingFailed, exception, "Failed to execute command {Command}.", command);
+
             var persistent = (PersistentCommand)command;
             if (persistent.RetryCount >= PersistentCommand.MaxRetryCount)
             {
