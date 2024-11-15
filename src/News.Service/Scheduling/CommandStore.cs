@@ -43,9 +43,10 @@ internal class CommandStore : IPersistentCommandStore
         {
             var affected = await cnn.ExecuteAsync(
                 """
+                declare @Now datetimeoffset = sysdatetimeoffset();
                 delete from rss.Schedule
-                where DueTime < @UtcNow;
-                """, new { DateTimeOffset.UtcNow }, tx);
+                where DueTime < @Now;
+                """, param: null, tx);
             await tx.CommitAsync(cancellationToken);
 
             return affected;

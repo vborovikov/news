@@ -46,7 +46,7 @@ sealed class CommandScheduler : DefaultRequestScheduler
                     purgedCommandCount);
             }
 
-            this.log.LogInformation(EventIds.SchedulingStarted, "Started scheduling");
+            this.log.LogInformation(EventIds.SchedulingStarted, "Scheduling started");
             await base.ProcessAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception x) when (x is not OperationCanceledException ocx || ocx.CancellationToken != cancellationToken)
@@ -56,7 +56,7 @@ sealed class CommandScheduler : DefaultRequestScheduler
         }
         finally
         {
-            this.log.LogInformation(EventIds.SchedulingStopped, "Stopped scheduling");
+            this.log.LogInformation(EventIds.SchedulingStopped, "Scheduling stopped");
         }
     }
 }
