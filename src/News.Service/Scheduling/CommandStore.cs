@@ -12,8 +12,6 @@ using Spryer;
 
 record PersistentCommand : IPersistentCommand
 {
-    public const int MaxRetryCount = 1;
-
     public required int Id { get; init; }
     ICommand IPersistentCommand.Command => (ICommand)JsonSerializer.Deserialize(this.Command, Type.GetType(this.CommandLabel)!)!;
     public required string Command { get; init; }
@@ -24,6 +22,10 @@ record PersistentCommand : IPersistentCommand
 
 internal class CommandStore : IPersistentCommandStore
 {
+    private const int MaxCommandLength = 846;
+    private const int MaxCommandLabelLength = 250;
+    private const int MaxRetryCount = 1;
+
     private readonly DbDataSource db;
     private readonly ILogger<CommandStore> log;
 
@@ -33,18 +35,24 @@ internal class CommandStore : IPersistentCommandStore
         this.log = log;
     }
 
-    public async Task PurgeAsync(CancellationToken cancellationToken)
+    public async Task<int> PurgeAsync(CancellationToken cancellationToken)
     {
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
         try
         {
-            await cnn.ExecuteAsync("delete from rss.Schedule;", param: null, tx);
+            var affected = await cnn.ExecuteAsync(
+                """
+                delete from rss.Schedule
+                where DueTime < @UtcNow;
+                """, new { DateTimeOffset.UtcNow }, tx);
             await tx.CommitAsync(cancellationToken);
+
+            return affected;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            this.log.LogError(EventIds.SchedulingFailed, ex, "Failed to purge command store.");
+            this.log.LogError(EventIds.SchedulingFailed, ex, "Failed to purge command store");
             await tx.RollbackAsync(cancellationToken);
 
             throw;
@@ -65,8 +73,8 @@ internal class CommandStore : IPersistentCommandStore
                 """,
                 new
                 {
-                    Command = JsonSerializer.Serialize(command).AsNVarChar(2000),
-                    CommandLabel = command.GetType().AssemblyQualifiedName.AsVarChar(250),
+                    Command = JsonSerializer.Serialize(command).AsNVarChar(MaxCommandLength, throwOnMaxLength: true),
+                    CommandLabel = command.GetType().AssemblyQualifiedName.AsVarChar(MaxCommandLabelLength, throwOnMaxLength: true),
                     DueTime = dueTime,
                 }, tx);
 
@@ -74,7 +82,7 @@ internal class CommandStore : IPersistentCommandStore
         }
         catch (Exception ex)
         {
-            this.log.LogError(EventIds.SchedulingFailed, ex, "Failed to store scheduled command {Command} to be executed at {DueTime}.", command, dueTime);
+            this.log.LogError(EventIds.SchedulingFailed, ex, "Failed to store scheduled command {Command} to be executed at {DueTime}", command, dueTime);
             await tx.RollbackAsync(cancellationToken);
             throw;
         }
@@ -106,7 +114,7 @@ internal class CommandStore : IPersistentCommandStore
         }
         catch (Exception ex)
         {
-            this.log.LogError(EventIds.SchedulingFailed, ex, "Failed to delete command record {Command}.", command);
+            this.log.LogError(EventIds.SchedulingFailed, ex, "Failed to delete command record {Command}", command);
             await tx.RollbackAsync(cancellationToken);
 
             throw;
@@ -117,10 +125,10 @@ internal class CommandStore : IPersistentCommandStore
     {
         try
         {
-            this.log.LogWarning(EventIds.SchedulingFailed, exception, "Failed to execute command {Command}.", command);
+            this.log.LogWarning(EventIds.SchedulingFailed, exception, "Failed to execute command {Command}", command);
 
             var persistent = (PersistentCommand)command;
-            if (persistent.RetryCount >= PersistentCommand.MaxRetryCount)
+            if (persistent.RetryCount >= MaxRetryCount)
             {
                 return;
             }
@@ -137,8 +145,8 @@ internal class CommandStore : IPersistentCommandStore
                     """,
                     new
                     {
-                        Command = JsonSerializer.Serialize(persistent.Command).AsNVarChar(2000),
-                        CommandLabel = persistent.CommandLabel.AsVarChar(250),
+                        Command = JsonSerializer.Serialize(persistent.Command).AsNVarChar(MaxCommandLength, throwOnMaxLength: true),
+                        CommandLabel = persistent.CommandLabel.AsVarChar(MaxCommandLabelLength),
                         persistent.DueTime,
                         RetryCount = persistent.RetryCount + 1,
                     }, tx);
@@ -146,14 +154,14 @@ internal class CommandStore : IPersistentCommandStore
             }
             catch (Exception x)
             {
-                this.log.LogWarning(EventIds.SchedulingFailed, x, "Failed to retry command {Command}.", command);
+                this.log.LogWarning(EventIds.SchedulingFailed, x, "Failed to retry command {Command}", command);
                 await tx.RollbackAsync(cancellationToken);
                 // no throw
             }
         }
         catch (Exception x) when (x is not OperationCanceledException ocx || ocx.CancellationToken != cancellationToken)
         {
-            this.log.LogWarning(EventIds.SchedulingFailed, x, "Failed to roll back from retrying command {Command}.", command);
+            this.log.LogWarning(EventIds.SchedulingFailed, x, "Failed to roll back from retrying command {Command}", command);
             // no throw
         }
     }

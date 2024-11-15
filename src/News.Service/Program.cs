@@ -147,7 +147,7 @@ static class Program
                     return dispatcher;
                 }));
                 services.AddSingleton(_ => SqlClientFactory.Instance.CreateDataSource(connectionString));
-                services.AddSingleton<IPersistentCommandStore, CommandStore>();
+                services.AddSingleton<CommandStore>();
                 services.AddHostedService<Worker>();
             })
             .UseWindowsService(options =>

@@ -8,12 +8,14 @@ using Relay.RequestModel.Default;
 sealed class CommandScheduler : DefaultRequestScheduler
 {
     private readonly Worker worker;
+    private readonly CommandStore commandStore;
     private readonly ILogger<CommandScheduler> log;
 
-    public CommandScheduler(Worker worker, IPersistentCommandStore commandStore, ILogger<CommandScheduler> log)
+    public CommandScheduler(Worker worker, CommandStore commandStore, ILogger<CommandScheduler> log)
         : base(commandStore)
     {
         this.worker = worker;
+        this.commandStore = commandStore;
         this.log = log;
     }
 
@@ -27,7 +29,7 @@ sealed class CommandScheduler : DefaultRequestScheduler
         }
         catch (Exception x) when (x is not OperationCanceledException ocx || ocx.CancellationToken != command.CancellationToken)
         {
-            this.log.LogError(EventIds.SchedulingFailed, x, "Failed to schedule command {Command} to be executed at {DueTime}.", command, at);
+            this.log.LogError(EventIds.SchedulingFailed, x, "Failed to schedule command {Command} to be executed at {DueTime}", command, at);
             throw;
         }
     }
@@ -36,18 +38,25 @@ sealed class CommandScheduler : DefaultRequestScheduler
     {
         try
         {
-            this.log.LogInformation(EventIds.SchedulingStarted, "Started scheduling.");
+            var purgedCommandCount = await this.commandStore.PurgeAsync(cancellationToken).ConfigureAwait(false);
+            if (purgedCommandCount > 0)
+            {
+                this.log.LogInformation(EventIds.SchedulingStarted, 
+                    "Purged command store: {PurgedCommandCount} outdated commands removed",
+                    purgedCommandCount);
+            }
 
+            this.log.LogInformation(EventIds.SchedulingStarted, "Started scheduling");
             await base.ProcessAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception x) when (x is not OperationCanceledException ocx || ocx.CancellationToken != cancellationToken)
         {
-            this.log.LogError(EventIds.SchedulingFailed, x, "Failed to process scheduled commands.");
+            this.log.LogError(EventIds.SchedulingFailed, x, "Failed to process scheduled commands");
             throw;
         }
         finally
         {
-            this.log.LogInformation(EventIds.SchedulingStopped, "Stopped scheduling.");
+            this.log.LogInformation(EventIds.SchedulingStopped, "Stopped scheduling");
         }
     }
 }

@@ -50,7 +50,7 @@ sealed class Worker : BackgroundService,
     private readonly Stopwatch busyMonitor;
 
     public Worker(IOptions<ServiceOptions> options, DbDataSource db, IHttpClientFactory web,
-        IQueueRequestDispatcher usr, IPersistentCommandStore commandStore, ILoggerFactory loggerFactory)
+        IQueueRequestDispatcher usr, CommandStore commandStore, ILoggerFactory loggerFactory)
     {
         this.options = options.Value;
         this.db = db;
