@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
 using News.Service.Scheduling;
 using Polly;
-using Relay.RequestModel.Default;
 using Spryer;
 using Storefront.UserAgent;
 
@@ -24,6 +23,7 @@ static class Program
 {
     static Program()
     {
+        DbEnum<FeedType>.Initialize();
         DbEnum<FeedStatus>.Initialize();
         DbEnum<FeedSafeguard>.Initialize();
         DbEnum<PostStatus>.Initialize();
