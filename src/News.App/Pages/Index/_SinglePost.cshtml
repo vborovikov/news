@@ -80,6 +80,10 @@
                                        class="text-reset">
                                         @Html.Raw(similarPost.FeedTitle)
                                     </a>
+                                    |
+                                    <time datetime="@similarPost.PublishedLocal.ToString(CultureInfo.InvariantCulture)">
+                                        @similarPost.PublishedLocal.ToString("f")
+                                    </time>
                                 </small>
                             </li>
                         }
