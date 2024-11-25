@@ -1022,7 +1022,7 @@ sealed class Worker : BackgroundService,
                     set @NextUpdated = dateadd(second, @UpdateDelay, @NextUpdated);
                 end;
 
-                if @UpdatePeriod = 0
+                if @UpdatePeriod <= 0
                 begin
                     set @UpdatePeriod = @UpdateDelay;
                 end;
