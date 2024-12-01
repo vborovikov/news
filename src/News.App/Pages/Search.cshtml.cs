@@ -1,5 +1,6 @@
 namespace News.App.Pages;
 
+using System.ComponentModel;
 using System.Data.Common;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +9,6 @@ using News.App.Data;
 using News.App.Pages.Shared;
 using Relay.InteractionModel;
 using Spryer;
-using XPage = Relay.InteractionModel.Page;
 
 [Authorize]
 public class SearchModel : AppPageModel
@@ -28,7 +28,7 @@ public class SearchModel : AppPageModel
 
     public async Task<IActionResult> OnGet([FromQuery] PageRequest page, string? channel = null, string? feed = null, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(page.Q))
+        if (string.IsNullOrWhiteSpace(page.Q))
             return RedirectToPage("Index");
 
         var sql =
@@ -42,17 +42,27 @@ public class SearchModel : AppPageModel
             inner join rss.UserChannels c on c.Id = f.ChannelId
             where f.UserId = @UserId
                 /**where-expr**/
-            order by ft.Rank desc, p.IsFavorite desc, p.IsRead desc, p.Published desc
+            order by /**order-by-expr**/
             offset @SkipCount rows fetch next @TakeCount rows only;
             """;
 
-        if (!string.IsNullOrEmpty(feed))
+        if (!string.IsNullOrWhiteSpace(feed))
         {
             sql = sql.Replace("/**where-expr**/", "and f.Slug = @FeedSlug and c.Slug = @ChannelSlug");
         }
-        else if (!string.IsNullOrEmpty(channel))
+        else if (!string.IsNullOrWhiteSpace(channel))
         {
             sql = sql.Replace("/**where-expr**/", "and c.Slug = @ChannelSlug");
+        }
+
+        var f = (SearchFilter)new DbEnum<SearchFilter>(page.F);
+        if (f == SearchFilter.Relevant)
+        {
+            sql = sql.Replace("/**order-by-expr**/", "ft.Rank desc, p.IsFavorite desc, p.IsRead desc, p.Published desc");
+        }
+        else
+        {
+            sql = sql.Replace("/**order-by-expr**/", "p.Published desc, ft.Rank desc, p.IsFavorite desc, p.IsRead desc");
         }
 
         var pageSize = page.GetPageSize(this.PageContext.HttpContext, PageSizeCookieName);
@@ -78,5 +88,13 @@ public class SearchModel : AppPageModel
         public required string ChannelName { get; init; }
         public required string FeedSlug { get; init; }
         public required string FeedTitle { get; init; }
+    }
+
+    public enum SearchFilter
+    {
+        [AmbientValue("R")]
+        Relevant,
+        [AmbientValue("T")]
+        Recent,
     }
 }

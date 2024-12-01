@@ -1,20 +1,41 @@
 ﻿@using Relay.InteractionModel
+@using Spryer
 @model IEnumerable<object>
 
 @{
     var (routeData, p, ps) = this.GetPageQueryParams(SearchModel.PageSizeCookieName);
+    var f = new DbEnum<SearchModel.SearchFilter>();
+    if (routeData.TryGetValue("f", out var fs))
+    {
+        f = new DbEnum<SearchModel.SearchFilter>(fs);
+        routeData.Remove("f");
+    }
+    fs = f.ToString().ToLowerInvariant();
 }
 
 <nav class="d-flex justify-content-between" aria-label="Pagination">
     <ul class="pagination">
         <li class="page-item @(p > 1 ? "" : "disabled")">
-            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p - 1)" asp-route-ps="@ps">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p - 1)" asp-route-ps="@ps" asp-route-f="@fs">
                 <i class="bi bi-chevron-left"></i>
             </a>
         </li>
         <li class="page-item @(Model.Count() == ps ? "" : "disabled")">
-            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p + 1)" asp-route-ps="@ps">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@(p + 1)" asp-route-ps="@ps" asp-route-f="@fs">
                 <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+
+    <ul class="pagination ms-auto px-1">
+        <li class="page-item @(f == SearchModel.SearchFilter.Relevant ? "disabled" : "")">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@ps" asp-route-f="r">
+                <i class="bi bi-arrow-down-up"></i>
+            </a>
+        </li>
+        <li class="page-item @(f == SearchModel.SearchFilter.Recent ? "disabled" : "")">
+            <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@ps" asp-route-f="t">
+                <i class="bi bi-clock"></i>
             </a>
         </li>
     </ul>
@@ -23,7 +44,7 @@
         @foreach (var pageSize in Page.AvailablePageSizes)
         {
             <li class="page-item @(pageSize == ps ? "disabled" : "")">
-                <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@pageSize">
+                <a class="page-link" asp-all-route-data="routeData" asp-route-p="@Page.FirstPageNumber" asp-route-ps="@pageSize" asp-route-f="@fs">
                     @pageSize
                 </a>
             </li>
