@@ -107,14 +107,25 @@ static class Program
                         ConfigureFeedHttpMessageHandler(handler, sp);
 
                         var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
-                        if (handler is HttpClientHandler { SupportsProxy: true } clientHandler && options.ProxyAddress is not null)
+                        if (options.ProxyAddress is not null)
                         {
                             var proxy = new WebProxy(options.ProxyAddress, BypassOnLocal: true)
                             {
                                 UseDefaultCredentials = false,
                             };
-                            clientHandler.Proxy = proxy;
-                            clientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
+                            if (handler is SocketsHttpHandler socketsHttpHandler)
+                            {
+                                socketsHttpHandler.UseProxy = true;
+                                socketsHttpHandler.Proxy = proxy;
+                                socketsHttpHandler.SslOptions.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+                            }
+                            else if (handler is HttpClientHandler { SupportsProxy: true } httpClientHandler)
+                            {
+                                httpClientHandler.UseProxy = true;
+                                httpClientHandler.Proxy = proxy;
+                                httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                            }
                         }
                     });
 
@@ -180,12 +191,13 @@ static class Program
 
     private static void ConfigureFeedHttpMessageHandler(HttpMessageHandler messageHandler, IServiceProvider sp)
     {
-        if (messageHandler is not HttpClientHandler handler)
-            return;
-            
-        if (handler.SupportsAutomaticDecompression)
+        if (messageHandler is SocketsHttpHandler socketsHttpHandler)
         {
-            handler.AutomaticDecompression = DecompressionMethods.All;
+            socketsHttpHandler.AutomaticDecompression = DecompressionMethods.All;
+        }
+        else if (messageHandler is HttpClientHandler { SupportsAutomaticDecompression: true } httpClientHandler)
+        {
+            httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
         }
     }
 }

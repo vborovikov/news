@@ -36,12 +36,6 @@ public class AppService : IApp
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? string.Empty;
 
-        var metadataPos = infoVersion.IndexOf('+');
-        if (metadataPos > 0)
-        {
-            infoVersion = infoVersion[..metadataPos];
-        }
-
         fileVersion = assembly?
             .GetCustomAttribute<AssemblyFileVersionAttribute>()?
             .Version ?? string.Empty;
