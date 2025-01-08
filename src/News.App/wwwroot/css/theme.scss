@@ -29,6 +29,11 @@ img, figure {
     @extend .img-fluid;
 }
 
+// Visual separation for quotes in posts
+blockquote {
+    @extend .bg-light;
+}
+
 //todo: modify content to wrap video and iframe tags with a parent element with .ratio and an aspect ratio class
 video {
     @extend .ratio;
