@@ -24,7 +24,7 @@
   <PropertyGroup>
     <Authors>Vladislav Borovikov</Authors>
     <Company>$(Authors)</Company>
-    <Copyright>Copyright © 2023-2024 Vladislav Borovikov</Copyright>
+    <Copyright>Copyright © 2023-2025 Vladislav Borovikov</Copyright>
     <Product>$(Title)</Product>
     <AssemblyTitle>$(Description)</AssemblyTitle>
   </PropertyGroup>
