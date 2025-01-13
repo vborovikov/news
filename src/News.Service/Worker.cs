@@ -16,11 +16,11 @@ using Data;
 using Dodkin.Dispatch;
 using FastMember;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Polly.Timeout;
 using Readability;
 using Relay.RequestModel;
-using Relay.RequestModel.Default;
 using Scheduling;
 using Spryer;
 using Storefront.UserAgent;
@@ -63,17 +63,69 @@ sealed class Worker : BackgroundService,
         this.busyMonitor = new Stopwatch();
     }
 
-    Task IAsyncCommandHandler<UpdatePostCommand>.ExecuteAsync(UpdatePostCommand command)
+    async Task IAsyncCommandHandler<UpdatePostCommand>.ExecuteAsync(UpdatePostCommand command)
     {
-        //todo: re-sanitize post
-        throw new NotImplementedException();
+        try
+        {
+            this.log.LogInformation(EventIds.PostUpdateInitiated, "Updating post '{postId}' at {time}",
+                command.PostId, DateTimeOffset.Now);
+
+            await using var cnn = await this.db.OpenConnectionAsync(command.CancellationToken);
+            var post = await cnn.QuerySingleOrDefaultAsync<DbPostUpdate>(
+                """
+                select p.Id, p.Link, p.FeedId, f.Safeguards
+                from rss.Posts p
+                inner join rss.Feeds f on f.Id = p.FeedId
+                where p.Id = @PostId and p.LocalContentSource is not null;
+                """, new { command.PostId });
+
+            if (post is not null)
+            {
+                await LocalizePostAsync(post, command.CancellationToken);
+                await SanitizePostAsync(post, command.CancellationToken);
+            }
+        }
+        catch (Exception x) when (x is not OperationCanceledException ocx || ocx.CancellationToken != command.CancellationToken)
+        {
+            this.log.LogError(EventIds.PostUpdateFailed, x, "Error while updating post '{postId}'", command.PostId);
+        }
+        finally
+        {
+            this.log.LogInformation(EventIds.PostUpdateCompleted, "Finished updating post '{postId}' at {time}",
+                command.PostId, DateTimeOffset.Now);
+        }
+    }
+
+    private async Task SanitizePostAsync(DbPostUpdate postUpdate, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var post = await cnn.QuerySingleAsync<DbPost>(
+                """
+                select p.Id, p.Link, p.Title, p.Status,
+                    isnull(p.LocalDescription, p.Description) as Description,
+                    isnull(p.LocalContent, p.Content) as Content
+                from rss.Posts p
+                where p.Id = @PostId;
+                """, new { PostId = postUpdate.Id });
+
+            await SanitizePostAsync(post, postUpdate.Safeguards, tx, cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception x) when (x is not OperationCanceledException ocx || ocx.CancellationToken != cancellationToken)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     async Task IAsyncCommandHandler<UpdateFeedCommand>.ExecuteAsync(UpdateFeedCommand command)
     {
         try
         {
-            this.log.LogInformation(EventIds.FeedUpdateStarted, "Updating feed '{feedId}' at: {time}",
+            this.log.LogInformation(EventIds.FeedUpdateInitiated, "Updating feed '{feedId}' at {time}",
                 command.FeedId, DateTimeOffset.Now);
 
             var feed = await GetFeedToUpdateAsync(command.FeedId, command.CancellationToken);
@@ -89,11 +141,11 @@ sealed class Worker : BackgroundService,
         }
         catch (Exception x)
         {
-            this.log.LogError(x, "Error while updating feed '{feedId}'", command.FeedId);
+            this.log.LogError(EventIds.FeedUpdateFailed, x, "Error while updating feed '{feedId}'", command.FeedId);
         }
         finally
         {
-            this.log.LogInformation(EventIds.FeedUpdateCompleted, "Finished updating feed '{feedId}' at: {time}",
+            this.log.LogInformation(EventIds.FeedUpdateCompleted, "Finished updating feed '{feedId}' at {time}",
                 command.FeedId, DateTimeOffset.Now);
         }
     }
@@ -349,7 +401,7 @@ sealed class Worker : BackgroundService,
         return status | PostStatus.SkipUpdate;
     }
 
-    private async Task LocalizePostAsync(DbPost post, CancellationToken cancellationToken)
+    private async Task LocalizePostAsync(DbPostInfo post, CancellationToken cancellationToken)
     {
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         var postSource = await cnn.QueryFirstOrDefaultAsync<string>(
@@ -434,7 +486,7 @@ sealed class Worker : BackgroundService,
                 {
                     this.log.LogDebug("Safeguarding post '{postTitle}' ({count}/{total}) {feedSource}",
                         post.Title, Interlocked.Increment(ref count), total, feed.Source);
-                    await SanitizePostAsync(post, feed, tx, cancellationToken);
+                    await SanitizePostAsync(post, feed.Safeguards, tx, cancellationToken);
                 });
 
                 await tx.CommitAsync(cancellationToken);
@@ -457,14 +509,14 @@ sealed class Worker : BackgroundService,
         }
     }
 
-    private static async Task SanitizePostAsync(DbPost post, DbFeed feed, DbTransaction tx, CancellationToken cancellationToken)
+    private static async Task SanitizePostAsync(DbPost post, FeedSafeguard feedSafeguards, DbTransaction tx, CancellationToken cancellationToken)
     {
-        var safeContent = SanitizeContent(post.Content, feed.Safeguards);
+        var safeContent = SanitizeContent(post.Content, feedSafeguards);
 
-        var safeDescription = feed.Safeguards.HasFlag(FeedSafeguard.DescriptionReplacer) ? post.Content : post.Description;
+        var safeDescription = feedSafeguards.HasFlag(FeedSafeguard.DescriptionReplacer) ? post.Content : post.Description;
         if (!string.IsNullOrWhiteSpace(safeDescription))
         {
-            safeDescription = SanitizeDescription(safeDescription, feed.Safeguards);
+            safeDescription = SanitizeDescription(safeDescription, feedSafeguards);
         }
 
         cancellationToken.ThrowIfCancellationRequested();

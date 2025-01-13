@@ -1,11 +1,10 @@
 ﻿namespace News.Service.Data;
 
 using System;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using Spryer;
 using Syndication;
 using Syndication.Feeds;
-using Spryer;
-using System.Diagnostics.CodeAnalysis;
 
 record DbFeed
 {
@@ -23,14 +22,20 @@ record DbPostInfo
 {
     public Guid Id { get; init; }
     public required string Link { get; init; }
-    public required string Title { get; init; }
-    public DbEnum<PostStatus> Status { get; init; }
 }
 
 record DbPost : DbPostInfo
 {
+    public required string Title { get; init; }
     public string? Description { get; init; }
     public required string Content {get; init; }
+    public DbEnum<PostStatus> Status { get; init; }
+}
+
+record DbPostUpdate : DbPostInfo
+{
+    public Guid FeedId { get; init; }
+    public DbEnum<FeedSafeguard> Safeguards { get; init; }
 }
 
 abstract record WrapperBase
