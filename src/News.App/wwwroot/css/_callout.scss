@@ -1,0 +1,41 @@
+﻿//
+// Callouts
+//
+
+$callout-padding: 1.25rem !default;
+$callout-margin-x: 1.25rem !default;
+$callout-margin-x-sm: .25rem !default;
+$callout-border-spacer: $spacer * .25 !default; 
+
+.callout {
+    padding: $callout-padding;
+    margin-top: $callout-margin-x;
+    margin-bottom: $callout-margin-x;
+    border: $border-width solid $border-color;
+    border-left-width: $callout-border-spacer;
+    @include border-radius($border-radius);
+}
+
+.callout h4 {
+    margin-bottom: $callout-margin-x-sm;
+}
+
+.callout p:last-child {
+    margin-bottom: 0;
+}
+
+.callout code {
+    @include border-radius($border-radius);
+}
+
+.callout + .callout {
+    margin-top: -$callout-margin-x-sm;
+}
+
+// Alternate callouts
+
+@each $color, $value in $theme-colors {
+  .callout-#{$color} {
+    border-left-color: $value;
+  }
+}

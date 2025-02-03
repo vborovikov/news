@@ -10200,3 +10200,66 @@ textarea.form-control-lg {
   padding-right: 0.1875rem;
   padding-left: 0.1875rem;
 }
+
+.callout, pre {
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #dee2e6;
+  border-left-width: 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.callout h4, pre h4, .callout .h4, pre .h4 {
+  margin-bottom: 0.25rem;
+}
+
+.callout p:last-child, pre p:last-child {
+  margin-bottom: 0;
+}
+
+.callout code, pre code {
+  border-radius: 0.25rem;
+}
+
+.callout + .callout, pre + .callout, .callout + pre, pre + pre {
+  margin-top: -0.25rem;
+}
+
+.callout-primary {
+  border-left-color: #0d6efd;
+}
+
+.callout-secondary {
+  border-left-color: #6c757d;
+}
+
+.callout-success {
+  border-left-color: #198754;
+}
+
+.callout-info {
+  border-left-color: #0dcaf0;
+}
+
+.callout-warning {
+  border-left-color: #ffc107;
+}
+
+.callout-danger {
+  border-left-color: #dc3545;
+}
+
+.callout-light {
+  border-left-color: #f8f9fa;
+}
+
+.callout-dark {
+  border-left-color: #212529;
+}
+
+blockquote {
+  border: 0 solid #dee2e6;
+  border-left-width: 0.25rem;
+  padding-left: 0.25rem;
+}

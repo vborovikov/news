@@ -5,6 +5,7 @@ $link-hover-decoration: underline;
     
 @import "../lib/bootstrap/scss/bootstrap";
 @import "_btnxs.scss";
+@import "_callout.scss";
 
 // Validation
 
@@ -32,6 +33,14 @@ img, figure {
 // Visual separation for quotes in posts
 blockquote {
     @extend .bg-light;
+    border: 0 solid $border-color;
+    border-left-width: $spacer * .25;
+    padding-left: $spacer * .25;
+}
+
+// Code blocks
+pre {
+    @extend .callout;
 }
 
 //todo: modify content to wrap video and iframe tags with a parent element with .ratio and an aspect ratio class
