@@ -11,6 +11,8 @@ using Spryer;
 
 static class Api
 {
+    private static readonly TimeSpan QueueTimeout = TimeSpan.FromSeconds(1);
+
     public static void Register(WebApplication app)
     {
         var feeds = app.MapGroup("/api/feed")
@@ -51,7 +53,7 @@ static class Api
             if ((DateTimeOffset.Now - updated).TotalHours > 1)
 #endif
             {
-                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken });
+                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken }, QueueTimeout);
             }
             return Results.Ok();
         }
@@ -111,7 +113,7 @@ static class Api
 
             if (postStatus.HasValue && !postStatus.Value.HasFlag(PostStatus.SkipUpdate))
             {
-                await rq.ExecuteAsync(new UpdatePostCommand(id) { CancellationToken = cancellationToken });
+                await rq.ExecuteAsync(new UpdatePostCommand(id) { CancellationToken = cancellationToken }, QueueTimeout);
                 return Results.Ok();
             }
 
