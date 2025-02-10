@@ -28,13 +28,22 @@ static class Api
 
         posts.MapPut("/{id:guid}", UpdatePost)
             .WithName(nameof(UpdatePost));
-
         posts.MapPatch("/{id:guid}", MarkPost)
             .WithName(nameof(MarkPost));
+
+        var slugs = app.MapGroup("/api/slug");
+
+        slugs.MapGet("/", SlugifyUrl)
+            .WithName(nameof(SlugifyUrl));
     }
 
     public static Guid GetUserId(this ClaimsPrincipal user) =>
         Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var guid) ? guid : Guid.Empty;
+
+    public static IResult SlugifyUrl(string url)
+    {
+        return Results.Text("test");
+    }
 
     public static async Task<IResult> UpdateFeed(Guid id,
         [FromServices] DbDataSource db, [FromServices] IQueueRequestDispatcher rq, ClaimsPrincipal user, CancellationToken cancellationToken)

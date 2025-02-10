@@ -1,5 +1,6 @@
 ﻿@page "/import/url"
 @model News.App.Pages.ImportUrlModel
+@inject LinkGenerator lg
 @{
     ViewData["Title"] = "Import";
 }
@@ -13,7 +14,8 @@
                 <label asp-for="Input.FeedUrl" class="form-label">URL</label>
                 <div class="input-group has-validation">
                     <span class="input-group-text"><i class="bi bi-box-arrow-up-right"></i></span>
-                    <input asp-for="Input.FeedUrl" type="url" class="form-control" placeholder="Feed URL or website address">
+                    <input asp-for="Input.FeedUrl" type="url" class="form-control" placeholder="Feed URL or website address"
+                           is="slug-generator" data-action="@lg.GetPathByName(nameof(Api.SlugifyUrl))" data-target="@Html.IdFor(m => m.Input.FeedSlug)">
                     <span asp-validation-for="Input.FeedUrl"></span>
                 </div>
             </div>
@@ -58,4 +60,5 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/slug-gen.js" type="module"></script>
 }
