@@ -40,9 +40,17 @@ static class Api
     public static Guid GetUserId(this ClaimsPrincipal user) =>
         Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var guid) ? guid : Guid.Empty;
 
-    public static IResult SlugifyUrl(string url)
+    public static async Task<IResult> SlugifyUrl(string url, [FromServices] IQueueRequestDispatcher rq)
     {
-        return Results.Text("test");
+        try
+        {
+            var result = await rq.RunAsync(new SlugifyFeedQuery(url), QueueTimeout);
+            return Results.Text(result);
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            return Results.Problem(x.Message);
+        }
     }
 
     public static async Task<IResult> UpdateFeed(Guid id,

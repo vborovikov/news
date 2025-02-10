@@ -30,7 +30,8 @@ using Syndication.Parser;
 sealed class Worker : BackgroundService,
     IAsyncCommandHandler<UpdateFeedCommand>,
     IAsyncCommandHandler<UpdatePostCommand>,
-    IAsyncCommandHandler<LocalizeFeedsCommand>
+    IAsyncCommandHandler<LocalizeFeedsCommand>,
+    IQueryHandler<SlugifyFeedQuery, string>
 {
     private static readonly TimeSpan Epsilon = TimeSpan.FromSeconds(1);
     private const int MaxLocalizingPostCount = 10;
@@ -1397,5 +1398,10 @@ sealed class Worker : BackgroundService,
         }
 
         return prevStatus;
+    }
+
+    string IQueryHandler<SlugifyFeedQuery, string>.Run(SlugifyFeedQuery query)
+    {
+        return query.FeedUrl.SlugifyFeed();
     }
 }
