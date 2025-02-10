@@ -20,19 +20,23 @@
     }
 
     #handleTextChanged(event) {
-        const urlValue = event.target.value;
-        const action = this.dataset.action;
-        if (urlValue && urlValue.length > 0 && action) {
-            const actionUrl = new URL(action, document.location);
-            actionUrl.searchParams.append('url', urlValue);
+        if ((!this.#slug.value && this.#slug.value !== 0) || this.#slug.value.length === 0) {
+            const urlValue = event.target.value;
+            const action = this.dataset.action;
+            if (urlValue && urlValue.length > 0 && action) {
+                const actionUrl = new URL(action, document.location);
+                actionUrl.searchParams.append('url', urlValue);
 
-            fetch(actionUrl, { method: 'GET' })
-                .then(response => response.text())
-                .then(slug => {
-                    if (slug && slug.length > 0) {
-                        this.#slug.value = slug;
+                fetch(actionUrl, { method: 'GET' }).then(response => {
+                    if (response.ok) {
+                        response.text().then(slug => {
+                            if (slug && slug.length > 0) {
+                                this.#slug.value = slug;
+                            }
+                        });
                     }
                 });
+            }
         }
     }
 }
