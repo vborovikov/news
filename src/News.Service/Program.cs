@@ -1,6 +1,8 @@
 namespace News.Service;
 
 using System.Net;
+using System.Net.Http;
+using System.Security.Authentication;
 using System.Text;
 using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
@@ -194,10 +196,18 @@ static class Program
         if (messageHandler is SocketsHttpHandler socketsHttpHandler)
         {
             socketsHttpHandler.AutomaticDecompression = DecompressionMethods.All;
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT && Environment.OSVersion.Version.Build <= 17763)
+            {
+                socketsHttpHandler.SslOptions.EnabledSslProtocols = SslProtocols.Tls12;
+            }
         }
         else if (messageHandler is HttpClientHandler { SupportsAutomaticDecompression: true } httpClientHandler)
         {
             httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT && Environment.OSVersion.Version.Build <= 17763)
+            {
+                httpClientHandler.SslProtocols = SslProtocols.Tls12;
+            }
         }
     }
 }
