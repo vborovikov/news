@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>NewsService</UserSecretsId>
     <AssemblyName>Newsmaker</AssemblyName>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -32,16 +33,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Properties\icon.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>News.Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\News\News.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Properties\icon.ico" />
+    <InternalsVisibleTo Include="News.Tests" />
+  </ItemGroup>
+
 </Project>
