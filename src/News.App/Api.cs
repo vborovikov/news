@@ -11,7 +11,7 @@ using Spryer;
 
 static class Api
 {
-    private static readonly TimeSpan QueueTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan QueueTimeout = TimeSpan.FromSeconds(1);
 
     public static void Register(WebApplication app)
     {

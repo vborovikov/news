@@ -168,7 +168,6 @@ public class FeedModel : EditPageModel
 
         public string? DescriptionPath { get; init; }
 
-        [RequiredIf(nameof(SafeguardContentExtractor), true)]
         public string? ContentPath { get; init; }
 
         [Display(Name = "Safety measures")]
@@ -204,10 +203,10 @@ public class FeedModel : EditPageModel
             set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.ImageLinkFixer : this.Safeguards & ~FeedSafeguard.ImageLinkFixer;
         }
 
-        public bool SafeguardPostLinkFixer
+        public bool SafeguardDescriptionShortener
         {
-            get => this.Safeguards.HasFlag(FeedSafeguard.PostLinkFixer);
-            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.PostLinkFixer : this.Safeguards & ~FeedSafeguard.PostLinkFixer;
+            get => this.Safeguards.HasFlag(FeedSafeguard.DescriptionShortener);
+            set => this.Safeguards = value ? this.Safeguards | FeedSafeguard.DescriptionShortener : this.Safeguards & ~FeedSafeguard.DescriptionShortener;
         }
 
         public bool IsValid => Uri.IsWellFormedUriString(this.FeedUrl, UriKind.Absolute) && this.ChannelId != Guid.Empty;

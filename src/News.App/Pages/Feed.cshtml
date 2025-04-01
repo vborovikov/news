@@ -76,18 +76,18 @@
                     <label asp-for="Input.SafeguardContentExtractor" class="form-check-label">Download content</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input asp-for="Input.SafeguardImageLinkFixer" type="checkbox" class="form-check-input" />
-                    <label asp-for="Input.SafeguardImageLinkFixer" class="form-check-label">Download images</label>
+                    <input asp-for="Input.SafeguardDescriptionReplacer" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardDescriptionReplacer" class="form-check-label">Replace description</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input asp-for="Input.SafeguardPostLinkFixer" type="checkbox" class="form-check-input" />
-                    <label asp-for="Input.SafeguardPostLinkFixer" class="form-check-label">Fix links to other posts</label>
+                    <input asp-for="Input.SafeguardImageLinkFixer" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardImageLinkFixer" class="form-check-label">Download images</label>
                 </div>
             </div>
             <div class="col-12 col-sm-6">
                 <div class="form-check form-switch">
-                    <input asp-for="Input.SafeguardDescriptionReplacer" type="checkbox" class="form-check-input" />
-                    <label asp-for="Input.SafeguardDescriptionReplacer" class="form-check-label">Replace description</label>
+                    <input asp-for="Input.SafeguardDescriptionShortener" type="checkbox" class="form-check-input" />
+                    <label asp-for="Input.SafeguardDescriptionShortener" class="form-check-label">Shorten description</label>
                 </div>
                 <div class="form-check form-switch">
                     <input asp-for="Input.SafeguardDescriptionImageRemover" type="checkbox" class="form-check-input" />
@@ -100,41 +100,6 @@
             </div>
         </fieldset>
 
-        <fieldset class="row g-3 mt-2">
-            <legend class="mb-0">Metadata</legend>
-            <div class="col-12 col-sm-6">
-                <label asp-for="Input.TitlePath" class="form-label">Title XPath</label>
-                <div class="input-group has-validation">
-                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
-                    <input asp-for="Input.TitlePath" type="text" class="form-control" placeholder="XPath expression">
-                    <span asp-validation-for="Input.TitlePath"></span>
-                </div>
-            </div>
-            <div class="col-12 col-sm-6">
-                <label asp-for="Input.AuthorPath" class="form-label">Author XPath</label>
-                <div class="input-group has-validation">
-                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
-                    <input asp-for="Input.AuthorPath" type="text" class="form-control" placeholder="XPath expression">
-                    <span asp-validation-for="Input.AuthorPath"></span>
-                </div>
-            </div>
-            <div class="col-12 col-sm-6 mt-0">
-                <label asp-for="Input.DescriptionPath" class="form-label">Description XPath</label>
-                <div class="input-group has-validation">
-                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
-                    <input asp-for="Input.DescriptionPath" type="text" class="form-control" placeholder="XPath expression">
-                    <span asp-validation-for="Input.DescriptionPath"></span>
-                </div>
-            </div>
-            <div class="col-12 col-sm-6 mt-0">
-                <label asp-for="Input.ContentPath" class="form-label">Content XPath</label>
-                <div class="input-group has-validation">
-                    <span class="input-group-text"><i class="bi bi-regex"></i></span>
-                    <input asp-for="Input.ContentPath" type="text" class="form-control" placeholder="XPath expression">
-                    <span asp-validation-for="Input.ContentPath"></span>
-                </div>
-            </div>
-        </fieldset>
         <div class="mt-4">
             <button type="submit" class="btn btn-outline-primary">Update</button>
             <button type="reset" class="btn btn-link link-secondary text-decoration-none">Cancel</button>

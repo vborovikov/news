@@ -125,6 +125,10 @@ public enum FeedSafeguard
     // Replaces external links to posts with internal links if possible
     [AmbientValue("FPST")]
     PostLinkFixer = 1 << 5,
+
+    // Shortens description if possible
+    [AmbientValue("DSSH")]
+    DescriptionShortener = 1 << 6,
 }
 
 [Flags]
