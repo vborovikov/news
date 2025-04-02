@@ -74,14 +74,29 @@ sealed class Worker : BackgroundService,
             await using var cnn = await this.db.OpenConnectionAsync(command.CancellationToken);
             var post = await cnn.QuerySingleOrDefaultAsync<DbPostUpdate>(
                 """
-                select p.Id, p.Link, p.FeedId, f.Safeguards
+                select p.Id, p.Link, p.Status, 
+                    p.FeedId, f.Safeguards, p.LocalContentSource
                 from rss.Posts p
                 inner join rss.Feeds f on f.Id = p.FeedId
-                where p.Id = @PostId and p.LocalContentSource is not null;
+                where p.Id = @PostId;
                 """, new { command.PostId });
 
             if (post is not null)
             {
+                if (string.IsNullOrWhiteSpace(post.LocalContentSource))
+                {
+                    if (post.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
+                    {
+                        using var postClient = this.web.CreateClient(HttpClients.Post);
+                        var windowShopper = new WindowShopper(postClient, this.usr, this.wslog);
+                        await DownloadPostContentAsync(post, windowShopper, command.CancellationToken);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+
                 await LocalizePostAsync(post, command.CancellationToken);
                 await SanitizePostAsync(post, command.CancellationToken);
             }
@@ -110,7 +125,7 @@ sealed class Worker : BackgroundService,
                     isnull(p.LocalContent, p.Content) as Content
                 from rss.Posts p
                 where p.Id = @PostId;
-                """, new { PostId = postUpdate.Id });
+                """, new { PostId = postUpdate.Id }, tx);
 
             await SanitizePostAsync(post, postUpdate.Safeguards, tx, cancellationToken);
             await tx.CommitAsync(cancellationToken);
@@ -333,7 +348,7 @@ sealed class Worker : BackgroundService,
         return Task.CompletedTask;
     }
 
-    private async Task DownloadPostContentAsync(DbPost post, WindowShopper client, CancellationToken cancellationToken)
+    private async Task DownloadPostContentAsync(DbPostInfo post, WindowShopper client, CancellationToken cancellationToken)
     {
         try
         {
@@ -370,7 +385,7 @@ sealed class Worker : BackgroundService,
         }
     }
 
-    private async Task StorePostUpdateErrorAsync(DbPost post, Exception error, CancellationToken cancellationToken)
+    private async Task StorePostUpdateErrorAsync(DbPostInfo post, Exception error, CancellationToken cancellationToken)
     {
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
         await using var tx = await cnn.BeginTransactionAsync(cancellationToken);

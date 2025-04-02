@@ -18,10 +18,11 @@ record DbFeed
     public string? LastModified { get; init; }
 }
 
-record DbPostInfo
+abstract record DbPostInfo
 {
     public Guid Id { get; init; }
     public required string Link { get; init; }
+    public DbEnum<PostStatus> Status { get; init; }
 }
 
 record DbPost : DbPostInfo
@@ -29,13 +30,13 @@ record DbPost : DbPostInfo
     public required string Title { get; init; }
     public string? Description { get; init; }
     public required string Content {get; init; }
-    public DbEnum<PostStatus> Status { get; init; }
 }
 
 record DbPostUpdate : DbPostInfo
 {
     public Guid FeedId { get; init; }
     public DbEnum<FeedSafeguard> Safeguards { get; init; }
+    public string? LocalContentSource { get; init; }
 }
 
 abstract record WrapperBase
