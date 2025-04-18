@@ -4,7 +4,7 @@
 <div class="row g-5">
     @foreach (var feed in Model.Feeds)
     {
-        <div class="col-md-9">
+        <div class="col-12 col-lg-9">
             <div class="d-flex justify-content-between border-bottom">
                 <header>
                     <h3>
@@ -86,7 +86,7 @@
                 <partial name="_Pagination" model="feed.Posts" />
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-lg-3">
             <aside class="position-sticky" style="top: 1rem;">
                 @if (!string.IsNullOrWhiteSpace(feed.Description))
                 {
