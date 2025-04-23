@@ -146,7 +146,7 @@ internal class CommandStore : IPersistentCommandStore
                     """,
                     new
                     {
-                        Command = JsonSerializer.Serialize(persistent.Command).AsNVarChar(MaxCommandLength, throwOnMaxLength: true),
+                        Command = persistent.Command.AsNVarChar(MaxCommandLength),
                         CommandLabel = persistent.CommandLabel.AsVarChar(MaxCommandLabelLength),
                         persistent.DueTime,
                         RetryCount = persistent.RetryCount + 1,
