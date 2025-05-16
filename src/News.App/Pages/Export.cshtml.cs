@@ -5,7 +5,7 @@ using System.Data.Common;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using News.App.Data;
+using Spryer;
 
 [Authorize]
 public class ExportModel : AppPageModel

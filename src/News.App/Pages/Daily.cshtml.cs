@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using News.App.Data;
 using Relay.InteractionModel;
+using Spryer;
 
 [Authorize]
 public class DailyModel : AppPageModel
