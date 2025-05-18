@@ -24,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageReference Include="Spryer" Version="0.9.11-beta.13" />
+    <PackageReference Include="Spryer" Version="0.9.11-beta.15" />
     <PackageReference Include="Spryer.AspNetCore.Identity.SqlServer" Version="0.2.2-beta" />
     <PackageReference Include="System.Runtime.Caching" Version="9.0.0" />
   </ItemGroup>
