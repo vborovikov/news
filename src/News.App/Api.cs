@@ -70,7 +70,7 @@ static class Api
             if ((DateTimeOffset.Now - updated).TotalHours > 1)
 #endif
             {
-                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken }, QueueTimeout);
+                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken });
             }
             return Results.Ok();
         }
@@ -130,7 +130,7 @@ static class Api
 
             if (postStatus.HasValue && !postStatus.Value.HasFlag(PostStatus.SkipUpdate))
             {
-                await rq.ExecuteAsync(new UpdatePostCommand(id) { CancellationToken = cancellationToken }, QueueTimeout);
+                await rq.ExecuteAsync(new UpdatePostCommand(id) { CancellationToken = cancellationToken });
                 return Results.Ok();
             }
 
