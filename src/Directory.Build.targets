@@ -8,8 +8,12 @@
           Condition="'$(GitBuildNumber)' == ''">
       <Output TaskParameter="ConsoleOutput" PropertyName="GitBuildNumber" />
     </Exec>
+    <Exec Command="git log -1 --format=%h" ConsoleToMSBuild="true"
+          Condition="'$(GitCommitHash)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
+    </Exec>
     <Exec Command="git log -1 --format=%%h" ConsoleToMSBuild="true"
-          Condition="'$(GitCommitHash)' == ''">
+          Condition="'$(GitCommitHash)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">
       <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
     </Exec>
     <PropertyGroup>
@@ -24,7 +28,7 @@
   <PropertyGroup>
     <Authors>Vladislav Borovikov</Authors>
     <Company>$(Authors)</Company>
-    <Copyright>Copyright © 2023-2025 Vladislav Borovikov</Copyright>
+    <Copyright>Copyright © 2023-$([System.DateTime]::Now.Year) $(Authors)</Copyright>
     <Product>$(Title)</Product>
     <AssemblyTitle>$(Description)</AssemblyTitle>
   </PropertyGroup>
