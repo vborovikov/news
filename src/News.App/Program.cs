@@ -35,8 +35,7 @@ public static class Program
             var options = sp.GetRequiredService<IOptions<AppOptions>>().Value;
             var logging = sp.GetRequiredService<ILoggerFactory>();
 
-            var dispatcher = new QueueRequestDispatcher(options.ServiceQueue, options.Endpoint,
-                logging.CreateLogger("News.App.Service"));
+            var dispatcher = new UdsRequestDispatcher(options.Endpoint, logging.CreateLogger("News.App.Service"));
             dispatcher.RecognizeTypesFrom(typeof(UpdateFeedCommand).Assembly);
 
             return dispatcher;
@@ -87,3 +86,10 @@ public static class Program
         app.Run();
     }
 }
+
+public sealed record AppOptions : BaseOptions
+{
+    public const string AppName = "Newsreader";
+}
+
+

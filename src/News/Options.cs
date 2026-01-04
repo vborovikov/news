@@ -1,7 +1,5 @@
 namespace News;
 
-using Dodkin;
-
 public abstract record BaseOptions
 {
     private DirectoryInfo? opmlDirectory;
@@ -13,54 +11,5 @@ public abstract record BaseOptions
     public required string ImagePath { get; init; } = @"C:\Tools\News\img";
     public DirectoryInfo ImageDirectory => this.imageDirectory ??= new(this.ImagePath);
 
-    public required MessageEndpoint Endpoint { get; init; }
+    public required string Endpoint { get; init; } = @"C:\Tools\News\Newsmaker.sock";
 }
-
-public sealed record AppOptions : BaseOptions
-{
-    public const string AppName = "Newsreader";
-
-    public AppOptions()
-    {
-        this.Endpoint = MessageEndpoint.FromName("newsreader");
-    }
-
-    public required MessageQueueName ServiceQueue { get; init; } = MessageQueueName.FromName("newsmaker");
-}
-
-public sealed record ServiceOptions : BaseOptions
-{
-    public const string ServiceName = "Newsmaker";
-
-    public ServiceOptions()
-    {
-        this.Endpoint = MessageEndpoint.FromName("newsmaker");
-    }
-
-    /// <summary>
-    /// Update interval for periodical feed updates.
-    /// </summary>
-    public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(8);
-    /// <summary>
-    /// Minimum update interval for scheduled feed updates.
-    /// </summary>
-    public TimeSpan MinUpdateInterval { get; init; } = TimeSpan.FromMinutes(15);
-    /// <summary>
-    /// Maximum update interval for scheduled feed updates.
-    /// </summary>
-    public TimeSpan MaxUpdateInterval { get; init; } = TimeSpan.FromDays(30);
-    /// <summary>
-    /// Update delay for scheduled feed updates with punctual posting.
-    /// </summary>
-    public TimeSpan UpdateDelay { get; init; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
-    /// User agent string for http requests.
-    /// </summary>
-    public string? UserAgent { get; init; }
-
-    public required MessageQueueName UserAgentQueue { get; init; } = MessageQueueName.FromName("useragent");
-
-    public Uri? ProxyAddress { get; init; } = null;
-}
-

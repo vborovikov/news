@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Authentication;
 using System.Text;
+using Dodkin;
 using Dodkin.Dispatch;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Options;
 using News.Service.Scheduling;
 using Polly;
 using Spryer;
-using Storefront.UserAgent;
+using WindowShopper;
 
 static class HttpClients
 {
@@ -69,14 +70,14 @@ static class Program
                         else
                         {
                             httpClient.DefaultRequestHeaders.UserAgent.Clear();
-                            httpClient.DefaultRequestHeaders.Add("User-Agent", AppInfo.Instance.UserAgent);
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", AppInfo.Shared.UserAgent);
                         }
 
                         // Overall timeout across all tries
-                        httpClient.Timeout = TimeSpan.FromMinutes(30);
+                        //httpClient.Timeout = TimeSpan.FromMinutes(3);
                     });
 
-                    http.AddStandardResilienceHandler(options =>
+                    /*http.AddStandardResilienceHandler(options =>
                     {
                         var attemptTimeout = TimeSpan.FromMinutes(3);
                         var retryNumberKey = new ResiliencePropertyKey<int>("retry-number");
@@ -95,7 +96,7 @@ static class Program
 
                             return ValueTask.FromResult(attemptTimeout + TimeSpan.FromMinutes(retryNumber));
                         };
-                    });
+                    });*/
                 });
 
                 // feed http client
@@ -153,7 +154,7 @@ static class Program
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
                     var logging = sp.GetRequiredService<ILoggerFactory>();
                     
-                    var dispatcher = new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
+                    var dispatcher = new QueueRequestDispatcher(options.UserAgentQueue, options.LegacyEndpoint,
                         logging.CreateLogger("News.Service.UserAgent"));
                     dispatcher.RecognizeTypesFrom(typeof(PageQuery).Assembly);
 
@@ -211,3 +212,36 @@ static class Program
         }
     }
 }
+
+public sealed record ServiceOptions : BaseOptions
+{
+    public const string ServiceName = "Newsmaker";
+
+    /// <summary>
+    /// Update interval for periodical feed updates.
+    /// </summary>
+    public TimeSpan UpdateInterval { get; init; } = TimeSpan.FromHours(8);
+    /// <summary>
+    /// Minimum update interval for scheduled feed updates.
+    /// </summary>
+    public TimeSpan MinUpdateInterval { get; init; } = TimeSpan.FromMinutes(15);
+    /// <summary>
+    /// Maximum update interval for scheduled feed updates.
+    /// </summary>
+    public TimeSpan MaxUpdateInterval { get; init; } = TimeSpan.FromDays(30);
+    /// <summary>
+    /// Update delay for scheduled feed updates with punctual posting.
+    /// </summary>
+    public TimeSpan UpdateDelay { get; init; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// User agent string for http requests.
+    /// </summary>
+    public string? UserAgent { get; init; }
+
+    public required MessageEndpoint LegacyEndpoint { get; init; } = MessageEndpoint.FromName("newsmaker");
+    public required MessageQueueName UserAgentQueue { get; init; } = MessageQueueName.FromName("useragent");
+
+    public Uri? ProxyAddress { get; init; } = null;
+}
+

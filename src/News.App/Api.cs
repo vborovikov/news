@@ -11,7 +11,7 @@ using Spryer;
 
 static class Api
 {
-    private static readonly TimeSpan QueueTimeout = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan QueueTimeout = TimeSpan.FromSeconds(10);
 
     public static void Register(WebApplication app)
     {
@@ -44,7 +44,7 @@ static class Api
     {
         try
         {
-            var result = await rq.RunAsync(new SlugifyFeedQuery(url), QueueTimeout);
+            var result = await rq.RunAsync(new SlugifyFeedQuery(url), TimeSpan.FromSeconds(1));
             return Results.Text(result);
         }
         catch (Exception x) when (x is not OperationCanceledException)
@@ -70,7 +70,7 @@ static class Api
             if ((DateTimeOffset.Now - updated).TotalHours > 1)
 #endif
             {
-                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken });
+                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken }, QueueTimeout);
             }
             return Results.Ok();
         }
@@ -130,7 +130,7 @@ static class Api
 
             if (postStatus.HasValue && !postStatus.Value.HasFlag(PostStatus.SkipUpdate))
             {
-                await rq.ExecuteAsync(new UpdatePostCommand(id) { CancellationToken = cancellationToken });
+                await rq.ExecuteAsync(new UpdatePostCommand(id) { CancellationToken = cancellationToken }, QueueTimeout);
                 return Results.Ok();
             }
 

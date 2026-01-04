@@ -23,9 +23,9 @@ using Readability;
 using Relay.RequestModel;
 using Scheduling;
 using Spryer;
-using Storefront.UserAgent;
 using Syndication;
 using Syndication.Parser;
+using WindowShopper;
 
 sealed class Worker : BackgroundService,
     IAsyncCommandHandler<UpdateFeedCommand>,
@@ -60,7 +60,7 @@ sealed class Worker : BackgroundService,
         this.scheduler = new(this, commandStore, loggerFactory.CreateLogger<CommandScheduler>());
         this.handler = new(this, this.options.Endpoint, loggerFactory.CreateLogger<RequestHandler>());
         this.log = loggerFactory.CreateLogger<Worker>();
-        this.wslog = loggerFactory.CreateLogger<WindowShopper>();
+        this.wslog = loggerFactory.CreateLogger<WebPageClient>();
         this.busyMonitor = new Stopwatch();
     }
 
@@ -88,7 +88,7 @@ sealed class Worker : BackgroundService,
                     if (post.Safeguards.HasFlag(FeedSafeguard.ContentExtractor))
                     {
                         using var postClient = this.web.CreateClient(HttpClients.Post);
-                        var windowShopper = new WindowShopper(postClient, this.usr, this.wslog);
+                        var windowShopper = new WebPageClient(postClient, this.usr, this.wslog);
                         await DownloadPostContentAsync(post, windowShopper, command.CancellationToken);
                     }
                     else
@@ -190,7 +190,7 @@ sealed class Worker : BackgroundService,
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         this.log.LogInformation(EventIds.ServiceStarted, "User agent string: {userAgent}",
-            this.options.UserAgent ?? AppInfo.Instance.UserAgent);
+            this.options.UserAgent ?? AppInfo.Shared.UserAgent);
 
         return Task.WhenAll(
             AggregateNewsAsync(stoppingToken),
@@ -305,7 +305,7 @@ sealed class Worker : BackgroundService,
 
         using var postClient = this.web.CreateClient(HttpClients.Post);
         using var imageClient = this.web.CreateClient(HttpClients.Image);
-        var windowShopper = new WindowShopper(postClient, this.usr, this.wslog);
+        var windowShopper = new WebPageClient(postClient, this.usr, this.wslog);
         foreach (var post in posts)
         {
             try
@@ -348,7 +348,7 @@ sealed class Worker : BackgroundService,
         return Task.CompletedTask;
     }
 
-    private async Task DownloadPostContentAsync(DbPostInfo post, WindowShopper client, CancellationToken cancellationToken)
+    private async Task DownloadPostContentAsync(DbPostInfo post, WebPageClient client, CancellationToken cancellationToken)
     {
         try
         {
@@ -1370,14 +1370,22 @@ sealed class Worker : BackgroundService,
     {
         if (error is SqlException { Number: 2627 })
         {
-            return
-                prevStatus.HasFlag(FeedStatus.DistinctId) ? FeedStatus.SkipUpdate :
-                prevStatus.HasFlag(FeedStatus.UniqueId) ? FeedStatus.DistinctId | prevStatus :
-                FeedStatus.UniqueId | prevStatus;
+            if (prevStatus.HasFlag(FeedStatus.DistinctId))
+            {
+                return FeedStatus.SkipUpdate;
+            }
+            else if (prevStatus.HasFlag(FeedStatus.UniqueId))
+            {
+                return FeedStatus.DistinctId | prevStatus;
+            }
+            else
+            {
+                return FeedStatus.UniqueId | prevStatus;
+            }
         }
         if (error is HttpRequestException httpEx)
         {
-            if (httpEx.GetBaseException() is SocketException { SocketErrorCode: SocketError.ConnectionReset })
+            if (httpEx.GetBaseException() is SocketException { SocketErrorCode: SocketError.ConnectionReset or SocketError.NoData })
             {
                 return FeedStatus.UseProxy | prevStatus;
             }
@@ -1387,13 +1395,6 @@ sealed class Worker : BackgroundService,
                 // probably TLS 1.3 not supported
                 return FeedStatus.UserAgent | prevStatus;
             }
-
-            return
-                prevStatus.HasFlag(FeedStatus.HttpError) ? FeedStatus.SkipUpdate :
-                httpEx.StatusCode == HttpStatusCode.Unauthorized || httpEx.StatusCode == HttpStatusCode.Forbidden ?
-                prevStatus.HasFlag(FeedStatus.UserAgent) ? FeedStatus.SkipUpdate :
-                FeedStatus.UserAgent | prevStatus :
-                FeedStatus.HttpError | prevStatus;
         }
         if (error is TimeoutRejectedException)
         {
@@ -1404,15 +1405,29 @@ sealed class Worker : BackgroundService,
             return prevStatus.HasFlag(FeedStatus.HtmlResponse) ? FeedStatus.SkipUpdate :
                 FeedStatus.HtmlResponse | prevStatus;
         }
-        if (error is TimeoutException)
+
+        // http -> http+proxy -> useragent -> useragent+proxy -> skip
+
+        if (prevStatus.HasFlag(FeedStatus.UserAgent))
         {
-            if (prevStatus.HasFlag(FeedStatus.UserAgent))
+            if (prevStatus.HasFlag(FeedStatus.UseProxy))
             {
                 return FeedStatus.SkipUpdate;
             }
+            else
+            {
+                return FeedStatus.UseProxy | prevStatus;
+            }
         }
-
-        return prevStatus;
+        else if (prevStatus.HasFlag(FeedStatus.UseProxy))
+        {
+            prevStatus &= ~FeedStatus.UseProxy;
+            return FeedStatus.UserAgent | prevStatus;
+        }
+        else
+        {
+            return FeedStatus.UseProxy | prevStatus;
+        }
     }
 
     string IQueryHandler<SlugifyFeedQuery, string>.Run(SlugifyFeedQuery query)
