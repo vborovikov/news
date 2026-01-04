@@ -15,6 +15,8 @@ using Storefront.UserAgent;
 
 static class HttpClients
 {
+    public static readonly TimeSpan Timeout = TimeSpan.FromMinutes(1);
+
     public const string Feed = "Feed";
     public const string FeedProxy = "FeedProxy";
     public const string Post = "Post";
@@ -71,6 +73,10 @@ static class Program
                             httpClient.DefaultRequestHeaders.UserAgent.Clear();
                             httpClient.DefaultRequestHeaders.Add("User-Agent", AppInfo.Instance.UserAgent);
                         }
+
+                        // Overall timeout across all tries
+                        //fixme: Timeout is infinite after this call!
+                        httpClient.Timeout = HttpClients.Timeout;
                     });
 
                     http.AddStandardResilienceHandler();
@@ -110,10 +116,13 @@ static class Program
                     });
 
                 // post http client
-                services.AddHttpClient(HttpClients.Post);
+                services.AddHttpClient(HttpClients.Post, (_, httpClient) =>
+                {
+                    httpClient.Timeout = HttpClients.Timeout;
+                });
 
                 // image download http client
-                services.AddHttpClient(HttpClients.Image, (sp, httpClient) =>
+                services.AddHttpClient(HttpClients.Image, (_, httpClient) =>
                 {
                     httpClient.DefaultRequestHeaders.Accept.Clear();
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/avif"));
@@ -124,13 +133,15 @@ static class Program
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/svg+xml"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/tiff"));
                     httpClient.DefaultRequestHeaders.Accept.Add(new("image/webp"));
+
+                    httpClient.Timeout = HttpClients.Timeout;
                 });
 
                 services.AddSingleton((Func<IServiceProvider, IQueueRequestDispatcher>)(sp =>
                 {
                     var options = sp.GetRequiredService<IOptions<ServiceOptions>>().Value;
                     var logging = sp.GetRequiredService<ILoggerFactory>();
-                    
+
                     var dispatcher = new QueueRequestDispatcher(options.UserAgentQueue, options.Endpoint,
                         logging.CreateLogger("News.Service.UserAgent"));
                     dispatcher.RecognizeTypesFrom(typeof(PageQuery).Assembly);
@@ -167,6 +178,8 @@ static class Program
 
         httpClient.DefaultRequestHeaders.AcceptCharset.Clear();
         httpClient.DefaultRequestHeaders.AcceptCharset.ParseAdd("UTF-8");
+
+        httpClient.Timeout = HttpClients.Timeout;
     }
 
     private static void ConfigureFeedHttpMessageHandler(HttpMessageHandler messageHandler, IServiceProvider sp)
