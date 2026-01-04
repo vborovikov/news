@@ -71,31 +71,9 @@ static class Program
                             httpClient.DefaultRequestHeaders.UserAgent.Clear();
                             httpClient.DefaultRequestHeaders.Add("User-Agent", AppInfo.Instance.UserAgent);
                         }
-
-                        // Overall timeout across all tries
-                        httpClient.Timeout = TimeSpan.FromMinutes(30);
                     });
 
-                    http.AddStandardResilienceHandler(options =>
-                    {
-                        var attemptTimeout = TimeSpan.FromMinutes(3);
-                        var retryNumberKey = new ResiliencePropertyKey<int>("retry-number");
-
-                        options.AttemptTimeout.Timeout = attemptTimeout;
-                        options.CircuitBreaker.SamplingDuration = attemptTimeout * 2;
-                        options.TotalRequestTimeout.Timeout = attemptTimeout * options.Retry.MaxRetryAttempts;
-
-                        options.AttemptTimeout.TimeoutGenerator = timeoutArgs =>
-                        {
-                            if (!timeoutArgs.Context.Properties.TryGetValue(retryNumberKey, out var retryNumber))
-                            {
-                                retryNumber = 0;
-                            }
-                            timeoutArgs.Context.Properties.Set(retryNumberKey, retryNumber + 1);
-
-                            return ValueTask.FromResult(attemptTimeout + TimeSpan.FromMinutes(retryNumber));
-                        };
-                    });
+                    http.AddStandardResilienceHandler();
                 });
 
                 // feed http client
