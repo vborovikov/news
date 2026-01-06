@@ -67,10 +67,10 @@
         </div>
 
         <div class="col-12 col-lg-3">
-            <aside class="position-sticky" style="top: 1rem;">
+            <aside class="position-sticky row justify-content-around" style="top: 1rem;">
                 @if (!string.IsNullOrWhiteSpace(feed.Description))
                 {
-                    <div class="p-4 mb-3 bg-light rounded">
+                    <div class="p-4 mb-3 bg-light rounded col-12 order-2 col-lg-12 order-lg-0">
                         <h4 class="">About</h4>
                         <p class="mb-0">@Html.Raw(feed.Description)</p>
                     </div>
@@ -80,7 +80,7 @@
                 {
                     var pubDate = feed.LastPublishedLocal.Value;
                     var pubDateLast = pubDate.AddYears(-1);
-                    <nav class="p-4">
+                    <nav class="p-4 col-4 order-0 col-lg-12 order-lg-1">
                         <h4 class="">Archives</h4>
                         <ol class="list-unstyled mb-0">
                             @while (pubDate > pubDateLast)
@@ -98,7 +98,7 @@
                         </ol>
                     </nav>
                 }
-                <div class="p-4">
+                <div class="p-4 col-4 order-1 col-lg-12 order-lg-2">
                     <h4 class="">Elsewhere</h4>
                     <ol class="list-unstyled">
                         <li><a href="@feed.Link">Website</a></li>
