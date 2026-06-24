@@ -6,6 +6,14 @@ using Spryer;
 using Syndication;
 using Syndication.Feeds;
 
+enum FeedUpdateMethod
+{
+    Direct,
+    Proxy,
+    UserAgent,
+    UserAgentProxy
+}
+
 record DbFeed
 {
     public Guid Id { get; init; }
@@ -16,6 +24,21 @@ record DbFeed
     public DateTimeOffset? Scheduled { get; init; }
     public string? EntityTag { get; init; }
     public string? LastModified { get; init; }
+
+    public FeedUpdateMethod UpdateMethod
+    {
+        get
+        {
+            if (this.Status.HasFlag(FeedStatus.UserAgent | FeedStatus.UseProxy))
+                return FeedUpdateMethod.UserAgentProxy;
+            if (this.Status.HasFlag(FeedStatus.UserAgent))
+                return FeedUpdateMethod.UserAgent;
+            if (this.Status.HasFlag(FeedStatus.UseProxy))
+                return FeedUpdateMethod.Proxy;
+
+            return FeedUpdateMethod.Direct;
+        }
+    }
 }
 
 abstract record DbPostInfo

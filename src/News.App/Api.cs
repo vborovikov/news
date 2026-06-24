@@ -70,7 +70,11 @@ static class Api
             if ((DateTimeOffset.Now - updated).TotalHours > 1)
 #endif
             {
-                await rq.ExecuteAsync(new UpdateFeedCommand(id) { CancellationToken = cancellationToken });
+                await rq.ExecuteAsync(new UpdateFeedCommand(id)
+                {
+                    CycleAccessMethods = true,
+                    CancellationToken = cancellationToken
+                });
             }
             return Results.Ok();
         }
