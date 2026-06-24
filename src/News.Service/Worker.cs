@@ -144,15 +144,14 @@ sealed class Worker : BackgroundService,
             this.log.LogInformation(EventIds.FeedUpdateInitiated, "Updating feed '{feedId}' at {time}",
                 command.FeedId, DateTimeOffset.Now);
 
-            var feed = await GetFeedToUpdateAsync(command.FeedId, command.CancellationToken);
+            var feed = await GetFeedToUpdateAsync(command.FeedId, forceUpdate: command.CycleUpdateMethods, command.CancellationToken);
             if (feed is null)
             {
                 this.log.LogWarning(EventIds.FeedUpdateSkipped, "Updating feed '{feedId}' skipped", command.FeedId);
                 return;
             }
 
-            var httpClient = this.web.CreateClient(feed.Status.HasFlag(FeedStatus.UseProxy) ? HttpClients.FeedProxy : HttpClients.Feed);
-            await UpdateFeedAsync(feed, httpClient, command.CancellationToken);
+            await UpdateFeedAsync(feed, command.CycleUpdateMethods, command.CancellationToken);
             await SafeguardFeedAsync(feed, command.CancellationToken);
         }
         catch (Exception x)
@@ -166,7 +165,122 @@ sealed class Worker : BackgroundService,
         }
     }
 
-    private async Task<DbFeed?> GetFeedToUpdateAsync(Guid feedId, CancellationToken cancellationToken)
+    private async Task UpdateFeedAsync(DbFeed feed, bool cycleUpdateMethods, CancellationToken cancellationToken)
+    {
+        try
+        {
+            Feed? update = null;
+            var updateMethod = feed.UpdateMethod;
+            do
+            {
+                try
+                {
+                    this.log.LogInformation(EventIds.FeedUpdateInitiated, "Updating feed '{Feed}' using {Method}",
+                        feed.Source, updateMethod);
+
+                    if (updateMethod == FeedUpdateMethod.Direct)
+                    {
+                        var http = this.web.CreateClient(HttpClients.Feed);
+                        update = await TryUpdateFeedWithHttpClientAsync(feed, http, cancellationToken);
+                    }
+                    else if (updateMethod == FeedUpdateMethod.Proxy)
+                    {
+                        var http = this.web.CreateClient(HttpClients.FeedProxy);
+                        update = await TryUpdateFeedWithHttpClientAsync(feed, http, cancellationToken);
+                    }
+                    else if (updateMethod == FeedUpdateMethod.UserAgent)
+                    {
+                        update = await TryUpdateFeedWithUserAgentAsync(feed, useProxy: false, cancellationToken);
+                    }
+                    else if (updateMethod == FeedUpdateMethod.UserAgentProxy)
+                    {
+                        update = await TryUpdateFeedWithUserAgentAsync(feed, useProxy: true, cancellationToken);
+                    }
+                }
+                // HttpClient throws a TimeoutException wrapped in TaskCanceledException so we must check that CancellationToken is not ours
+                catch (Exception x) when (x is not OperationCanceledException oce || oce.CancellationToken != cancellationToken)
+                {
+                    if (cycleUpdateMethods)
+                    {
+                        this.log.LogWarning(EventIds.FeedUpdateFailed, x, "Error updating feed {feedUrl} using {Method}", feed.Source, updateMethod);
+                    }
+                    else
+                    {
+                        this.log.LogError(EventIds.FeedUpdateFailed, x, "Error updating feed {feedUrl}", feed.Source);
+                        throw;
+                    }
+                }
+
+                if (!Enum.IsDefined(++updateMethod))
+                {
+                    updateMethod = FeedUpdateMethod.Direct;
+                }
+            } while (update is null && cycleUpdateMethods && feed.UpdateMethod != updateMethod);
+
+            if (update is not null)
+            {
+                await MergeFeedUpdateAsync(feed, update, cancellationToken);
+                if (cycleUpdateMethods)
+                {
+                    //todo: store the method
+                    await StoreFeedUpdateMethodAsync(feed, updateMethod, cancellationToken);
+                }
+            }
+            await TryScheduleFeedUpdateAsync(feed, cancellationToken);
+        }
+        // HttpClient throws a TimeoutException wrapped in TaskCanceledException so we must check that CancellationToken is not ours
+        catch (Exception x) when (x is not OperationCanceledException oce || oce.CancellationToken != cancellationToken)
+        {
+            this.log.LogError(EventIds.FeedUpdateFailed, x, "Error updating feed {feedUrl}", feed.Source);
+            await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
+
+            throw;
+        }
+    }
+
+    private async Task StoreFeedUpdateMethodAsync(DbFeed feed, FeedUpdateMethod updateMethod, CancellationToken cancellationToken)
+    {
+        await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
+        await using var tx = await cnn.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await cnn.ExecuteAsync(
+                """
+                update rss.Feeds
+                set Updated = @Updated, Status = @Status, Error = null
+                where Id = @FeedId;
+                """, new
+                {
+                    FeedId = feed.Id,
+                    Updated = DateTimeOffset.Now,
+                    Status = GetFeedStatus(updateMethod, feed.Status),
+                }, tx);
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            this.log.LogError(EventIds.FeedUpdateFailed, x, "Error storing feed update method");
+        }
+
+        static DbEnum<FeedStatus> GetFeedStatus(FeedUpdateMethod updateMethod, FeedStatus oldStatus)
+        {
+            var status = oldStatus & ~FeedStatus.SkipUpdate & ~FeedStatus.HttpError & ~FeedStatus.UserAgent & ~FeedStatus.UseProxy;
+
+            status |= updateMethod switch
+            {
+                FeedUpdateMethod.Proxy => FeedStatus.UseProxy,
+                FeedUpdateMethod.UserAgent => FeedStatus.UserAgent,
+                FeedUpdateMethod.UserAgentProxy => FeedStatus.UserAgent | FeedStatus.UseProxy,
+                _ => FeedStatus.None,
+            };
+
+            return status.AsDbEnum();
+        }
+    }
+
+    private async Task<DbFeed?> GetFeedToUpdateAsync(Guid feedId, bool forceUpdate, CancellationToken cancellationToken)
     {
         await using var cnn = await this.db.OpenConnectionAsync(cancellationToken);
 
@@ -175,9 +289,9 @@ sealed class Worker : BackgroundService,
             select f.Id, f.Source, f.Status, f.Safeguards, f.Updated, f.Scheduled,
                 f.EntityTag, f.LastModified
             from rss.Feeds f
-            where f.Id = @FeedId and f.Status not like '%SKIP%' --and f.Status not like '%HTTP%'
+            where f.Id = @FeedId and (@ForceUpdate = 1 or f.Status not like '%SKIP%')
             order by f.Updated;
-            """, new { FeedId = feedId });
+            """, new { FeedId = feedId, ForceUpdate = forceUpdate });
 
         return feed;
     }
@@ -187,15 +301,25 @@ sealed class Worker : BackgroundService,
         throw new NotImplementedException();
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         this.log.LogInformation(EventIds.ServiceStarted, "User agent string: {userAgent}",
             this.options.UserAgent ?? AppInfo.Instance.UserAgent);
 
-        return Task.WhenAll(
-            AggregateNewsAsync(stoppingToken),
-            this.scheduler.ProcessAsync(stoppingToken),
-            this.handler.ProcessAsync(stoppingToken));
+        try
+        {
+            var completedTask = await Task.WhenAny(
+                    AggregateNewsAsync(stoppingToken),
+                    this.scheduler.ProcessAsync(stoppingToken),
+                    this.handler.ProcessAsync(stoppingToken))
+                .WaitAsync(stoppingToken).ConfigureAwait(false);
+            await completedTask.ConfigureAwait(false);
+        }
+        catch (Exception x) when (x is not OperationCanceledException)
+        {
+            this.log.LogError(EventIds.ServiceStopped, x, "Failed to make news");
+            throw;
+        }
     }
 
     private async Task AggregateNewsAsync(CancellationToken stoppingToken)
@@ -780,7 +904,7 @@ sealed class Worker : BackgroundService,
             EnableStreaming = true,
         })
         {
-            using var feedReader = ObjectReader.Create(feeds,
+            await using var feedReader = ObjectReader.Create(feeds,
                 nameof(FeedOutline.Name), nameof(FeedOutline.Text),
                 nameof(FeedOutline.XmlUrl), nameof(FeedOutline.Url));
 
@@ -888,114 +1012,14 @@ sealed class Worker : BackgroundService,
             Feed? update = null;
             if (feed.Status.HasFlag(FeedStatus.UserAgent))
             {
-                var headers = new Dictionary<string, string>();
-                if (!string.IsNullOrWhiteSpace(feed.EntityTag))
-                {
-                    headers.Add("If-None-Match", feed.EntityTag);
-                }
-                if (!string.IsNullOrWhiteSpace(feed.LastModified))
-                {
-                    headers.Add("If-Modified-Since", feed.LastModified);
-                }
-                var feedData = await this.usr.RunAsync(new PageQuery(feed.Source)
-                {
-                    Headers = headers,
-                    UseProxy = feed.Status.HasFlag(FeedStatus.UseProxy),
-                    CancellationToken = cancellationToken
-                }, RequestTimeout);
-
-                // store headers, handle HTTP 304 Not Modified
-                if (feedData.StatusCode != HttpStatusCode.NotModified)
-                {
-                    feedData.EnsureSuccessStatusCode();
-                }
-                await UpdateFeedStatsAsync(feed with
-                {
-                    EntityTag = feedData.Headers.GetValueOrDefault("ETag"),
-                    LastModified = feedData.Headers.GetValueOrDefault("Last-Modified"),
-                }, cancellationToken);
-                if (feedData.StatusCode == HttpStatusCode.NotModified)
-                {
-                    // return early since the feed is up to date
-                    return;
-                }
-
-                if (feedData.Source.Length > 0)
-                {
-                    try
-                    {
-                        using var feedStream = feedData.ToStream();
-                        update = await Feed.FromStreamAsync(feedStream, cancellationToken);
-                    }
-                    catch (HtmlContentDetectedException x)
-                    {
-                        feed = MaybeUpdateFeedSource(feed, x.FeedLinks);
-                        throw;
-                    }
-                    catch (Exception)
-                    {
-                        using var feedStream = feedData.ToStream();
-                        feed = await MaybeUpdateFeedSource(feed, feedStream, cancellationToken);
-                        throw;
-                    }
-                }
+                update = await TryUpdateFeedWithUserAgentAsync(feed, useProxy: null, cancellationToken);
             }
-            if (update is null)
+            update ??= await TryUpdateFeedWithHttpClientAsync(feed, client, cancellationToken);
+
+            if (update is not null)
             {
-                using var request = new HttpRequestMessage(HttpMethod.Get, feed.Source);
-                if (!string.IsNullOrWhiteSpace(feed.EntityTag))
-                {
-                    request.Headers.Add("If-None-Match", feed.EntityTag);
-                }
-                if (!string.IsNullOrWhiteSpace(feed.LastModified))
-                {
-                    // no validation here since some servers return dates
-                    // in an invalid date-time format for the 'Last-Modified' header
-                    //todo: fix date-time format?
-                    request.Headers.TryAddWithoutValidation("If-Modified-Since", feed.LastModified);
-                }
-                using var response = await client.SendAsync(request, cancellationToken);
-                if (response.StatusCode == HttpStatusCode.Moved ||
-                    response.StatusCode == HttpStatusCode.Redirect ||
-                    response.StatusCode == HttpStatusCode.PermanentRedirect)
-                {
-                    var feedNewSource = response.Headers.Location?.ToString();
-                    if (!string.IsNullOrWhiteSpace(feedNewSource))
-                    {
-                        this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, feedNewSource);
-                        feed = feed with { Source = feedNewSource };
-                    }
-                }
-                // store headers, handle HTTP 304 Not Modified
-                if (response.StatusCode != HttpStatusCode.NotModified)
-                {
-                    response.EnsureSuccessStatusCode();
-                }
-                await UpdateFeedStatsAsync(feed with
-                {
-                    EntityTag = response.Headers.ETag?.ToString(),
-                    LastModified = response.Content.Headers.TryGetValues("Last-Modified", out var lastModified) ?
-                        string.Join(',', lastModified) : null,
-                }, cancellationToken);
-                if (response.StatusCode == HttpStatusCode.NotModified)
-                {
-                    // return early since the feed is up to date
-                    return;
-                }
-
-                var feedData = await response.Content.ReadAsStreamAsync(cancellationToken);
-                try
-                {
-                    update = await Feed.FromStreamAsync(feedData, cancellationToken);
-                }
-                catch (HtmlContentDetectedException x)
-                {
-                    feed = MaybeUpdateFeedSource(feed, x.FeedLinks);
-                    throw;
-                }
+                await MergeFeedUpdateAsync(feed, update, cancellationToken);
             }
-
-            await MergeFeedUpdateAsync(feed, update, cancellationToken);
             await TryScheduleFeedUpdateAsync(feed, cancellationToken);
         }
         // HttpClient throws a TimeoutException wrapped in TaskCanceledException so we must check that CancellationToken is not ours
@@ -1004,6 +1028,118 @@ sealed class Worker : BackgroundService,
             this.log.LogError(x, "Error updating feed {feedUrl}", feed.Source);
             await StoreFeedUpdateErrorAsync(feed, x, cancellationToken);
         }
+    }
+
+    private async Task<Feed?> TryUpdateFeedWithHttpClientAsync(DbFeed feed, HttpClient client, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, feed.Source);
+        if (!string.IsNullOrWhiteSpace(feed.EntityTag))
+        {
+            request.Headers.Add("If-None-Match", feed.EntityTag);
+        }
+        if (!string.IsNullOrWhiteSpace(feed.LastModified))
+        {
+            // no validation here since some servers return dates
+            // in an invalid date-time format for the 'Last-Modified' header
+            //todo: fix date-time format?
+            request.Headers.TryAddWithoutValidation("If-Modified-Since", feed.LastModified);
+        }
+        using var response = await client.SendAsync(request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.Moved ||
+                            response.StatusCode == HttpStatusCode.Redirect ||
+                            response.StatusCode == HttpStatusCode.PermanentRedirect)
+        {
+            var feedNewSource = response.Headers.Location?.ToString();
+            if (!string.IsNullOrWhiteSpace(feedNewSource))
+            {
+                this.log.LogDebug("Updating feed source from {feedUrl} to {feedNewUrl}", feed.Source, feedNewSource);
+                feed = feed with { Source = feedNewSource };
+            }
+        }
+        // store headers, handle HTTP 304 Not Modified
+        if (response.StatusCode != HttpStatusCode.NotModified)
+        {
+            response.EnsureSuccessStatusCode();
+        }
+        await UpdateFeedStatsAsync(feed with
+        {
+            EntityTag = response.Headers.ETag?.ToString(),
+            LastModified = response.Content.Headers.TryGetValues("Last-Modified", out var lastModified) ?
+                string.Join(',', lastModified) : null,
+        }, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotModified)
+        {
+            // return early since the feed is up to date
+            return null;
+        }
+
+        var feedData = await response.Content.ReadAsStreamAsync(cancellationToken);
+        try
+        {
+            return await Feed.FromStreamAsync(feedData, cancellationToken);
+        }
+        catch (HtmlContentDetectedException x)
+        {
+            feed = MaybeUpdateFeedSource(feed, x.FeedLinks);
+            throw;
+        }
+    }
+
+    private async Task<Feed?> TryUpdateFeedWithUserAgentAsync(DbFeed feed, bool? useProxy, CancellationToken cancellationToken)
+    {
+        var headers = new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(feed.EntityTag))
+        {
+            headers.Add("If-None-Match", feed.EntityTag);
+        }
+        if (!string.IsNullOrWhiteSpace(feed.LastModified))
+        {
+            headers.Add("If-Modified-Since", feed.LastModified);
+        }
+        var feedData = await this.usr.RunAsync(new PageQuery(feed.Source)
+        {
+            Headers = headers,
+            UseProxy = useProxy ?? feed.Status.HasFlag(FeedStatus.UseProxy),
+            CancellationToken = cancellationToken
+        }, RequestTimeout);
+
+        // store headers, handle HTTP 304 Not Modified
+        if (feedData.StatusCode != HttpStatusCode.NotModified)
+        {
+            feedData.EnsureSuccessStatusCode();
+        }
+        await UpdateFeedStatsAsync(feed with
+        {
+            EntityTag = feedData.Headers.GetValueOrDefault("ETag"),
+            LastModified = feedData.Headers.GetValueOrDefault("Last-Modified"),
+        }, cancellationToken);
+        if (feedData.StatusCode == HttpStatusCode.NotModified)
+        {
+            // return early since the feed is up to date
+            return null;
+        }
+
+        if (feedData.Source.Length > 0)
+        {
+            try
+            {
+                await using var feedStream = feedData.ToStream();
+                return await Feed.FromStreamAsync(feedStream, cancellationToken);
+            }
+            catch (HtmlContentDetectedException x)
+            {
+                feed = MaybeUpdateFeedSource(feed, x.FeedLinks);
+                throw;
+            }
+            catch (Exception)
+            {
+                await using var feedStream = feedData.ToStream();
+                feed = await MaybeUpdateFeedSource(feed, feedStream, cancellationToken);
+                throw;
+            }
+        }
+
+        return null;
     }
 
     private async Task UpdateFeedStatsAsync(DbFeed feed, CancellationToken cancellationToken)
@@ -1246,7 +1382,7 @@ sealed class Worker : BackgroundService,
                     feedItems = feedItems.DistinctBy(fi => fi.Id);
                 }
 
-                using var postReader = ObjectReader.Create(
+                await using var postReader = ObjectReader.Create(
                     feedItems,
                     nameof(FeedItemWrapper.Id),
                     nameof(FeedItemWrapper.Link),
