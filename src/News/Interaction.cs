@@ -2,7 +2,10 @@
 
 using Dodkin.Dispatch;
 
-public record UpdateFeedCommand(Guid FeedId) : Command { }
+public record UpdateFeedCommand(Guid FeedId) : Command
+{ 
+    public bool CycleUpdateMethods { get; init; }
+}
 
 public record UpdatePostCommand(Guid PostId) : Command { }
 
