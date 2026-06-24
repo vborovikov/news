@@ -9,9 +9,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.EventLog;
 using Microsoft.Extensions.Options;
 using News.Service.Scheduling;
-using Polly;
 using Spryer;
-using Storefront.UserAgent;
+using WindowShopper;
 
 static class HttpClients
 {
@@ -71,7 +70,7 @@ static class Program
                         else
                         {
                             httpClient.DefaultRequestHeaders.UserAgent.Clear();
-                            httpClient.DefaultRequestHeaders.Add("User-Agent", AppInfo.Instance.UserAgent);
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", AppInfo.Shared.UserAgent);
                         }
 
                         // Overall timeout across all tries
